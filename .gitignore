@@ -39,3 +39,4 @@ release.keystore
 **/*.keystore
 **/*.jks
 **/*.p12
+vision.md
