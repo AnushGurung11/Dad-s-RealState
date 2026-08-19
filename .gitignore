@@ -1,0 +1,16 @@
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# Project artifacts (also covered by app/.gitignore for app internals)
+build/
+.dart_tool/
+key.properties
+release.keystore

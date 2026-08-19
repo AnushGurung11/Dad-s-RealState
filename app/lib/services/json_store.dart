@@ -1,0 +1,338 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import '../config.dart';
+import '../models/bed.dart';
+import '../models/flat.dart';
+import '../models/payment.dart';
+import '../models/person.dart';
+
+/// Storage interface. All reads/writes in the app go through this class so no
+/// screen ever touches files directly.
+abstract class JsonStore {
+  List<Flat> get flats;
+  List<Bed> get beds;
+  List<Person> get people;
+  List<Payment> get payments;
+
+  /// Invoked whenever a background disk write fails, so the app can surface a
+  /// plain error to the user instead of crashing silently. Ignored by
+  /// in-memory implementations.
+  void Function(Object error, StackTrace stackTrace)? onWriteError;
+
+  /// Loads all collections from persistent storage. Safe to call once at boot.
+  Future<void> load();
+
+  /// Persists a flat. Schedules a debounced disk write.
+  void upsertFlat(Flat flat);
+
+  /// Removes a flat and any beds belonging to it. Schedules a debounced write.
+  void deleteFlat(String flatId);
+
+  /// Persists a bed. Schedules a debounced disk write.
+  void upsertBed(Bed bed);
+
+  /// Removes a bed. Schedules a debounced write.
+  void deleteBed(String bedId);
+
+  /// Persists a person. Schedules a debounced disk write.
+  void upsertPerson(Person person);
+
+  /// Removes a person. Schedules a debounced write.
+  void deletePerson(String personId);
+
+  /// Persists a payment. Schedules a debounced write.
+  void upsertPayment(Payment payment);
+
+  /// Removes a payment. Schedules a debounced write.
+  void deletePayment(String paymentId);
+
+  /// Forces any pending writes to disk immediately.
+  Future<void> flush();
+
+  /// Cancels pending writes and releases resources.
+  void dispose();
+}
+
+/// In-memory [JsonStore] with no I/O. Used as a fake in widget tests and as the
+/// base for [LocalJsonStore].
+class InMemoryJsonStore implements JsonStore {
+  final List<Flat> _flats = [];
+  final List<Bed> _beds = [];
+  final List<Person> _people = [];
+  final List<Payment> _payments = [];
+
+  @override
+  void Function(Object error, StackTrace stackTrace)? onWriteError;
+
+  @override
+  List<Flat> get flats => List.unmodifiable(_flats);
+
+  @override
+  List<Bed> get beds => List.unmodifiable(_beds);
+
+  @override
+  List<Person> get people => List.unmodifiable(_people);
+
+  @override
+  List<Payment> get payments => List.unmodifiable(_payments);
+
+  @override
+  Future<void> load() async {}
+
+  @override
+  void upsertFlat(Flat flat) {
+    final index = _flats.indexWhere((f) => f.id == flat.id);
+    if (index >= 0) {
+      _flats[index] = flat;
+    } else {
+      _flats.add(flat);
+    }
+  }
+
+  @override
+  void deleteFlat(String flatId) {
+    _flats.removeWhere((f) => f.id == flatId);
+    _beds.removeWhere((b) => b.flatId == flatId);
+  }
+
+  @override
+  void upsertBed(Bed bed) {
+    final index = _beds.indexWhere((b) => b.id == bed.id);
+    if (index >= 0) {
+      _beds[index] = bed;
+    } else {
+      _beds.add(bed);
+    }
+  }
+
+  @override
+  void deleteBed(String bedId) {
+    _beds.removeWhere((b) => b.id == bedId);
+    _people.removeWhere((p) => p.bedId == bedId);
+  }
+
+  @override
+  void upsertPerson(Person person) {
+    final index = _people.indexWhere((p) => p.id == person.id);
+    if (index >= 0) {
+      _people[index] = person;
+    } else {
+      _people.add(person);
+    }
+  }
+
+  @override
+  void deletePerson(String personId) {
+    _people.removeWhere((p) => p.id == personId);
+  }
+
+  @override
+  void upsertPayment(Payment payment) {
+    final index = _payments.indexWhere((p) => p.id == payment.id);
+    if (index >= 0) {
+      _payments[index] = payment;
+    } else {
+      _payments.add(payment);
+    }
+  }
+
+  @override
+  void deletePayment(String paymentId) {
+    _payments.removeWhere((p) => p.id == paymentId);
+  }
+
+  @override
+  Future<void> flush() async {}
+
+  @override
+  void dispose() {}
+}
+
+/// File-backed [JsonStore] that persists collections as JSON files in the app
+/// documents directory using atomic tmp-file + rename writes and a debounced
+/// save timer.
+class LocalJsonStore extends InMemoryJsonStore {
+  LocalJsonStore({
+    required this.directory,
+    this.debounce = const Duration(milliseconds: 300),
+  });
+
+  /// Directory where the JSON files live. Injectable for tests.
+  final Directory directory;
+  final Duration debounce;
+
+  Timer? _saveTimer;
+  bool _disposed = false;
+
+  Future<File> _file(String name) async {
+    await directory.create(recursive: true);
+    return File('${directory.path}${Platform.pathSeparator}$name');
+  }
+
+  Future<void> _atomicWrite(File file, String contents) async {
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(contents, flush: true);
+    if (await file.exists()) {
+      await file.delete();
+    }
+    await tmp.rename(file.path);
+  }
+
+  Map<String, dynamic> _encode<T>(
+    List<T> items,
+    Map<String, dynamic> Function(T) toJson,
+  ) {
+    return {
+      'schemaVersion': AppConfig.schemaVersion,
+      'items': items.map(toJson).toList(),
+    };
+  }
+
+  Future<void> _writeFile(String name, Map<String, dynamic> encoded) async {
+    final file = await _file(name);
+    await _atomicWrite(file, const JsonEncoder.withIndent('  ').convert(encoded));
+  }
+
+  Future<Map<String, dynamic>?> _readFile(String name) async {
+    final file = await _file(name);
+    if (!await file.exists()) return null;
+    try {
+      return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    } on FormatException {
+      // Corrupt file: fall back to empty data rather than crashing the app.
+      return null;
+    }
+  }
+
+  void _scheduleSave() {
+    if (_disposed) return;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(debounce, () {
+      _saveTimer = null;
+      unawaited(_writeAll());
+    });
+  }
+
+  Future<void> _writeAll() async {
+    try {
+      await Future.wait([
+        _writeFile(AppConfig.metaFileName, {
+          'schemaVersion': AppConfig.schemaVersion,
+        }),
+        _writeFile(AppConfig.flatsFileName, _encode(flats, (f) => f.toJson())),
+        _writeFile(AppConfig.bedsFileName, _encode(beds, (b) => b.toJson())),
+        _writeFile(AppConfig.peopleFileName, _encode(people, (p) => p.toJson())),
+        _writeFile(AppConfig.paymentsFileName, _encode(payments, (p) => p.toJson())),
+      ]);
+    } catch (error, stackTrace) {
+      onWriteError?.call(error, stackTrace);
+    }
+  }
+
+  @override
+  Future<void> load() async {
+    final meta = await _readFile(AppConfig.metaFileName);
+    final storedVersion = (meta?['schemaVersion'] as num?)?.toInt() ?? 0;
+
+    if (storedVersion > AppConfig.schemaVersion) {
+      throw StateError(
+        'Data was written by a newer version of the app '
+        '(schema $storedVersion > ${AppConfig.schemaVersion}). Please upgrade renttrack.',
+      );
+    }
+
+    if (storedVersion < AppConfig.schemaVersion) {
+      await migrate(fromVersion: storedVersion, toVersion: AppConfig.schemaVersion);
+    }
+
+    final rawFlats = await _readFile(AppConfig.flatsFileName);
+    final rawBeds = await _readFile(AppConfig.bedsFileName);
+    final rawPeople = await _readFile(AppConfig.peopleFileName);
+    final rawPayments = await _readFile(AppConfig.paymentsFileName);
+
+    for (final item in rawFlats?['items'] as List? ?? const <Object?>[]) {
+      super.upsertFlat(Flat.fromJson(item as Map<String, dynamic>));
+    }
+    for (final item in rawBeds?['items'] as List? ?? const <Object?>[]) {
+      super.upsertBed(Bed.fromJson(item as Map<String, dynamic>));
+    }
+    for (final item in rawPeople?['items'] as List? ?? const <Object?>[]) {
+      super.upsertPerson(Person.fromJson(item as Map<String, dynamic>));
+    }
+    for (final item in rawPayments?['items'] as List? ?? const <Object?>[]) {
+      super.upsertPayment(Payment.fromJson(item as Map<String, dynamic>));
+    }
+
+    await _writeAll();
+  }
+
+  /// Migration hook, invoked by [load] when the stored schema version is older
+  /// than the current one. Subclasses may override to transform data. The
+  /// default implementation performs no migration.
+  Future<void> migrate({required int fromVersion, required int toVersion}) async {}
+
+  @override
+  void upsertFlat(Flat flat) {
+    super.upsertFlat(flat);
+    _scheduleSave();
+  }
+
+  @override
+  void deleteFlat(String flatId) {
+    super.deleteFlat(flatId);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertBed(Bed bed) {
+    super.upsertBed(bed);
+    _scheduleSave();
+  }
+
+  @override
+  void deleteBed(String bedId) {
+    super.deleteBed(bedId);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertPerson(Person person) {
+    super.upsertPerson(person);
+    _scheduleSave();
+  }
+
+  @override
+  void deletePerson(String personId) {
+    super.deletePerson(personId);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertPayment(Payment payment) {
+    super.upsertPayment(payment);
+    _scheduleSave();
+  }
+
+  @override
+  void deletePayment(String paymentId) {
+    super.deletePayment(paymentId);
+    _scheduleSave();
+  }
+
+  @override
+  Future<void> flush() async {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    if (_disposed) return;
+    await _writeAll();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _saveTimer?.cancel();
+    _saveTimer = null;
+  }
+}
