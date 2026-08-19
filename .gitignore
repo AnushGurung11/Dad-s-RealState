@@ -2,15 +2,40 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+*.log
 
-# Editors
+# Editors / IDEs
 .idea/
 *.iml
+*.ipr
+*.iws
 .vscode/
 *.swp
 
-# Project artifacts (also covered by app/.gitignore for app internals)
+# Flutter / Dart
 build/
 .dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/coverage/
+captures/
+app.*.symbols
+app.*.map.json
+
+# Android
+local.properties
+.gradle/
+.cxx/
+/gradlew
+/gradlew.bat
+gradle-wrapper.jar
+GeneratedPluginRegistrant.java
+
+# Signing secrets - never commit these
 key.properties
+**/key.properties
 release.keystore
+**/*.keystore
+**/*.jks
+**/*.p12

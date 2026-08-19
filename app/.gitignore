@@ -4,6 +4,8 @@
 *.pyc
 *.swp
 .DS_Store
+Thumbs.db
+desktop.ini
 .atom/
 .build/
 .buildlog/
@@ -18,11 +20,6 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
@@ -32,6 +29,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/captures/
 
 # Symbolication related
 app.*.symbols
@@ -44,8 +42,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Signing secrets — never commit these
+# Signing secrets - never commit these
 key.properties
+**/key.properties
 release.keystore
-android/key.properties
-android/app/release.keystore
+**/*.keystore
+**/*.jks
+**/*.p12
+local.properties
