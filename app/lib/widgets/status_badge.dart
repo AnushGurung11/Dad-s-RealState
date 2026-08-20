@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 
-import '../models/payment.dart';
+import '../theme/app_theme.dart';
 
+/// The set of visual states every "Paid"/"Overdue"/"Vacant"-style badge can be
+/// in. Colors come from [AppStatusColors], never hardcoded hex values.
+enum StatusKind { success, warning, danger, neutral }
+
+/// Reusable pill badge for status labels. Future screens must use this widget
+/// for status indicators instead of one-off colored containers.
 class StatusBadge extends StatelessWidget {
-  const StatusBadge({super.key, required this.status});
+  const StatusBadge({super.key, required this.kind, required this.label});
 
-  final PaymentStatus status;
+  final StatusKind kind;
+  final String label;
 
   Color _color(BuildContext context) {
-    switch (status) {
-      case PaymentStatus.paid:
-        return Colors.green.shade600;
-      case PaymentStatus.partial:
-        return Colors.amber.shade700;
-      case PaymentStatus.unpaid:
-        return Colors.red.shade600;
-    }
+    final colors = Theme.of(context).extension<AppStatusColors>()!;
+    return switch (kind) {
+      StatusKind.success => colors.success,
+      StatusKind.warning => colors.warning,
+      StatusKind.danger => colors.danger,
+      StatusKind.neutral => colors.neutral,
+    };
   }
 
   @override
@@ -26,16 +32,14 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
-        status.name.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-          letterSpacing: 0.5,
-        ),
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }

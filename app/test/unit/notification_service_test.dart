@@ -2,7 +2,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/models/lease_cheque_setting.dart';
 import 'package:renttrack/services/notification_service.dart';
 
-import '../helpers.dart';
+/// Records scheduling calls instead of touching platform channels.
+class FakeNotificationScheduler implements NotificationScheduler {
+  final List<({DateTime when, int id, String title, String body})> scheduled =
+      [];
+  final List<int> cancelled = [];
+
+  @override
+  Future<void> scheduleAt({
+    required DateTime when,
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    scheduled.add((when: when, id: id, title: title, body: body));
+  }
+
+  @override
+  Future<void> cancel(int id) async {
+    cancelled.add(id);
+  }
+}
 
 void main() {
   LeaseChequeSetting setting({
