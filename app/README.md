@@ -128,6 +128,32 @@ storeFile=release.keystore
 
 and place `release.keystore` in `app/android/`.
 
+## Automatic Drive upload + Google Chat notification (optional)
+
+After each release the `upload` job (`release.yml`) uploads the built APK to a
+Google Drive folder with a public link and posts that link to a Google Chat
+space. Configure three more secrets (the job is skipped until
+`GDRIVE_SERVICE_ACCOUNT_JSON` and `GDRIVE_FOLDER_ID` are set):
+
+| Secret | Value |
+|--------|-------|
+| `GDRIVE_SERVICE_ACCOUNT_JSON` | Google Cloud service-account JSON key (raw or base64) with the **Drive API** enabled |
+| `GDRIVE_FOLDER_ID` | ID of a Drive folder **shared with the service account email** (Editor) |
+| `GCHAT_WEBHOOK_URL` | Google Chat webhook URL (space → Apps → Manage webhooks); omit to skip Chat messages |
+
+Steps once:
+
+1. Create a service account in Google Cloud (`console.cloud.google.com` →
+   IAM → Service accounts), enable **Google Drive API** for the project, and
+   download its JSON key → `GDRIVE_SERVICE_ACCOUNT_JSON`.
+2. In your Drive, create a folder, share it with the service account email
+   (Editor), and copy the folder ID from the URL → `GDRIVE_FOLDER_ID`.
+3. In Google Chat, create a space → **Apps → Manage webhooks** → add a
+   webhook and copy its URL → `GCHAT_WEBHOOK_URL`.
+
+The upload logic lives in `.github/scripts/upload_drive.sh` (JWT auth →
+multipart upload → "anyone with link" permission → Chat message).
+
 ## Project structure
 
 ```

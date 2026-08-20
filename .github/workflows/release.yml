@@ -98,8 +98,43 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk \
              "build/app/outputs/flutter-apk/renttrack-${{ steps.version.outputs.name }}+${{ steps.version.outputs.code }}.apk"
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/app/outputs/flutter-apk/renttrack-*.apk
+          if-no-files-found: error
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/app/outputs/flutter-apk/renttrack-*.apk
           generate_release_notes: true
+
+  upload:
+    name: Upload APK to Google Drive + notify Chat
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON != '' && secrets.GDRIVE_FOLDER_ID != '' }}
+    defaults:
+      run:
+        working-directory: .
+    env:
+      SA_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+      FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+      WEBHOOK_URL: ${{ secrets.GCHAT_WEBHOOK_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: release-apk
+          path: apk
+
+      - name: Upload to Drive and post link to Chat
+        shell: bash
+        run: |
+          chmod +x .github/scripts/upload_drive.sh
+          .github/scripts/upload_drive.sh "${{ github.ref_name }}"
