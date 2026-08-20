@@ -54,16 +54,21 @@ jobs:
         run: |
           MAGIC=$(xxd -p -l 4 android/app/release.keystore)
           if [ "$MAGIC" != "feedfeed" ] && [ "$MAGIC" != "cececece" ]; then
-            echo "Keystore is not JKS; converting to JKS..."
-            keytool -importkeystore \
+            echo "Keystore is not JKS; attempting to convert to JKS..."
+            if keytool -importkeystore \
               -srckeystore android/app/release.keystore \
               -srcstoretype PKCS12 -srcstorepass "$ANDROID_STORE_PASSWORD" \
               -srcalias "$ANDROID_KEY_ALIAS" -srckeypass "$ANDROID_KEY_PASSWORD" \
               -destkeystore android/app/release.jks \
               -deststoretype JKS -deststorepass "$ANDROID_STORE_PASSWORD" \
               -destalias "$ANDROID_KEY_ALIAS" -destkeypass "$ANDROID_KEY_PASSWORD" \
-              -noprompt
-            sed -i 's/storeFile=release.keystore/storeFile=release.jks/' android/key.properties
+              -noprompt 2> conversion-error.log; then
+              sed -i 's/storeFile=release.keystore/storeFile=release.jks/' android/key.properties
+              echo "Converted to JKS."
+            else
+              echo "Conversion failed (see error below). Falling back to signing PKCS12 directly with JDK 21."
+              cat conversion-error.log
+            fi
           else
             echo "Keystore is already JKS/JCEKS; no conversion needed."
           fi
