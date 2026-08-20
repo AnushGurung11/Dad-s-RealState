@@ -26,6 +26,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -42,6 +48,25 @@ jobs:
           keyAlias=$ANDROID_KEY_ALIAS
           storeFile=release.keystore
           EOF
+
+      - name: Convert keystore to JKS if needed
+        shell: bash
+        run: |
+          MAGIC=$(xxd -p -l 4 android/app/release.keystore)
+          if [ "$MAGIC" != "feedfeed" ] && [ "$MAGIC" != "cececece" ]; then
+            echo "Keystore is not JKS; converting to JKS..."
+            keytool -importkeystore \
+              -srckeystore android/app/release.keystore \
+              -srcstoretype PKCS12 -srcstorepass "$ANDROID_STORE_PASSWORD" \
+              -srcalias "$ANDROID_KEY_ALIAS" -srckeypass "$ANDROID_KEY_PASSWORD" \
+              -destkeystore android/app/release.jks \
+              -deststoretype JKS -deststorepass "$ANDROID_STORE_PASSWORD" \
+              -destalias "$ANDROID_KEY_ALIAS" -destkeypass "$ANDROID_KEY_PASSWORD" \
+              -noprompt
+            sed -i 's/storeFile=release.keystore/storeFile=release.jks/' android/key.properties
+          else
+            echo "Keystore is already JKS/JCEKS; no conversion needed."
+          fi
 
       - name: Get dependencies
         run: flutter pub get
