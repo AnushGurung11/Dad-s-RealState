@@ -123,7 +123,7 @@ void main() {
     expect(store.people.single.bedId, isNotNull);
     expect(store.people.single.depositAmount, 10000);
     expect(store.people.single.plannedStayMonths, 3);
-    expect(store.people.single.leaveDate, isNotNull);
+    expect(store.people.single.vacatedDate, isNotNull);
     expect(store.payments, hasLength(2));
     expect(
       store.payments.where((p) => p.type == PaymentType.deposit),

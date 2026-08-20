@@ -13,8 +13,8 @@ abstract final class AppConfig {
   static const String peopleFileName = 'people.json';
   static const String paymentsFileName = 'payments.json';
   static const String expensesFileName = 'expenses.json';
-  static const String leaseCheckSettingsFileName = 'lease_check_settings.json';
-  static const String leaseCheckRecordsFileName = 'lease_check_records.json';
+  static const String leaseChequeSettingsFileName = 'lease_check_settings.json';
+  static const String leaseChequeRecordsFileName = 'lease_check_records.json';
 
   static const String prefKeyCurrentMonth = 'currentMonth';
 }

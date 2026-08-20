@@ -3,21 +3,26 @@ class Bed {
     required this.id,
     required this.flatId,
     required this.label,
-    required this.monthlyRent,
+    required this.defaultMonthlyRent,
     this.tenantId,
   });
 
   final String id;
   final String flatId;
   final String label;
-  final double monthlyRent;
+
+  /// The rent this bed rents for by default. Pre-fills a tenant's
+  /// [Person.monthlyRent] at assignment, but is editable per-person — not a
+  /// hard rule.
+  final double defaultMonthlyRent;
+
   final String? tenantId;
 
   Bed copyWith({
     String? id,
     String? flatId,
     String? label,
-    double? monthlyRent,
+    double? defaultMonthlyRent,
     String? tenantId,
     bool clearTenantId = false,
   }) {
@@ -25,7 +30,7 @@ class Bed {
       id: id ?? this.id,
       flatId: flatId ?? this.flatId,
       label: label ?? this.label,
-      monthlyRent: monthlyRent ?? this.monthlyRent,
+      defaultMonthlyRent: defaultMonthlyRent ?? this.defaultMonthlyRent,
       tenantId: clearTenantId ? null : tenantId ?? this.tenantId,
     );
   }
@@ -37,7 +42,10 @@ class Bed {
       id: json['id'] as String,
       flatId: json['flatId'] as String,
       label: json['label'] as String,
-      monthlyRent: (json['monthlyRent'] as num).toDouble(),
+      // Older builds stored the default rent under `monthlyRent`.
+      defaultMonthlyRent:
+          ((json['defaultMonthlyRent'] ?? json['monthlyRent']) as num)
+              .toDouble(),
       tenantId: json['tenantId'] as String?,
     );
   }
@@ -47,7 +55,7 @@ class Bed {
       'id': id,
       'flatId': flatId,
       'label': label,
-      'monthlyRent': monthlyRent,
+      'defaultMonthlyRent': defaultMonthlyRent,
       'tenantId': tenantId,
     };
   }

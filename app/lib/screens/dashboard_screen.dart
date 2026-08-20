@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../config.dart';
-import '../models/lease_check_setting.dart';
-import '../services/check_service.dart';
+import '../models/lease_cheque_setting.dart';
+import '../services/cheque_service.dart';
 import '../services/json_store.dart';
 import '../services/notification_service.dart';
 import '../utils/format.dart';
@@ -26,11 +26,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  Future<void> _markPaid(LeaseCheckSetting setting) async {
-    final result = CheckService.markPaid(setting, DateTime.now());
+  Future<void> _markPaid(LeaseChequeSetting setting) async {
+    final result = ChequeService.markPaid(setting, DateTime.now());
     setState(() {
-      widget.store.upsertCheckSetting(result.setting);
-      widget.store.upsertCheckRecord(result.record);
+      widget.store.upsertChequeSetting(result.setting);
+      widget.store.upsertChequeRecord(result.record);
     });
     await widget.notifications.syncFor(result.setting);
   }
@@ -45,8 +45,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _formatDate(DateTime date) =>
       '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
-  Widget _checkCard(
-    LeaseCheckSetting setting, {
+  Widget _chequeCard(
+    LeaseChequeSetting setting, {
     required String flatName,
   }) {
     final owner = setting.ownerName.trim().isEmpty
@@ -77,8 +77,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final occupied = beds.where((b) => b.tenantId != null).length;
     final vacant = beds.length - occupied;
 
-    final due = CheckService.dueThisAndNextMonth(
-      store.leaseCheckSettings,
+    final due = ChequeService.dueThisAndNextMonth(
+      store.leaseChequeSettings,
       today,
     );
     final currentMonth = monthKey(today);
@@ -126,19 +126,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (store.flats.isEmpty)
             EmptyState(
               icon: Icons.home_work_outlined,
-              message: 'Add a flat to start tracking your lease checks.',
+              message: 'Add a flat to start tracking your lease cheques.',
               actionLabel: 'Go to Flats',
               onAction: widget.onGoToFlats,
             )
           else ...[
             if (dueThisMonth.isNotEmpty) ...[
               Text(
-                'Checks due this month',
+                'Cheques due this month',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               ...dueThisMonth.map(
-                (setting) => _checkCard(
+                (setting) => _chequeCard(
                   setting,
                   flatName: _flatName(setting.flatId),
                 ),
@@ -147,12 +147,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
             if (dueNextMonth.isNotEmpty) ...[
               Text(
-                'Checks due next month',
+                'Cheques due next month',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               ...dueNextMonth.map(
-                (setting) => _checkCard(
+                (setting) => _chequeCard(
                   setting,
                   flatName: _flatName(setting.flatId),
                 ),
@@ -164,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'No checks due in the next 2 months.',
+                    'No cheques due in the next 2 months.',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),

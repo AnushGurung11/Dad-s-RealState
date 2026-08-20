@@ -42,9 +42,9 @@ const payment4 = Payment(
 );
 
 const beds = [
-  Bed(id: 'b1', flatId: 'f1', label: 'A1', monthlyRent: 4000),
-  Bed(id: 'b2', flatId: 'f1', label: 'A2', monthlyRent: 4000),
-  Bed(id: 'b3', flatId: 'f2', label: 'B1', monthlyRent: 5000),
+  Bed(id: 'b1', flatId: 'f1', label: 'A1', defaultMonthlyRent: 4000),
+  Bed(id: 'b2', flatId: 'f1', label: 'A2', defaultMonthlyRent: 4000),
+  Bed(id: 'b3', flatId: 'f2', label: 'B1', defaultMonthlyRent: 5000),
 ];
 
 final people = [

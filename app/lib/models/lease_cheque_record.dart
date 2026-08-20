@@ -1,7 +1,7 @@
-/// Immutable history entry created when a lease check is marked paid.
+/// Immutable history entry created when a lease cheque is marked paid.
 /// Used by financial reports, so it is queryable by month and flat.
-class LeaseCheckRecord {
-  const LeaseCheckRecord({
+class LeaseChequeRecord {
+  const LeaseChequeRecord({
     required this.id,
     required this.flatId,
     required this.ownerName,
@@ -21,8 +21,8 @@ class LeaseCheckRecord {
   /// `YYYY-MM` of the due date, for report lookups.
   final String month;
 
-  factory LeaseCheckRecord.fromJson(Map<String, dynamic> json) {
-    return LeaseCheckRecord(
+  factory LeaseChequeRecord.fromJson(Map<String, dynamic> json) {
+    return LeaseChequeRecord(
       id: json['id'] as String,
       flatId: json['flatId'] as String,
       ownerName: json['ownerName'] as String,

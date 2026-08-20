@@ -52,8 +52,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();
     expect(find.text('Sunrise Residency'), findsOneWidget);
-    expect(store.leaseCheckSettings, hasLength(1));
-    final initial = store.leaseCheckSettings.single;
+    expect(store.leaseChequeSettings, hasLength(1));
+    final initial = store.leaseChequeSettings.single;
     expect(initial.ownerName, '');
     expect(initial.amount, 0);
     expect(
@@ -85,7 +85,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
 
-    final updated = store.leaseCheckSettings.single;
+    final updated = store.leaseChequeSettings.single;
     expect(updated.ownerName, 'Govt Housing');
     expect(updated.amount, 5000);
     expect(updated.nextDueDate, DateTime(now.year, now.month, now.day));
@@ -101,14 +101,14 @@ void main() {
     await tester.tap(find.text('Mark paid'));
     await tester.pumpAndSettle();
     expect(find.text('Sunrise Residency · Govt Housing'), findsNothing);
-    expect(store.leaseCheckRecords, hasLength(1));
-    final record = store.leaseCheckRecords.single;
+    expect(store.leaseChequeRecords, hasLength(1));
+    final record = store.leaseChequeRecords.single;
     expect(record.flatId, store.flats.single.id);
     expect(record.amount, 5000);
     expect(record.ownerName, 'Govt Housing');
     expect(record.month, monthKey(now));
     expect(
-      store.leaseCheckSettings.single.nextDueDate,
+      store.leaseChequeSettings.single.nextDueDate,
       DateTime(now.year, now.month + 2, now.day),
     );
     // Reminder rescheduled for the new due date (3 days before, 09:00).

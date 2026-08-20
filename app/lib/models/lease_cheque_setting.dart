@@ -1,7 +1,7 @@
-/// A flat's recurring lease check: money paid OUT to the flat's registered
+/// A flat's recurring lease cheque: money paid OUT to the flat's registered
 /// owner, roughly every [intervalMonths] months.
-class LeaseCheckSetting {
-  const LeaseCheckSetting({
+class LeaseChequeSetting {
+  const LeaseChequeSetting({
     required this.id,
     required this.flatId,
     required this.ownerName,
@@ -19,14 +19,14 @@ class LeaseCheckSetting {
   final int intervalMonths;
   final bool notifyEnabled;
 
-  LeaseCheckSetting copyWith({
+  LeaseChequeSetting copyWith({
     String? ownerName,
     double? amount,
     DateTime? nextDueDate,
     int? intervalMonths,
     bool? notifyEnabled,
   }) {
-    return LeaseCheckSetting(
+    return LeaseChequeSetting(
       id: id,
       flatId: flatId,
       ownerName: ownerName ?? this.ownerName,
@@ -37,8 +37,8 @@ class LeaseCheckSetting {
     );
   }
 
-  factory LeaseCheckSetting.fromJson(Map<String, dynamic> json) {
-    return LeaseCheckSetting(
+  factory LeaseChequeSetting.fromJson(Map<String, dynamic> json) {
+    return LeaseChequeSetting(
       id: json['id'] as String,
       flatId: json['flatId'] as String,
       ownerName: json['ownerName'] as String,

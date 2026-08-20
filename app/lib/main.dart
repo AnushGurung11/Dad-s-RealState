@@ -5,9 +5,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'config.dart';
-import 'screens/checklist_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/flats_screen.dart';
+import 'screens/lease_setup_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/tenants_screen.dart';
 import 'services/json_store.dart';
@@ -219,7 +219,7 @@ class _ShellState extends State<_Shell> {
           ),
           FlatsScreen(store: widget.store),
           TenantsScreen(store: widget.store),
-          ChecklistScreen(
+          LeaseSetupScreen(
             store: widget.store,
             notifications: widget.notifications,
           ),
@@ -254,9 +254,9 @@ class _ShellState extends State<_Shell> {
             label: 'Tenants',
           ),
           NavigationDestination(
-            icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist),
-            label: 'Checklist',
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Lease Setup',
           ),
           NavigationDestination(
             icon: Icon(Icons.assessment_outlined),

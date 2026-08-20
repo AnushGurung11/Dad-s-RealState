@@ -28,10 +28,14 @@ Future<void> pumpApp(
 
 /// Taps the bottom navigation destination with the given [label].
 Future<void> tapNavTab(WidgetTester tester, String label) async {
-  await tester.tap(find.descendant(
+  final finder = find.descendant(
     of: find.byType(NavigationBar),
     matching: find.text(label),
-  ));
+  );
+  if (finder.evaluate().isEmpty) {
+    throw StateError('No navigation destination labelled "$label" found.');
+  }
+  await tester.tap(finder);
   await tester.pumpAndSettle();
 }
 

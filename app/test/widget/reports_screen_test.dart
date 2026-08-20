@@ -28,7 +28,7 @@ void main() {
       address: '1 Main St',
       createdAt: DateTime(2026, 1, 1),
     ));
-    store.upsertBed(const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', monthlyRent: 4000));
+    store.upsertBed(const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', defaultMonthlyRent: 4000));
     store.upsertPerson(Person(
       id: 'p1',
       name: 'Alice',

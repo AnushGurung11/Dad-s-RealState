@@ -14,14 +14,17 @@ app's documents directory.
   at 5, with an on-screen explanation).
 - A **Bed** belongs to one Flat and holds at most one active Person.
 - A **Person** can hold at most one active Bed at a time.
-- **Assigning** a person to a bed requires a **deposit** (any positive amount).
+- **Assigning** a person to a bed happens in one step from the bed: tap a
+  vacant bed and fill the assign form (name, contact/workplace, others, join
+  date, planned stay, monthly rent — pre-filled from the bed's default rent —
+  and deposit). One save creates the person and assigns them atomically.
 - At assignment the app captures `joinDate` and `plannedStayMonths` and
-  auto-computes `leaveDate = joinDate + plannedStayMonths`. `leaveDate` is
+  auto-computes `vacatedDate = joinDate + plannedStayMonths`. `vacatedDate` is
   editable afterwards to reflect the actual move-out date.
 - **Tenure balance** per person:
   `totalRentOwed = monthlyRent × plannedStayMonths`
   `remainingBalance = totalRentOwed − deposit − sum(rent payments)`
-  Both recalculate when the planned stay or leave date changes.
+  Both recalculate when the planned stay or the vacated date changes.
 - **Deposit counts as income** at the moment it is collected — the deposit is
   recorded in the payments ledger (type `deposit`) while also reducing the
   tenant's remaining balance.
@@ -34,13 +37,15 @@ app's documents directory.
   like `AED -2,400`).
 - **All amounts are in AED**, centralized in `lib/config.dart` (`currencySymbol`)
   so no screen hardcodes a currency.
-- **Lease checks**: every flat has a recurring check against its owner. Each
-  flat gets a `LeaseCheckSetting` on creation (due 2 months out, amount 0,
-  owner blank). Marking a check **paid** on the Dashboard archives an immutable
-  `LeaseCheckRecord` (queryable by month) and advances the next due date by the
-  interval (default 2 months). A local notification fires 3 days before the due
-  date at 09:00 when notifications are enabled, and reschedules automatically
-  when the due date changes.
+- **Lease cheques**: every flat has a recurring cheque to its owner. Each flat
+  gets a `LeaseChequeSetting` on creation (due 2 months out, amount 0, owner
+  blank). Entering a flat's **yearly rent** auto-fills the cheque amount as
+  `yearlyRent ÷ 6`. Marking a cheque **paid** on the Dashboard archives an
+  immutable `LeaseChequeRecord` (queryable by month) and advances the next due
+  date by the interval (default 2 months). A local notification fires 3 days
+  before the due date at 09:00 when notifications are enabled, and reschedules
+  automatically when the due date changes. A flat's current cheque and cheque
+  payment history are shown under its **Lease info** tab.
 
 ## Run locally
 
@@ -64,13 +69,13 @@ device (plus `schema.json` holding the schema version):
 
 | File | Contents |
 |------|----------|
-| `flats.json` | Flats |
-| `beds.json` | Beds |
-| `people.json` | Tenants (incl. join/leave dates, planned stay, deposit) |
+| `flats.json` | Flats (incl. contract date/person, yearly rent) |
+| `beds.json` | Beds (incl. default monthly rent) |
+| `people.json` | Tenants (incl. join/vacated dates, planned stay, monthly rent, deposit, notes) |
 | `payments.json` | Rent + deposit payment records |
 | `expenses.json` | Expense records per flat |
-| `lease_check_settings.json` | Per-flat lease check config (owner, amount, next due date, interval, notify) |
-| `lease_check_records.json` | Immutable archive of checks marked paid (by month/flat) |
+| `lease_check_settings.json` | Per-flat lease cheque config (owner, amount, next due date, interval, notify) — on-disk name kept for data compatibility |
+| `lease_check_records.json` | Immutable archive of cheques marked paid (by month/flat) |
 
 To back up or inspect data manually, copy the app's documents directory off the
 device, e.g.:
@@ -160,7 +165,7 @@ multipart upload → "anyone with link" permission → Discord message).
 lib/
   main.dart                 Material 3 app shell, bottom NavigationBar, IndexedStack tabs
   config.dart               App name, JSON file names, schema version
-  models/                   flat, bed, person, payment, expense, lease check
+  models/                   flat, bed, person, payment, expense, lease cheque
                             setting/record (plain immutable classes)
   services/
     json_store.dart         Storage core: atomic writes, debounced saves, migration hook
@@ -169,18 +174,20 @@ lib/
     tenure_service.dart        Pure tenure math (totalRentOwed, remainingBalance)
     payment_service.dart       Pure payment math (dues, totals, overdue, mark paid/partial/unpaid)
     report_service.dart        Pure per-flat income/expenses/net + dashboard totals
-    check_service.dart         Pure lease-check math (due months, mark paid)
+    cheque_service.dart        Pure lease-cheque math (due months, mark paid)
     notification_service.dart  Local reminder scheduling (3 days before due)
-  screens/                  Dashboard, Flats, Tenants, Checklist, Reports
-                            (+ flat detail, person history)
+  screens/                  Dashboard, Flats, Tenants, Lease Setup, Reports
+                            (+ flat detail with Beds/Lease info tabs, assign form,
+                            person history)
   widgets/                  StatusBadge, NetAmountLabel, BedCapacityHint, EmptyState,
-                            ConfirmDeleteDialog, SummaryCard
+                            ConfirmDeleteDialog, SummaryCard, ChequeEditor
 test/
   unit/                     Store + service tests with fixtures
   widget/                   Per-screen widget tests with an in-memory fake store
+                            (incl. assign-from-bed flow)
 integration_test/
   full_flow_test.dart       End-to-end flow against a temp directory
-  checks_flow_test.dart     Lease-check flow against a temp directory
+  cheques_flow_test.dart    Lease-cheque flow against a temp directory
 ```
 
 ## CI/CD

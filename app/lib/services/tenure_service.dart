@@ -9,12 +9,12 @@ abstract final class TenureService {
   }
 
   /// Months the tenant is charged for. Normally [Person.plannedStayMonths],
-  /// but if [Person.leaveDate] was edited to differ from the plan, the actual
+  /// but if [Person.vacatedDate] was edited to differ from the plan, the actual
   /// months between joinDate and leaveDate are used (rounded up, minimum 1).
   static int effectiveStayMonths(Person person) {
     final planned = person.plannedStayMonths ?? 1;
     final join = person.joinDate ?? DateTime.now();
-    final leave = person.leaveDate ?? computedLeaveDate(join, planned);
+    final leave = person.vacatedDate ?? computedLeaveDate(join, planned);
     final plannedLeave = computedLeaveDate(join, planned);
     final sameDate = leave.year == plannedLeave.year && leave.month == plannedLeave.month && leave.day == plannedLeave.day;
     if (sameDate) return planned;

@@ -6,8 +6,8 @@ import 'package:renttrack/config.dart';
 import 'package:renttrack/models/bed.dart';
 import 'package:renttrack/models/expense.dart';
 import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_check_record.dart';
-import 'package:renttrack/models/lease_check_setting.dart';
+import 'package:renttrack/models/lease_cheque_record.dart';
+import 'package:renttrack/models/lease_cheque_setting.dart';
 import 'package:renttrack/models/payment.dart';
 import 'package:renttrack/models/person.dart';
 import 'package:renttrack/services/json_store.dart';
@@ -41,7 +41,7 @@ void main() {
         id: 'b1',
         flatId: 'f1',
         label: 'Bed A1',
-        monthlyRent: 4500,
+        defaultMonthlyRent: 4500,
         tenantId: 'p1',
       );
       final person = Person(
@@ -51,7 +51,7 @@ void main() {
         bedId: 'b1',
         joinDate: DateTime(2026, 1, 20),
         plannedStayMonths: 3,
-        leaveDate: DateTime(2026, 4, 20),
+        vacatedDate: DateTime(2026, 4, 20),
         depositAmount: 9000,
       );
       final payment = Payment(
@@ -72,7 +72,7 @@ void main() {
         date: DateTime(2026, 2, 5),
         note: 'February bill',
       );
-      final checkSetting = LeaseCheckSetting(
+      final checkSetting = LeaseChequeSetting(
         id: 'cs1',
         flatId: 'f1',
         ownerName: 'Govt Housing',
@@ -81,7 +81,7 @@ void main() {
         intervalMonths: 2,
         notifyEnabled: true,
       );
-      final checkRecord = LeaseCheckRecord(
+      final checkRecord = LeaseChequeRecord(
         id: 'cr1',
         flatId: 'f1',
         ownerName: 'Govt Housing',
@@ -97,8 +97,8 @@ void main() {
       store.upsertPerson(person);
       store.upsertPayment(payment);
       store.upsertExpense(expense);
-      store.upsertCheckSetting(checkSetting);
-      store.upsertCheckRecord(checkRecord);
+      store.upsertChequeSetting(checkSetting);
+      store.upsertChequeRecord(checkRecord);
       await store.flush();
       store.dispose();
 
@@ -111,7 +111,7 @@ void main() {
       expect(reloaded.flats.single.createdAt, DateTime(2026, 1, 15));
 
       expect(reloaded.beds, hasLength(1));
-      expect(reloaded.beds.single.monthlyRent, 4500);
+      expect(reloaded.beds.single.defaultMonthlyRent, 4500);
       expect(reloaded.beds.single.tenantId, 'p1');
 
       expect(reloaded.people, hasLength(1));
@@ -119,7 +119,7 @@ void main() {
       expect(reloaded.people.single.bedId, 'b1');
       expect(reloaded.people.single.joinDate, DateTime(2026, 1, 20));
       expect(reloaded.people.single.plannedStayMonths, 3);
-      expect(reloaded.people.single.leaveDate, DateTime(2026, 4, 20));
+      expect(reloaded.people.single.vacatedDate, DateTime(2026, 4, 20));
       expect(reloaded.people.single.depositAmount, 9000);
 
       expect(reloaded.payments, hasLength(1));
@@ -132,24 +132,24 @@ void main() {
       expect(reloaded.expenses.single.amount, 2200);
       expect(reloaded.expenses.single.note, 'February bill');
 
-      expect(reloaded.leaseCheckSettings, hasLength(1));
-      expect(reloaded.leaseCheckSettings.single.ownerName, 'Govt Housing');
-      expect(reloaded.leaseCheckSettings.single.amount, 5000);
+      expect(reloaded.leaseChequeSettings, hasLength(1));
+      expect(reloaded.leaseChequeSettings.single.ownerName, 'Govt Housing');
+      expect(reloaded.leaseChequeSettings.single.amount, 5000);
       expect(
-        reloaded.leaseCheckSettings.single.nextDueDate,
+        reloaded.leaseChequeSettings.single.nextDueDate,
         DateTime(2026, 3, 20),
       );
-      expect(reloaded.leaseCheckSettings.single.intervalMonths, 2);
-      expect(reloaded.leaseCheckSettings.single.notifyEnabled, isTrue);
+      expect(reloaded.leaseChequeSettings.single.intervalMonths, 2);
+      expect(reloaded.leaseChequeSettings.single.notifyEnabled, isTrue);
 
-      expect(reloaded.leaseCheckRecords, hasLength(1));
-      expect(reloaded.leaseCheckRecords.single.ownerName, 'Govt Housing');
-      expect(reloaded.leaseCheckRecords.single.amount, 5000);
+      expect(reloaded.leaseChequeRecords, hasLength(1));
+      expect(reloaded.leaseChequeRecords.single.ownerName, 'Govt Housing');
+      expect(reloaded.leaseChequeRecords.single.amount, 5000);
       expect(
-        reloaded.leaseCheckRecords.single.dueDate,
+        reloaded.leaseChequeRecords.single.dueDate,
         DateTime(2026, 1, 20),
       );
-      expect(reloaded.leaseCheckRecords.single.month, '2026-01');
+      expect(reloaded.leaseChequeRecords.single.month, '2026-01');
       reloaded.dispose();
     });
 
@@ -244,8 +244,8 @@ void main() {
       expect(reloaded.beds, isEmpty);
       expect(reloaded.people, isEmpty);
       expect(reloaded.payments, isEmpty);
-      expect(reloaded.leaseCheckSettings, isEmpty);
-      expect(reloaded.leaseCheckRecords, isEmpty);
+      expect(reloaded.leaseChequeSettings, isEmpty);
+      expect(reloaded.leaseChequeRecords, isEmpty);
       reloaded.dispose();
     });
   });

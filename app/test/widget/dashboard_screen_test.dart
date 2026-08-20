@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/models/bed.dart';
 import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_check_setting.dart';
+import 'package:renttrack/models/lease_cheque_setting.dart';
 import 'package:renttrack/services/json_store.dart';
 import 'package:renttrack/services/notification_service.dart';
 import 'package:renttrack/widgets/summary_card.dart';
@@ -14,14 +14,14 @@ void main() {
   DateTime nextMonthDue() => DateTime(now.year, now.month + 1, 5);
   DateTime threeMonthsOut() => DateTime(now.year, now.month + 3, 5);
 
-  LeaseCheckSetting check({
+  LeaseChequeSetting check({
     required String id,
     required String flatId,
     required DateTime nextDueDate,
     String ownerName = 'Owner',
     double amount = 4000,
   }) {
-    return LeaseCheckSetting(
+    return LeaseChequeSetting(
       id: id,
       flatId: flatId,
       ownerName: ownerName,
@@ -51,10 +51,10 @@ void main() {
       createdAt: DateTime(2026, 1, 1),
     ));
     store.upsertBed(
-        const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', monthlyRent: 4000));
+        const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', defaultMonthlyRent: 4000));
     store.upsertBed(const Bed(
-        id: 'b2', flatId: 'f1', label: 'Bed A2', monthlyRent: 4000, tenantId: 'p1'));
-    store.upsertCheckSetting(
+        id: 'b2', flatId: 'f1', label: 'Bed A2', defaultMonthlyRent: 4000, tenantId: 'p1'));
+    store.upsertChequeSetting(
       check(
         id: 's1',
         flatId: 'f1',
@@ -63,7 +63,7 @@ void main() {
         amount: 4000,
       ),
     );
-    store.upsertCheckSetting(
+    store.upsertChequeSetting(
       check(
         id: 's2',
         flatId: 'f2',
@@ -72,7 +72,7 @@ void main() {
         amount: 6000,
       ),
     );
-    store.upsertCheckSetting(
+    store.upsertChequeSetting(
       check(
         id: 's3',
         flatId: 'f3',
@@ -102,8 +102,8 @@ void main() {
     // No net-profit card anywhere.
     expect(find.textContaining('Net ('), findsNothing);
 
-    expect(find.text('Checks due this month'), findsOneWidget);
-    expect(find.text('Checks due next month'), findsOneWidget);
+    expect(find.text('Cheques due this month'), findsOneWidget);
+    expect(find.text('Cheques due next month'), findsOneWidget);
     expect(find.text('Alpha House · Owner A'), findsOneWidget);
     expect(find.textContaining('AED 4000'), findsWidgets);
     expect(find.text('Beta House · Owner B'), findsOneWidget);
@@ -120,7 +120,7 @@ void main() {
       address: '1 Main St',
       createdAt: DateTime(2026, 1, 1),
     ));
-    store.upsertCheckSetting(
+    store.upsertChequeSetting(
       check(
         id: 's1',
         flatId: 'f1',
@@ -131,9 +131,9 @@ void main() {
 
     await pumpApp(tester, store: store);
 
-    expect(find.text('Checks due this month'), findsNothing);
-    expect(find.text('Checks due next month'), findsNothing);
-    expect(find.text('No checks due in the next 2 months.'), findsOneWidget);
+    expect(find.text('Cheques due this month'), findsNothing);
+    expect(find.text('Cheques due next month'), findsNothing);
+    expect(find.text('No cheques due in the next 2 months.'), findsOneWidget);
   });
 
   testWidgets('Mark Paid removes the item and updates underlying data',
@@ -153,12 +153,12 @@ void main() {
     expect(find.text('Alpha House · Owner A'), findsNothing);
 
     // CheckRecord archived with the right due month; nextDueDate advanced.
-    expect(store.leaseCheckRecords, hasLength(1));
-    final record = store.leaseCheckRecords.single;
+    expect(store.leaseChequeRecords, hasLength(1));
+    final record = store.leaseChequeRecords.single;
     expect(record.flatId, 'f1');
     expect(record.amount, 4000);
     expect(record.ownerName, 'Owner A');
-    final advanced = store.leaseCheckSettings
+    final advanced = store.leaseChequeSettings
         .firstWhere((s) => s.id == 's1');
     expect(
       advanced.nextDueDate,
@@ -178,7 +178,7 @@ void main() {
     await pumpApp(tester);
 
     expect(
-      find.text('Add a flat to start tracking your lease checks.'),
+      find.text('Add a flat to start tracking your lease cheques.'),
       findsOneWidget,
     );
     expect(find.text('Go to Flats'), findsOneWidget);

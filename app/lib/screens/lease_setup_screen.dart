@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../config.dart';
-import '../models/lease_check_setting.dart';
+import '../models/lease_cheque_setting.dart';
 import '../services/json_store.dart';
 import '../services/notification_service.dart';
 import '../utils/format.dart';
 import '../utils/ids.dart';
 import '../widgets/empty_state.dart';
 
-/// Settings page: one row per flat, showing its lease check configuration.
+/// Settings page: one row per flat, showing its lease cheque configuration.
 /// Tapping a row opens a form to edit amount, owner name, due date and the
 /// notify toggle. Every flat automatically has exactly one
-/// [LeaseCheckSetting] (created when the flat is created); this page is where
+/// [LeaseChequeSetting] (created when the flat is created); this page is where
 /// the user fills it in.
-class ChecklistScreen extends StatefulWidget {
-  const ChecklistScreen({
+class LeaseSetupScreen extends StatefulWidget {
+  const LeaseSetupScreen({
     super.key,
     required this.store,
     required this.notifications,
@@ -24,38 +24,38 @@ class ChecklistScreen extends StatefulWidget {
   final NotificationService notifications;
 
   @override
-  State<ChecklistScreen> createState() => _ChecklistScreenState();
+  State<LeaseSetupScreen> createState() => _LeaseSetupScreenState();
 }
 
-class _ChecklistScreenState extends State<ChecklistScreen> {
-  LeaseCheckSetting _settingFor(String flatId) {
-    final existing = widget.store.leaseCheckSettings
+class _LeaseSetupScreenState extends State<LeaseSetupScreen> {
+  LeaseChequeSetting _settingFor(String flatId) {
+    final existing = widget.store.leaseChequeSettings
         .where((s) => s.flatId == flatId)
         .firstOrNull;
     if (existing != null) return existing;
     // Defensive: flats created before this feature shipped have no setting.
     // Create the default one so every flat always has exactly one.
     final now = DateTime.now();
-    final created = LeaseCheckSetting(
+    final created = LeaseChequeSetting(
       id: newId(),
       flatId: flatId,
       ownerName: '',
       amount: 0,
       nextDueDate: DateTime(now.year, now.month + 2, now.day),
     );
-    widget.store.upsertCheckSetting(created);
+    widget.store.upsertChequeSetting(created);
     return created;
   }
 
-  Future<void> _openEditor(LeaseCheckSetting setting) async {
-    final updated = await showModalBottomSheet<LeaseCheckSetting>(
+  Future<void> _openEditor(LeaseChequeSetting setting) async {
+    final updated = await showModalBottomSheet<LeaseChequeSetting>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _CheckForm(setting: setting),
+      builder: (_) => _ChequeForm(setting: setting),
     );
     if (updated == null) return;
     setState(() {
-      widget.store.upsertCheckSetting(updated);
+      widget.store.upsertChequeSetting(updated);
     });
     await widget.notifications.syncFor(updated);
   }
@@ -67,11 +67,11 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Widget build(BuildContext context) {
     final flats = widget.store.flats;
     return Scaffold(
-      appBar: AppBar(title: const Text('Checklist')),
+      appBar: AppBar(title: const Text('Lease Setup')),
       body: flats.isEmpty
           ? const EmptyState(
               icon: Icons.receipt_long_outlined,
-              message: 'Add a flat to set up its recurring lease check.',
+              message: 'Add a flat to set up its recurring lease cheque.',
               actionLabel: 'Add flat',
               onAction: _noop,
             )
@@ -99,7 +99,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                         final updated =
                             setting.copyWith(notifyEnabled: value);
                         setState(() {
-                          widget.store.upsertCheckSetting(updated);
+                          widget.store.upsertChequeSetting(updated);
                         });
                         await widget.notifications.syncFor(updated);
                       },
@@ -115,16 +115,16 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   static void _noop() {}
 }
 
-class _CheckForm extends StatefulWidget {
-  const _CheckForm({required this.setting});
+class _ChequeForm extends StatefulWidget {
+  const _ChequeForm({required this.setting});
 
-  final LeaseCheckSetting setting;
+  final LeaseChequeSetting setting;
 
   @override
-  State<_CheckForm> createState() => _CheckFormState();
+  State<_ChequeForm> createState() => _ChequeFormState();
 }
 
-class _CheckFormState extends State<_CheckForm> {
+class _ChequeFormState extends State<_ChequeForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _ownerName;
   late final TextEditingController _amount;
@@ -191,7 +191,7 @@ class _CheckFormState extends State<_CheckForm> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Lease check',
+              'Lease cheque',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),

@@ -1,15 +1,15 @@
 import '../config.dart';
-import '../models/lease_check_record.dart';
-import '../models/lease_check_setting.dart';
+import '../models/lease_cheque_record.dart';
+import '../models/lease_cheque_setting.dart';
 import '../utils/ids.dart';
 
-/// Pure logic for recurring lease checks (money paid out to the flat owner).
+/// Pure logic for recurring lease cheques (money paid out to the flat owner).
 /// No I/O — callers persist the returned data.
-class CheckService {
-  /// Checks whose [LeaseCheckSetting.nextDueDate] falls in the current or next
-  /// calendar month relative to [today], sorted by due date.
-  static List<LeaseCheckSetting> dueThisAndNextMonth(
-    List<LeaseCheckSetting> settings,
+class ChequeService {
+  /// Cheques whose [LeaseChequeSetting.nextDueDate] falls in the current or
+  /// next calendar month relative to [today], sorted by due date.
+  static List<LeaseChequeSetting> dueThisAndNextMonth(
+    List<LeaseChequeSetting> settings,
     DateTime today,
   ) {
     final current = monthKey(today);
@@ -24,11 +24,11 @@ class CheckService {
     return due;
   }
 
-  /// Marks a check paid: archives it as an immutable [LeaseCheckRecord] and
+  /// Marks a cheque paid: archives it as an immutable [LeaseChequeRecord] and
   /// returns the updated setting with [nextDueDate] advanced by
   /// [intervalMonths]. Never mutates prior records.
-  static ({LeaseCheckRecord record, LeaseCheckSetting setting}) markPaid(
-    LeaseCheckSetting setting,
+  static ({LeaseChequeRecord record, LeaseChequeSetting setting}) markPaid(
+    LeaseChequeSetting setting,
     DateTime today,
   ) {
     final advanced = DateTime(
@@ -37,7 +37,7 @@ class CheckService {
       setting.nextDueDate.day,
     );
     return (
-      record: LeaseCheckRecord(
+      record: LeaseChequeRecord(
         id: newId(),
         flatId: setting.flatId,
         ownerName: setting.ownerName,

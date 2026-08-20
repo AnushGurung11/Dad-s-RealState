@@ -17,8 +17,8 @@ void main() {
     createdAt: DateTime(2026, 1, 1),
   );
 
-  final bed1 = const Bed(id: 'b1', flatId: 'f1', label: 'Bed 1', monthlyRent: 4000);
-  final bed2 = const Bed(id: 'b2', flatId: 'f1', label: 'Bed 2', monthlyRent: 4000);
+  final bed1 = const Bed(id: 'b1', flatId: 'f1', label: 'Bed 1', defaultMonthlyRent: 4000);
+  final bed2 = const Bed(id: 'b2', flatId: 'f1', label: 'Bed 2', defaultMonthlyRent: 4000);
   final alice = Person(id: 'p1', name: 'Alice', contact: '9000000001');
   final bob = Person(id: 'p2', name: 'Bob', contact: '9000000002');
   final joinDate = DateTime(2026, 2, 1);
@@ -56,7 +56,7 @@ void main() {
       expect(storedPerson.bedId, 'b1');
       expect(storedPerson.joinDate, joinDate);
       expect(storedPerson.plannedStayMonths, 2);
-      expect(storedPerson.leaveDate, DateTime(2026, 4, 1));
+      expect(storedPerson.vacatedDate, DateTime(2026, 4, 1));
       expect(storedPerson.depositAmount, 5000);
     });
 
@@ -147,7 +147,7 @@ void main() {
 
     test('vacantBedsFor only lists beds without a tenant in that flat', () {
       assign('b1', 'p1');
-      store.upsertBed(const Bed(id: 'b3', flatId: 'f2', label: 'Other', monthlyRent: 1));
+      store.upsertBed(const Bed(id: 'b3', flatId: 'f2', label: 'Other', defaultMonthlyRent: 1));
 
       final vacant = service.vacantBedsFor('f1');
       expect(vacant.map((b) => b.id), ['b2']);

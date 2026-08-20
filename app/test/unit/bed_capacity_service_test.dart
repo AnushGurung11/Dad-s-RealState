@@ -21,7 +21,7 @@ void main() {
   group('BedCapacityService.canAddBed', () {
     List<Bed> beds(int count) => [
           for (var i = 0; i < count; i++)
-            Bed(id: 'b$i', flatId: 'f1', label: 'Bed $i', monthlyRent: 1000),
+            Bed(id: 'b$i', flatId: 'f1', label: 'Bed $i', defaultMonthlyRent: 1000),
         ];
 
     test('true below the 20-bed maximum', () {
@@ -37,7 +37,7 @@ void main() {
   group('BedCapacityService.canDeleteBed', () {
     List<Bed> beds(int count) => [
           for (var i = 0; i < count; i++)
-            Bed(id: 'b$i', flatId: 'f1', label: 'Bed $i', monthlyRent: 1000),
+            Bed(id: 'b$i', flatId: 'f1', label: 'Bed $i', defaultMonthlyRent: 1000),
         ];
 
     test('true above the 5-bed minimum', () {

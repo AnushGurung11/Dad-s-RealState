@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_check_setting.dart';
+import 'package:renttrack/models/lease_cheque_setting.dart';
 import 'package:renttrack/services/json_store.dart';
 import 'package:renttrack/services/notification_service.dart';
 
@@ -22,7 +22,7 @@ void main() {
       address: '2 Main St',
       createdAt: DateTime(2026, 1, 1),
     ));
-    store.upsertCheckSetting(LeaseCheckSetting(
+    store.upsertChequeSetting(LeaseChequeSetting(
       id: 's1',
       flatId: 'f1',
       ownerName: 'Owner A',
@@ -35,7 +35,7 @@ void main() {
   testWidgets('renders one row per flat', (tester) async {
     final store = storeWithFlats();
     await pumpApp(tester, store: store);
-    await tapNavTab(tester, 'Checklist');
+    await tapNavTab(tester, 'Lease Setup');
 
     expect(find.text('Alpha House'), findsOneWidget);
     expect(find.textContaining('Owner A'), findsOneWidget);
@@ -43,14 +43,14 @@ void main() {
     // Beta House has no setting yet: a default one is created on demand.
     expect(find.text('Beta House'), findsOneWidget);
     expect(find.textContaining('No owner set'), findsOneWidget);
-    expect(store.leaseCheckSettings, hasLength(2));
+    expect(store.leaseChequeSettings, hasLength(2));
   });
 
   testWidgets('editing amount/ownerName/date persists via fake store',
       (tester) async {
     final store = storeWithFlats();
     await pumpApp(tester, store: store);
-    await tapNavTab(tester, 'Checklist');
+    await tapNavTab(tester, 'Lease Setup');
 
     await tester.tap(find.text('Alpha House'));
     await tester.pumpAndSettle();
@@ -63,7 +63,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final updated =
-        store.leaseCheckSettings.firstWhere((s) => s.id == 's1');
+        store.leaseChequeSettings.firstWhere((s) => s.id == 's1');
     expect(updated.ownerName, 'New Owner');
     expect(updated.amount, 7500);
     expect(find.textContaining('New Owner'), findsOneWidget);
@@ -74,7 +74,7 @@ void main() {
       (tester) async {
     final store = storeWithFlats();
     await pumpApp(tester, store: store);
-    await tapNavTab(tester, 'Checklist');
+    await tapNavTab(tester, 'Lease Setup');
 
     await tester.tap(find.text('Alpha House'));
     await tester.pumpAndSettle();
@@ -89,7 +89,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final updated =
-        store.leaseCheckSettings.firstWhere((s) => s.id == 's1');
+        store.leaseChequeSettings.firstWhere((s) => s.id == 's1');
     expect(updated.nextDueDate.day, 15);
   });
 
@@ -102,13 +102,13 @@ void main() {
       store: store,
       notifications: NotificationService(fake),
     );
-    await tapNavTab(tester, 'Checklist');
+    await tapNavTab(tester, 'Lease Setup');
 
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
 
     final updated =
-        store.leaseCheckSettings.firstWhere((s) => s.id == 's1');
+        store.leaseChequeSettings.firstWhere((s) => s.id == 's1');
     expect(updated.notifyEnabled, isFalse);
     expect(fake.cancelled, isNotEmpty);
     expect(fake.scheduled, isEmpty);

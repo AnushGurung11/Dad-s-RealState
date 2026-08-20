@@ -7,8 +7,10 @@ class Person {
     this.bedId,
     this.joinDate,
     this.plannedStayMonths,
-    this.leaveDate,
+    this.vacatedDate,
     this.depositAmount,
+    this.monthlyRent,
+    this.others,
   });
 
   final String id;
@@ -23,13 +25,19 @@ class Person {
   /// Months the tenant stated they would stay. Captured at assignment.
   final int? plannedStayMonths;
 
-  /// Expected move-out date. Auto-computed at assignment as
-  /// joinDate + plannedStayMonths, editable later to reflect the actual
-  /// move-out date.
-  final DateTime? leaveDate;
+  /// Actual move-out date. Auto-computed at assignment as
+  /// joinDate + plannedStayMonths, editable later to reflect reality.
+  final DateTime? vacatedDate;
 
   /// Deposit collected at assignment. Counts as income.
   final double? depositAmount;
+
+  /// The tenant's own rent. Defaults from the bed's default rent at
+  /// assignment, editable per-person.
+  final double? monthlyRent;
+
+  /// Free-text notes about the tenant.
+  final String? others;
 
   Person copyWith({
     String? id,
@@ -39,8 +47,10 @@ class Person {
     String? bedId,
     DateTime? joinDate,
     int? plannedStayMonths,
-    DateTime? leaveDate,
+    DateTime? vacatedDate,
     double? depositAmount,
+    double? monthlyRent,
+    String? others,
     bool clearBedId = false,
   }) {
     return Person(
@@ -51,8 +61,10 @@ class Person {
       bedId: clearBedId ? null : bedId ?? this.bedId,
       joinDate: joinDate ?? this.joinDate,
       plannedStayMonths: plannedStayMonths ?? this.plannedStayMonths,
-      leaveDate: leaveDate ?? this.leaveDate,
+      vacatedDate: vacatedDate ?? this.vacatedDate,
       depositAmount: depositAmount ?? this.depositAmount,
+      monthlyRent: monthlyRent ?? this.monthlyRent,
+      others: others ?? this.others,
     );
   }
 
@@ -72,10 +84,15 @@ class Person {
           ? null
           : DateTime.parse(json['joinDate'] as String),
       plannedStayMonths: json['plannedStayMonths'] as int?,
-      leaveDate: json['leaveDate'] == null
+      // Older builds stored the vacated date under `leaveDate`.
+      vacatedDate: (json['vacatedDate'] ?? json['leaveDate']) == null
           ? null
-          : DateTime.parse(json['leaveDate'] as String),
+          : DateTime.parse(
+              (json['vacatedDate'] ?? json['leaveDate']) as String,
+            ),
       depositAmount: (json['depositAmount'] as num?)?.toDouble(),
+      monthlyRent: (json['monthlyRent'] as num?)?.toDouble(),
+      others: json['others'] as String?,
     );
   }
 
@@ -88,8 +105,10 @@ class Person {
       'bedId': bedId,
       'joinDate': joinDate?.toIso8601String(),
       'plannedStayMonths': plannedStayMonths,
-      'leaveDate': leaveDate?.toIso8601String(),
+      'vacatedDate': vacatedDate?.toIso8601String(),
       'depositAmount': depositAmount,
+      'monthlyRent': monthlyRent,
+      'others': others,
     };
   }
 }

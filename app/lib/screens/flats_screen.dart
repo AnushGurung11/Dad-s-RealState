@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/bed.dart';
 import '../models/flat.dart';
-import '../models/lease_check_setting.dart';
+import '../models/lease_cheque_setting.dart';
 import '../services/bed_capacity_service.dart';
 import '../services/json_store.dart';
 import '../utils/ids.dart';
-import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/empty_state.dart';
 import 'flat_detail_screen.dart';
 
@@ -28,7 +27,11 @@ class _FlatsScreenState extends State<FlatsScreen> {
     );
     if (result == null) return;
     setState(() {
+      final previous = widget.store.flats
+          .where((f) => f.id == result.flat.id)
+          .firstOrNull;
       widget.store.upsertFlat(result.flat);
+
       if (existing == null) {
         for (var i = 1; i <= result.bedCount; i++) {
           widget.store.upsertBed(
@@ -36,45 +39,35 @@ class _FlatsScreenState extends State<FlatsScreen> {
               id: '${newId()}-$i',
               flatId: result.flat.id,
               label: 'Bed $i',
-              monthlyRent: 0,
+              defaultMonthlyRent: 0,
             ),
           );
         }
         final now = DateTime.now();
-        widget.store.upsertCheckSetting(
-          LeaseCheckSetting(
+        final yearlyRent = result.flat.yearlyRent;
+        widget.store.upsertChequeSetting(
+          LeaseChequeSetting(
             id: newId(),
             flatId: result.flat.id,
-            ownerName: '',
-            amount: 0,
+            ownerName: result.flat.contractPerson ?? '',
+            amount: yearlyRent == null ? 0 : yearlyRent / 6,
             nextDueDate: DateTime(now.year, now.month + 2, now.day),
           ),
         );
+      } else if (previous != null &&
+          result.flat.yearlyRent != previous.yearlyRent &&
+          result.flat.yearlyRent != null) {
+        // Cheque amount auto-tracks the yearly rent (6 cheques per year).
+        final setting = widget.store.leaseChequeSettings
+            .where((s) => s.flatId == result.flat.id)
+            .firstOrNull;
+        if (setting != null) {
+          widget.store.upsertChequeSetting(
+            setting.copyWith(amount: result.flat.yearlyRent! / 6),
+          );
+        }
       }
     });
-  }
-
-  Future<void> _deleteFlat(Flat flat) async {
-    final beds = widget.store.beds.where((b) => b.flatId == flat.id).toList();
-    final occupied = beds.where((b) => b.tenantId != null).length;
-    final detail = beds.isEmpty
-        ? 'This flat has no beds. Delete it?'
-        : 'This flat has ${beds.length} '
-            'bed${beds.length == 1 ? '' : 's'} and $occupied active '
-            'tenant${occupied == 1 ? '' : 's'} — delete anyway?';
-    final confirmed = await showConfirmDeleteDialog(
-      context,
-      title: 'Delete ${flat.name}?',
-      detail: detail,
-    );
-    if (!confirmed) return;
-    setState(() {
-      widget.store.deleteFlat(flat.id);
-    });
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Deleted ${flat.name}')),
-    );
   }
 
   @override
@@ -109,25 +102,11 @@ class _FlatsScreenState extends State<FlatsScreen> {
                       child: const Icon(Icons.apartment),
                     ),
                     title: Text(flat.name),
-                    subtitle: Text(
-                      '${flat.address}\n'
-                      '${beds.length} bed${beds.length == 1 ? '' : 's'} · '
-                      '$occupied occupied',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          tooltip: 'Edit flat',
-                          onPressed: () => _openFlatForm(existing: flat),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          tooltip: 'Delete flat',
-                          onPressed: () => _deleteFlat(flat),
-                        ),
-                      ],
+                    subtitle: Text('$occupied / ${beds.length} beds'),
+                    trailing: _ChequeBadge(
+                      setting: widget.store.leaseChequeSettings
+                          .where((s) => s.flatId == flat.id)
+                          .firstOrNull,
                     ),
                     onTap: () async {
                       await Navigator.of(context).push(
@@ -148,6 +127,43 @@ class _FlatsScreenState extends State<FlatsScreen> {
   }
 }
 
+class _ChequeBadge extends StatelessWidget {
+  const _ChequeBadge({this.setting});
+
+  final LeaseChequeSetting? setting;
+
+  @override
+  Widget build(BuildContext context) {
+    final setting = this.setting;
+    if (setting == null || setting.amount <= 0) return const SizedBox.shrink();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = setting.nextDueDate;
+    final dueDay = DateTime(due.year, due.month, due.day);
+    final daysLeft = dueDay.difference(today).inDays;
+    if (daysLeft < 0 || daysLeft > 3) return const SizedBox.shrink();
+
+    final urgent = daysLeft == 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: urgent
+            ? Theme.of(context).colorScheme.errorContainer
+            : Theme.of(context).colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        'Cheque in ${daysLeft}d',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: urgent
+                  ? Theme.of(context).colorScheme.onErrorContainer
+                  : Theme.of(context).colorScheme.onTertiaryContainer,
+            ),
+      ),
+    );
+  }
+}
+
 class _FlatForm extends StatefulWidget {
   const _FlatForm({this.existing});
 
@@ -162,15 +178,24 @@ class _FlatFormState extends State<_FlatForm> {
   late final TextEditingController _name;
   late final TextEditingController _address;
   late final TextEditingController _beds;
+  late final TextEditingController _contractPerson;
+  late final TextEditingController _yearlyRent;
+  DateTime? _contractDate;
 
   @override
   void initState() {
     super.initState();
     _name = TextEditingController(text: widget.existing?.name ?? '');
     _address = TextEditingController(text: widget.existing?.address ?? '');
-    _beds = TextEditingController(
-      text: widget.existing == null ? '5' : '',
+    _beds = TextEditingController(text: widget.existing == null ? '5' : '');
+    _contractPerson =
+        TextEditingController(text: widget.existing?.contractPerson ?? '');
+    _yearlyRent = TextEditingController(
+      text: widget.existing?.yearlyRent == null
+          ? ''
+          : widget.existing!.yearlyRent!.toStringAsFixed(0),
     );
+    _contractDate = widget.existing?.contractDate;
   }
 
   @override
@@ -178,13 +203,27 @@ class _FlatFormState extends State<_FlatForm> {
     _name.dispose();
     _address.dispose();
     _beds.dispose();
+    _contractPerson.dispose();
+    _yearlyRent.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickContractDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _contractDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked == null) return;
+    setState(() => _contractDate = picked);
   }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final existing = widget.existing;
     final bedCount = int.tryParse(_beds.text.trim()) ?? 0;
+    final yearlyRent = double.tryParse(_yearlyRent.text.trim());
     Navigator.of(context).pop(
       (
         flat: Flat(
@@ -192,6 +231,10 @@ class _FlatFormState extends State<_FlatForm> {
           name: _name.text.trim(),
           address: _address.text.trim(),
           createdAt: existing?.createdAt ?? DateTime.now(),
+          contractDate: _contractDate,
+          contractPerson:
+              _contractPerson.text.trim().isEmpty ? null : _contractPerson.text.trim(),
+          yearlyRent: yearlyRent,
         ),
         bedCount: bedCount,
       ),
@@ -210,68 +253,101 @@ class _FlatFormState extends State<_FlatForm> {
       ),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.existing == null ? 'Add flat' : 'Edit flat',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(
-                labelText: 'Flat name',
-                border: OutlineInputBorder(),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.existing == null ? 'Add flat' : 'Edit flat',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              textInputAction: TextInputAction.next,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Name is required' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _address,
-              decoration: const InputDecoration(
-                labelText: 'Address',
-                border: OutlineInputBorder(),
-              ),
-              textInputAction: TextInputAction.next,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Address is required' : null,
-            ),
-            if (widget.existing == null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
-                controller: _beds,
+                controller: _name,
                 decoration: const InputDecoration(
-                  labelText: 'Number of beds',
-                  helperText:
-                      'A flat must have ${BedCapacityService.minBeds}-'
-                      '${BedCapacityService.maxBeds} beds.',
+                  labelText: 'Flat name',
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.next,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _address,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                ),
+                textInputAction: TextInputAction.next,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Address is required'
+                    : null,
+              ),
+              if (widget.existing == null) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _beds,
+                  decoration: const InputDecoration(
+                    labelText: 'Number of beds',
+                    helperText: 'A flat must have ${BedCapacityService.minBeds}-'
+                        '${BedCapacityService.maxBeds} beds.',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  validator: (v) {
+                    final parsed = int.tryParse(v?.trim() ?? '');
+                    if (parsed == null) return 'Enter a number';
+                    if (!BedCapacityService.canCreateFlat(parsed)) {
+                      return 'Beds must be between '
+                          '${BedCapacityService.minBeds} and '
+                          '${BedCapacityService.maxBeds}';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _contractPerson,
+                decoration: const InputDecoration(
+                  labelText: 'Contract person',
+                  helperText: 'Registered owner of the lease.',
+                  border: OutlineInputBorder(),
+                ),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _yearlyRent,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Yearly rent',
+                  helperText: 'Cheque amount auto-fills as yearly rent ÷ 6.',
+                  border: OutlineInputBorder(),
+                ),
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
-                validator: (v) {
-                  final parsed = int.tryParse(v?.trim() ?? '');
-                  if (parsed == null) return 'Enter a number';
-                  if (!BedCapacityService.canCreateFlat(parsed)) {
-                    return 'Beds must be between '
-                        '${BedCapacityService.minBeds} and '
-                        '${BedCapacityService.maxBeds}';
-                  }
-                  return null;
-                },
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _pickContractDate,
+                icon: const Icon(Icons.event),
+                label: Text(
+                  _contractDate == null
+                      ? 'Contract date'
+                      : 'Contract: ${_contractDate!.day}/${_contractDate!.month}/${_contractDate!.year}',
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _submit,
+                child: Text(widget.existing == null ? 'Add' : 'Save'),
               ),
             ],
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submit,
-              child: Text(widget.existing == null ? 'Add' : 'Save'),
-            ),
-          ],
+          ),
         ),
       ),
     );

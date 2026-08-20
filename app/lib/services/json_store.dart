@@ -6,8 +6,8 @@ import '../config.dart';
 import '../models/bed.dart';
 import '../models/expense.dart';
 import '../models/flat.dart';
-import '../models/lease_check_record.dart';
-import '../models/lease_check_setting.dart';
+import '../models/lease_cheque_record.dart';
+import '../models/lease_cheque_setting.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
 
@@ -19,8 +19,8 @@ abstract class JsonStore {
   List<Person> get people;
   List<Payment> get payments;
   List<Expense> get expenses;
-  List<LeaseCheckSetting> get leaseCheckSettings;
-  List<LeaseCheckRecord> get leaseCheckRecords;
+  List<LeaseChequeSetting> get leaseChequeSettings;
+  List<LeaseChequeRecord> get leaseChequeRecords;
 
   /// Invoked whenever a background disk write fails, so the app can surface a
   /// plain error to the user instead of crashing silently. Ignored by
@@ -60,12 +60,12 @@ abstract class JsonStore {
   /// Removes an expense. Schedules a debounced write.
   void deleteExpense(String expenseId);
 
-  /// Persists a flat's lease check setting. Schedules a debounced write.
-  void upsertCheckSetting(LeaseCheckSetting setting);
+  /// Persists a flat's lease cheque setting. Schedules a debounced write.
+  void upsertChequeSetting(LeaseChequeSetting setting);
 
-  /// Appends a lease check payment record (immutable history). Schedules a
+  /// Appends a lease cheque payment record (immutable history). Schedules a
   /// debounced write.
-  void upsertCheckRecord(LeaseCheckRecord record);
+  void upsertChequeRecord(LeaseChequeRecord record);
 
   /// Forces any pending writes to disk immediately.
   Future<void> flush();
@@ -82,8 +82,8 @@ class InMemoryJsonStore implements JsonStore {
   final List<Person> _people = [];
   final List<Payment> _payments = [];
   final List<Expense> _expenses = [];
-  final List<LeaseCheckSetting> _checkSettings = [];
-  final List<LeaseCheckRecord> _checkRecords = [];
+  final List<LeaseChequeSetting> _chequeSettings = [];
+  final List<LeaseChequeRecord> _chequeRecords = [];
 
   @override
   void Function(Object error, StackTrace stackTrace)? onWriteError;
@@ -104,12 +104,12 @@ class InMemoryJsonStore implements JsonStore {
   List<Expense> get expenses => List.unmodifiable(_expenses);
 
   @override
-  List<LeaseCheckSetting> get leaseCheckSettings =>
-      List.unmodifiable(_checkSettings);
+  List<LeaseChequeSetting> get leaseChequeSettings =>
+      List.unmodifiable(_chequeSettings);
 
   @override
-  List<LeaseCheckRecord> get leaseCheckRecords =>
-      List.unmodifiable(_checkRecords);
+  List<LeaseChequeRecord> get leaseChequeRecords =>
+      List.unmodifiable(_chequeRecords);
 
   @override
   Future<void> load() async {}
@@ -128,7 +128,8 @@ class InMemoryJsonStore implements JsonStore {
   void deleteFlat(String flatId) {
     _flats.removeWhere((f) => f.id == flatId);
     _beds.removeWhere((b) => b.flatId == flatId);
-    _checkSettings.removeWhere((s) => s.flatId == flatId);
+    _chequeSettings.removeWhere((s) => s.flatId == flatId);
+    _chequeRecords.removeWhere((r) => r.flatId == flatId);
   }
 
   @override
@@ -193,22 +194,22 @@ class InMemoryJsonStore implements JsonStore {
   }
 
   @override
-  void upsertCheckSetting(LeaseCheckSetting setting) {
-    final index = _checkSettings.indexWhere((s) => s.id == setting.id);
+  void upsertChequeSetting(LeaseChequeSetting setting) {
+    final index = _chequeSettings.indexWhere((s) => s.id == setting.id);
     if (index >= 0) {
-      _checkSettings[index] = setting;
+      _chequeSettings[index] = setting;
     } else {
-      _checkSettings.add(setting);
+      _chequeSettings.add(setting);
     }
   }
 
   @override
-  void upsertCheckRecord(LeaseCheckRecord record) {
-    final index = _checkRecords.indexWhere((r) => r.id == record.id);
+  void upsertChequeRecord(LeaseChequeRecord record) {
+    final index = _chequeRecords.indexWhere((r) => r.id == record.id);
     if (index >= 0) {
-      _checkRecords[index] = record;
+      _chequeRecords[index] = record;
     } else {
-      _checkRecords.add(record);
+      _chequeRecords.add(record);
     }
   }
 
@@ -299,12 +300,12 @@ class LocalJsonStore extends InMemoryJsonStore {
           _encode(expenses, (e) => e.toJson()),
         ),
         _writeFile(
-          AppConfig.leaseCheckSettingsFileName,
-          _encode(leaseCheckSettings, (s) => s.toJson()),
+          AppConfig.leaseChequeSettingsFileName,
+          _encode(leaseChequeSettings, (s) => s.toJson()),
         ),
         _writeFile(
-          AppConfig.leaseCheckRecordsFileName,
-          _encode(leaseCheckRecords, (r) => r.toJson()),
+          AppConfig.leaseChequeRecordsFileName,
+          _encode(leaseChequeRecords, (r) => r.toJson()),
         ),
       ]);
     } catch (error, stackTrace) {
@@ -333,8 +334,8 @@ class LocalJsonStore extends InMemoryJsonStore {
     final rawPeople = await _readFile(AppConfig.peopleFileName);
     final rawPayments = await _readFile(AppConfig.paymentsFileName);
     final rawExpenses = await _readFile(AppConfig.expensesFileName);
-    final rawCheckSettings = await _readFile(AppConfig.leaseCheckSettingsFileName);
-    final rawCheckRecords = await _readFile(AppConfig.leaseCheckRecordsFileName);
+    final rawChequeSettings = await _readFile(AppConfig.leaseChequeSettingsFileName);
+    final rawChequeRecords = await _readFile(AppConfig.leaseChequeRecordsFileName);
 
     for (final item in rawFlats?['items'] as List? ?? const <Object?>[]) {
       super.upsertFlat(Flat.fromJson(item as Map<String, dynamic>));
@@ -351,16 +352,16 @@ class LocalJsonStore extends InMemoryJsonStore {
     for (final item in rawExpenses?['items'] as List? ?? const <Object?>[]) {
       super.upsertExpense(Expense.fromJson(item as Map<String, dynamic>));
     }
-    for (final item in rawCheckSettings?['items'] as List? ??
+    for (final item in rawChequeSettings?['items'] as List? ??
         const <Object?>[]) {
-      super.upsertCheckSetting(
-        LeaseCheckSetting.fromJson(item as Map<String, dynamic>),
+      super.upsertChequeSetting(
+        LeaseChequeSetting.fromJson(item as Map<String, dynamic>),
       );
     }
-    for (final item in rawCheckRecords?['items'] as List? ??
+    for (final item in rawChequeRecords?['items'] as List? ??
         const <Object?>[]) {
-      super.upsertCheckRecord(
-        LeaseCheckRecord.fromJson(item as Map<String, dynamic>),
+      super.upsertChequeRecord(
+        LeaseChequeRecord.fromJson(item as Map<String, dynamic>),
       );
     }
 
@@ -433,14 +434,14 @@ class LocalJsonStore extends InMemoryJsonStore {
   }
 
   @override
-  void upsertCheckSetting(LeaseCheckSetting setting) {
-    super.upsertCheckSetting(setting);
+  void upsertChequeSetting(LeaseChequeSetting setting) {
+    super.upsertChequeSetting(setting);
     _scheduleSave();
   }
 
   @override
-  void upsertCheckRecord(LeaseCheckRecord record) {
-    super.upsertCheckRecord(record);
+  void upsertChequeRecord(LeaseChequeRecord record) {
+    super.upsertChequeRecord(record);
     _scheduleSave();
   }
 

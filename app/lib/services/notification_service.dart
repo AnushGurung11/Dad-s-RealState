@@ -2,7 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../models/lease_check_setting.dart';
+import '../models/lease_cheque_setting.dart';
 import '../utils/format.dart';
 
 /// Abstraction over the notification platform so logic can be unit-tested
@@ -27,8 +27,8 @@ class LocalNotificationScheduler implements NotificationScheduler {
   static const AndroidNotificationDetails _androidDetails =
       AndroidNotificationDetails(
     'lease_checks',
-    'Lease checks',
-    channelDescription: 'Reminders to pay the flat lease check to its owner.',
+    'Lease cheques',
+    channelDescription: 'Reminders to pay the flat lease cheque to its owner.',
     importance: Importance.defaultImportance,
     priority: Priority.defaultPriority,
   );
@@ -54,7 +54,7 @@ class LocalNotificationScheduler implements NotificationScheduler {
   Future<void> cancel(int id) => _plugin.cancel(id: id);
 }
 
-/// Schedules/cancels the 3-days-before-due reminder for a flat's lease check.
+/// Schedules/cancels the 3-days-before-due reminder for a flat's lease cheque.
 /// Always cancels first, so calling [syncFor] whenever `nextDueDate` or
 /// `notifyEnabled` changes reschedules cleanly.
 class NotificationService {
@@ -62,13 +62,13 @@ class NotificationService {
 
   final NotificationScheduler _scheduler;
 
-  int _idFor(LeaseCheckSetting setting) =>
+  int _idFor(LeaseChequeSetting setting) =>
       setting.id.hashCode & 0x7fffffff;
 
   /// Cancels any existing reminder for [setting], then schedules a new one
   /// 3 days before `nextDueDate` (at 09:00) when notifications are enabled.
   /// No-op when the reminder date is already in the past.
-  Future<void> syncFor(LeaseCheckSetting setting) async {
+  Future<void> syncFor(LeaseChequeSetting setting) async {
     final id = _idFor(setting);
     await _scheduler.cancel(id);
     if (!setting.notifyEnabled) return;
@@ -80,13 +80,13 @@ class NotificationService {
     );
     if (!when.isAfter(DateTime.now())) return;
     final owner = setting.ownerName.trim().isEmpty
-        ? 'Lease check'
+        ? 'Lease cheque'
         : setting.ownerName;
     final date = '${setting.nextDueDate.day}/${setting.nextDueDate.month}';
     await _scheduler.scheduleAt(
       when: when,
       id: id,
-      title: 'Lease check due $date',
+      title: 'Lease cheque due $date',
       body: '$owner — ${formatMoneyShort(setting.amount)}',
     );
   }

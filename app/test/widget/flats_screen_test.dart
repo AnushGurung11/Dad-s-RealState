@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/models/bed.dart';
 import 'package:renttrack/models/flat.dart';
+import 'package:renttrack/models/lease_cheque_setting.dart';
 import 'package:renttrack/services/bed_capacity_service.dart';
 import 'package:renttrack/services/json_store.dart';
 
@@ -21,7 +22,7 @@ void main() {
         id: 'b$i',
         flatId: 'f1',
         label: 'Bed $i',
-        monthlyRent: 4000,
+        defaultMonthlyRent: 4000,
       ));
     }
     return store;
@@ -86,7 +87,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sunrise Residency'), findsOneWidget);
-    expect(find.textContaining('6 beds'), findsOneWidget);
+    expect(find.text('0 / 6 beds'), findsOneWidget);
 
     // Open the flat: six auto-created beds and the capacity hint.
     await tester.tap(find.text('Sunrise Residency'));
@@ -94,9 +95,8 @@ void main() {
     expect(find.text('6 / 20 beds'), findsOneWidget);
     expect(find.text('Bed 1'), findsOneWidget);
     expect(find.text('Bed 6'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
 
+    // Edit the flat from the detail screen's app bar.
     await tester.tap(find.byTooltip('Edit flat'));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -107,6 +107,7 @@ void main() {
     expect(find.text('Sunrise Towers'), findsOneWidget);
     expect(find.text('Sunrise Residency'), findsNothing);
 
+    // Delete the flat from the detail screen's app bar.
     await tester.tap(find.byTooltip('Delete flat'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Delete Sunrise Towers?'), findsOneWidget);
@@ -158,5 +159,48 @@ void main() {
     );
     // No confirmation dialog opened.
     expect(find.textContaining('Delete Bed 1?'), findsNothing);
+  });
+
+  testWidgets('yearly rent auto-fills the cheque amount as yearlyRent / 6',
+      (tester) async {
+    final store = InMemoryJsonStore();
+    await pumpApp(tester, store: store);
+    await tapNavTab(tester, 'Flats');
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Add flat').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Flat name'), 'Sunrise Residency');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Address'), '12 Lake Road');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Number of beds'), '5');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Yearly rent'), '24000');
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sunrise Residency'), findsOneWidget);
+    final setting = store.leaseChequeSettings.single;
+    expect(setting.amount, 4000);
+    expect(setting.ownerName, '');
+  });
+
+  testWidgets('brief card shows a "Cheque in Xd" badge when due within 3 days',
+      (tester) async {
+    final store = storeWithFlat(5);
+    final now = DateTime.now();
+    store.upsertChequeSetting(LeaseChequeSetting(
+      id: 's1',
+      flatId: 'f1',
+      ownerName: 'Owner',
+      amount: 4000,
+      nextDueDate: DateTime(now.year, now.month, now.day + 2),
+    ));
+
+    await pumpApp(tester, store: store);
+    await tapNavTab(tester, 'Flats');
+
+    expect(find.text('Cheque in 2d'), findsOneWidget);
   });
 }

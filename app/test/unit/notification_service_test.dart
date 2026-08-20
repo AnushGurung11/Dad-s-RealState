@@ -1,18 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/lease_check_setting.dart';
+import 'package:renttrack/models/lease_cheque_setting.dart';
 import 'package:renttrack/services/notification_service.dart';
 
 import '../helpers.dart';
 
 void main() {
-  LeaseCheckSetting setting({
+  LeaseChequeSetting setting({
     String id = 's1',
     String ownerName = 'Owner',
     double amount = 4000,
     DateTime? nextDueDate,
     bool notifyEnabled = true,
   }) {
-    return LeaseCheckSetting(
+    return LeaseChequeSetting(
       id: id,
       flatId: 'f1',
       ownerName: ownerName,

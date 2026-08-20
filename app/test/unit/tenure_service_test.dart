@@ -8,7 +8,7 @@ void main() {
 
   Person tenant({
     int? months = 2,
-    DateTime? leaveDate,
+    DateTime? vacatedDate,
     double? deposit = 5000,
   }) {
     return Person(
@@ -18,7 +18,7 @@ void main() {
       bedId: 'b1',
       joinDate: join,
       plannedStayMonths: months,
-      leaveDate: leaveDate ?? TenureService.computedLeaveDate(join, months ?? 2),
+      vacatedDate: vacatedDate ?? TenureService.computedLeaveDate(join, months ?? 2),
       depositAmount: deposit,
     );
   }
@@ -46,14 +46,14 @@ void main() {
       expect(TenureService.totalRentOwed(edited, 4000), 24000);
     });
 
-    test('recalculates when leaveDate is edited to differ from the plan', () {
-      final edited = tenant(leaveDate: DateTime(2026, 6, 20));
+    test('recalculates when vacatedDate is edited to differ from the plan', () {
+      final edited = tenant(vacatedDate: DateTime(2026, 6, 20));
       // 4 full months + a partial month because day 20 > day 10.
       expect(TenureService.totalRentOwed(edited, 4000), 20000);
     });
 
-    test('edited leaveDate earlier than plan is respected (minimum 1 month)', () {
-      final edited = tenant(leaveDate: DateTime(2026, 2, 15));
+    test('edited vacatedDate earlier than plan is respected (minimum 1 month)', () {
+      final edited = tenant(vacatedDate: DateTime(2026, 2, 15));
       expect(TenureService.totalRentOwed(edited, 4000), 4000);
     });
   });

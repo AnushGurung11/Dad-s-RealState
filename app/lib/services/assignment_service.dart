@@ -30,7 +30,7 @@ class AssignmentService {
   final JsonStore store;
 
   /// Assigns [person] to [bed] capturing [deposit], [joinDate] and
-  /// [plannedStayMonths]. Computes and sets [Person.leaveDate]. Records the
+  /// [plannedStayMonths]. Computes and sets [Person.vacatedDate]. Records the
   /// deposit as income (a deposit [Payment]) in the month of [joinDate].
   /// Throws [AssignmentException] if the bed is occupied or the person is
   /// already assigned to another bed.
@@ -40,6 +40,7 @@ class AssignmentService {
     required double deposit,
     required DateTime joinDate,
     required int plannedStayMonths,
+    double? monthlyRent,
   }) {
     if (deposit <= 0) {
       throw AssignmentException('A deposit is required to assign a tenant.');
@@ -54,7 +55,7 @@ class AssignmentService {
       throw AssignmentException('This person already has a bed assigned.');
     }
 
-    final leaveDate = TenureService.computedLeaveDate(joinDate, plannedStayMonths);
+    final vacatedDate = TenureService.computedLeaveDate(joinDate, plannedStayMonths);
 
     store.upsertBed(bed.copyWith(tenantId: person.id));
     store.upsertPerson(
@@ -62,8 +63,9 @@ class AssignmentService {
         bedId: bed.id,
         joinDate: joinDate,
         plannedStayMonths: plannedStayMonths,
-        leaveDate: leaveDate,
+        vacatedDate: vacatedDate,
         depositAmount: deposit,
+        monthlyRent: monthlyRent ?? person.monthlyRent,
       ),
     );
     store.upsertPayment(
