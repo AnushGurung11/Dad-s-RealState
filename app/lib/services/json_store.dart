@@ -145,7 +145,13 @@ class InMemoryJsonStore implements JsonStore {
   @override
   void deleteBed(String bedId) {
     _beds.removeWhere((b) => b.id == bedId);
-    _people.removeWhere((p) => p.bedId == bedId);
+    // Unassign the tenant rather than deleting them — the app promises their
+    // payment history is kept.
+    for (var i = 0; i < _people.length; i++) {
+      if (_people[i].bedId == bedId) {
+        _people[i] = _people[i].copyWith(clearBedId: true);
+      }
+    }
   }
 
   @override

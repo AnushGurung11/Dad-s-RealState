@@ -61,8 +61,8 @@ void main() {
       DateTime(now.year, now.month + 2, now.day),
     );
 
-    // --- Set amount + owner on the Checklist page, due date = today.
-    await tester.tap(find.text('Checklist').last);
+    // --- Set amount + owner on the Lease Setup page, due date = today.
+    await tester.tap(find.text('Lease Setup').last);
     await tester.pumpAndSettle();
     expect(find.text('Sunrise Residency'), findsOneWidget);
     await tester.tap(find.text('Sunrise Residency'));

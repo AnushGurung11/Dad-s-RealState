@@ -203,4 +203,55 @@ void main() {
 
     expect(find.text('Cheque in 2d'), findsOneWidget);
   });
+
+  testWidgets('no cheque badge when the next cheque is not due within 3 days',
+      (tester) async {
+    final store = storeWithFlat(5);
+    final now = DateTime.now();
+    store.upsertChequeSetting(LeaseChequeSetting(
+      id: 's1',
+      flatId: 'f1',
+      ownerName: 'Owner',
+      amount: 4000,
+      nextDueDate: DateTime(now.year, now.month, now.day + 10),
+    ));
+
+    await pumpApp(tester, store: store);
+    await tapNavTab(tester, 'Flats');
+
+    expect(find.textContaining('Cheque in'), findsNothing);
+  });
+
+  testWidgets('flat card shows only name and occupancy, no lease details inline',
+      (tester) async {
+    final store = InMemoryJsonStore();
+    store.upsertFlat(Flat(
+      id: 'f1',
+      name: 'Alpha House',
+      address: '1 Main St',
+      createdAt: DateTime(2026, 1, 1),
+      contractDate: DateTime(2026, 1, 5),
+      contractPerson: 'Govt Housing',
+      yearlyRent: 24000,
+    ));
+    for (var i = 1; i <= 6; i++) {
+      store.upsertBed(Bed(
+        id: 'b$i',
+        flatId: 'f1',
+        label: 'Bed $i',
+        defaultMonthlyRent: 4000,
+      ));
+    }
+
+    await pumpApp(tester, store: store);
+    await tapNavTab(tester, 'Flats');
+
+    expect(find.text('Alpha House'), findsOneWidget);
+    expect(find.text('0 / 6 beds'), findsOneWidget);
+    // Lease/contract details live on the detail screen, never the brief card.
+    expect(find.text('1 Main St'), findsNothing);
+    expect(find.text('Govt Housing'), findsNothing);
+    expect(find.text('AED 24000'), findsNothing);
+    expect(find.text('5/1/2026'), findsNothing);
+  });
 }

@@ -244,7 +244,7 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
   }
 }
 
-class _BedsTab extends StatelessWidget {
+class _BedsTab extends StatefulWidget {
   const _BedsTab({
     required this.beds,
     required this.store,
@@ -263,11 +263,22 @@ class _BedsTab extends StatelessWidget {
   final ValueChanged<Bed> onDeleteBed;
   final ValueChanged<Bed> onTapBed;
 
+  @override
+  State<_BedsTab> createState() => _BedsTabState();
+}
+
+class _BedsTabState extends State<_BedsTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   bool _isOverdue(Bed bed) {
-    final person = store.people.where((p) => p.id == bed.tenantId).firstOrNull;
+    final person = widget.store.people
+        .where((p) => p.id == bed.tenantId)
+        .firstOrNull;
     if (person == null) return false;
     final month = monthKey(DateTime.now());
-    return store.payments.any(
+    return widget.store.payments.any(
       (p) =>
           p.personId == person.id &&
           p.type == PaymentType.rent &&
@@ -278,6 +289,9 @@ class _BedsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    final beds = widget.beds;
+    final store = widget.store;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -304,7 +318,7 @@ class _BedsTab extends StatelessWidget {
                   message: 'No beds in this flat yet. Add a bed to start '
                       'tracking occupancy.',
                   actionLabel: 'Add bed',
-                  onAction: onAddBed,
+                  onAction: widget.onAddBed,
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
@@ -312,8 +326,11 @@ class _BedsTab extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final bed = beds[index];
-                    final tenant =
-                        store.people.where((p) => p.id == bed.tenantId);
+                    final tenant = store.people
+                        .where((p) => p.id == bed.tenantId)
+                        .firstOrNull;
+                    final rent =
+                        tenant?.monthlyRent ?? bed.defaultMonthlyRent;
                     final accent = !bed.isOccupied
                         ? Colors.grey
                         : _isOverdue(bed)
@@ -338,9 +355,11 @@ class _BedsTab extends StatelessWidget {
                         ),
                         title: Text(bed.label),
                         subtitle: Text(
-                          bed.isOccupied
-                              ? '${tenant.first.name} · ${bed.defaultMonthlyRent == 0 ? '' : 'AED ${bed.defaultMonthlyRent.toStringAsFixed(0)}/month'}'
-                              : 'Vacant',
+                          tenant == null
+                              ? 'Vacant'
+                              : rent > 0
+                                  ? '${tenant.name} · AED ${rent.toStringAsFixed(0)}/month'
+                                  : tenant.name,
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -348,13 +367,13 @@ class _BedsTab extends StatelessWidget {
                             IconButton(
                               icon: const Icon(Icons.edit_outlined),
                               tooltip: 'Edit bed',
-                              onPressed: () => onEditBed(bed),
+                              onPressed: () => widget.onEditBed(bed),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),
                               tooltip: 'Delete bed',
-                              onPressed: canDelete
-                                  ? () => onDeleteBed(bed)
+                              onPressed: widget.canDelete
+                                  ? () => widget.onDeleteBed(bed)
                                   : () {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
@@ -370,7 +389,7 @@ class _BedsTab extends StatelessWidget {
                             ),
                           ],
                         ),
-                        onTap: () => onTapBed(bed),
+                        onTap: () => widget.onTapBed(bed),
                       ),
                     );
                   },
@@ -381,7 +400,7 @@ class _BedsTab extends StatelessWidget {
   }
 }
 
-class _LeaseInfoTab extends StatelessWidget {
+class _LeaseInfoTab extends StatefulWidget {
   const _LeaseInfoTab({
     required this.store,
     required this.flat,
@@ -393,7 +412,19 @@ class _LeaseInfoTab extends StatelessWidget {
   final ValueChanged<LeaseChequeSetting> onEditCheque;
 
   @override
+  State<_LeaseInfoTab> createState() => _LeaseInfoTabState();
+}
+
+class _LeaseInfoTabState extends State<_LeaseInfoTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+    final flat = widget.flat;
+    final store = widget.store;
     final setting =
         store.leaseChequeSettings.where((s) => s.flatId == flat.id).firstOrNull;
     final records = store.leaseChequeRecords
@@ -456,9 +487,9 @@ class _LeaseInfoTab extends StatelessWidget {
               trailing: IconButton(
                 icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Edit cheque',
-                onPressed: () => onEditCheque(setting),
+                onPressed: () => widget.onEditCheque(setting),
               ),
-              onTap: () => onEditCheque(setting),
+              onTap: () => widget.onEditCheque(setting),
             ),
           ),
         const Divider(height: 32),

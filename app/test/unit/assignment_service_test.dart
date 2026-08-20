@@ -145,6 +145,67 @@ void main() {
       expect(store.beds.singleWhere((b) => b.id == 'b1').tenantId, isNull);
     });
 
+    test('assignTenant with monthlyRent omitted defaults to the bed default',
+        () {
+      final person = Person(id: 'p3', name: 'Carol', contact: '9000000003');
+      store.upsertPerson(person);
+      service.assignTenant(
+        bed: bed1,
+        person: person,
+        deposit: 5000,
+        joinDate: joinDate,
+        plannedStayMonths: 2,
+      );
+
+      final stored = store.people.singleWhere((p) => p.id == 'p3');
+      expect(stored.monthlyRent, bed1.defaultMonthlyRent);
+      expect(stored.monthlyRent, 4000);
+    });
+
+    test('assignTenant with monthlyRent provided overrides the bed default',
+        () {
+      final person = Person(id: 'p3', name: 'Carol', contact: '9000000003');
+      store.upsertPerson(person);
+      service.assignTenant(
+        bed: bed1,
+        person: person,
+        deposit: 5000,
+        joinDate: joinDate,
+        plannedStayMonths: 2,
+        monthlyRent: 3500,
+      );
+
+      final stored = store.people.singleWhere((p) => p.id == 'p3');
+      expect(stored.monthlyRent, 3500);
+    });
+
+    test('a single assignTenant call atomically writes person, bed and deposit',
+        () {
+      final person = Person(id: 'p3', name: 'Carol', contact: '9000000003');
+      store.upsertPerson(person);
+      service.assignTenant(
+        bed: bed1,
+        person: person,
+        deposit: 5000,
+        joinDate: joinDate,
+        plannedStayMonths: 2,
+      );
+
+      // One call produced a consistent final state: bed occupied, person
+      // assigned with tenure fields, and the deposit recorded as income.
+      final storedBed = store.beds.singleWhere((b) => b.id == 'b1');
+      final storedPerson = store.people.singleWhere((p) => p.id == 'p3');
+      expect(storedBed.tenantId, 'p3');
+      expect(storedPerson.bedId, 'b1');
+      expect(storedPerson.joinDate, joinDate);
+      expect(storedPerson.vacatedDate, DateTime(2026, 4, 1));
+      expect(storedPerson.depositAmount, 5000);
+      expect(
+        store.payments.singleWhere((p) => p.personId == 'p3').type,
+        PaymentType.deposit,
+      );
+    });
+
     test('vacantBedsFor only lists beds without a tenant in that flat', () {
       assign('b1', 'p1');
       store.upsertBed(const Bed(id: 'b3', flatId: 'f2', label: 'Other', defaultMonthlyRent: 1));

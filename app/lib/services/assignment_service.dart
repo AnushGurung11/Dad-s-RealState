@@ -65,7 +65,7 @@ class AssignmentService {
         plannedStayMonths: plannedStayMonths,
         vacatedDate: vacatedDate,
         depositAmount: deposit,
-        monthlyRent: monthlyRent ?? person.monthlyRent,
+        monthlyRent: monthlyRent ?? person.monthlyRent ?? bed.defaultMonthlyRent,
       ),
     );
     store.upsertPayment(
