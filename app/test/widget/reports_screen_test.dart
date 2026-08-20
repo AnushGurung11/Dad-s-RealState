@@ -76,10 +76,10 @@ void main() {
     await tapNavTab(tester, 'Reports');
 
     // June: income 4000, expenses 1500, net 2500.
-    expect(find.text('Rs. 4000'), findsNWidgets(2)); // totals + flat card
-    expect(find.text('Rs. 1500'), findsNWidgets(2));
-    expect(find.text('Rs. 2500'), findsNWidgets(2));
-    expect(find.text('Electricity · Rs. 1500'), findsOneWidget);
+    expect(find.text('AED 4000'), findsNWidgets(2)); // totals + flat card
+    expect(find.text('AED 1500'), findsNWidgets(2));
+    expect(find.text('AED 2500'), findsNWidgets(2));
+    expect(find.text('Electricity · AED 1500'), findsOneWidget);
   });
 
   testWidgets('switching period recalculates the figures', (tester) async {
@@ -90,9 +90,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // May: income 4000, expenses 500, net 3500.
-    expect(find.text('Rs. 3500'), findsNWidgets(2));
-    expect(find.text('Rs. 1500'), findsNothing);
-    expect(find.text('Water · Rs. 500'), findsOneWidget);
+    expect(find.text('AED 3500'), findsNWidgets(2));
+    expect(find.text('AED 1500'), findsNothing);
+    expect(find.text('Water · AED 500'), findsOneWidget);
   });
 
   testWidgets('negative net renders as a signed negative number', (tester) async {
@@ -104,8 +104,8 @@ void main() {
     await tapNavTab(tester, 'Reports');
 
     // June: income 4000, expenses 6000, net -2000.
-    expect(find.text('Rs. -2000'), findsNWidgets(2));
-    expect(find.text('Rs. 2000'), findsNothing);
+    expect(find.text('AED -2000'), findsNWidgets(2));
+    expect(find.text('AED 2000'), findsNothing);
   });
 
   testWidgets('adding an expense updates the report immediately',
@@ -127,9 +127,9 @@ void main() {
 
     // The new expense defaults to the report's month (June) and the default
     // category (Electricity): expenses 1500 + 1000 = 2500, net 4000 − 2500.
-    expect(find.text('Electricity · Rs. 1000'), findsOneWidget);
-    expect(find.text('Rs. 4000'), findsNWidgets(2)); // income
-    expect(find.text('Rs. 2500'), findsNWidgets(2)); // expenses
-    expect(find.text('Rs. 1500'), findsNWidgets(2)); // net
+    expect(find.text('Electricity · AED 1000'), findsOneWidget);
+    expect(find.text('AED 4000'), findsNWidgets(2)); // income
+    expect(find.text('AED 2500'), findsNWidgets(2)); // expenses
+    expect(find.text('AED 1500'), findsNWidgets(2)); // net
   });
 }

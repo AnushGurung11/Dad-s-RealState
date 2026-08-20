@@ -105,13 +105,13 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '2000');
     await tester.tap(find.widgetWithText(FilledButton, 'Add').last);
     await tester.pumpAndSettle();
-    expect(find.text('Other · Rs. 2000'), findsOneWidget);
+    expect(find.text('Other · AED 2000'), findsOneWidget);
 
     // --- Report matches: income = deposit 10000 + rent 4500, expenses = 2000,
     // net = 12500.
-    expect(find.text('Rs. 14500'), findsNWidgets(2));
-    expect(find.text('Rs. 2000'), findsNWidgets(2));
-    expect(find.text('Rs. 12500'), findsNWidgets(2));
+    expect(find.text('AED 14500'), findsNWidgets(2));
+    expect(find.text('AED 2000'), findsNWidgets(2));
+    expect(find.text('AED 12500'), findsNWidgets(2));
 
     // --- Data persisted to the temp directory.
     await store.flush();

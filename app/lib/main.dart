@@ -1,29 +1,46 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'config.dart';
+import 'screens/checklist_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/flats_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/tenants_screen.dart';
 import 'services/json_store.dart';
+import 'services/notification_service.dart';
 import 'services/prefs.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RentTrackApp());
+  final plugin = FlutterLocalNotificationsPlugin();
+  try {
+    await initNotifications(plugin);
+  } catch (_) {
+    // Notifications are best-effort; the app must still boot if they fail.
+  }
+  runApp(
+    RentTrackApp(
+      notifications: NotificationService(LocalNotificationScheduler(plugin)),
+    ),
+  );
 }
 
 class RentTrackApp extends StatefulWidget {
-  const RentTrackApp({super.key, this.store, this.prefs});
+  const RentTrackApp({super.key, this.store, this.prefs, this.notifications});
 
   /// Injectable for tests. When null, a real [LocalJsonStore] is created.
   final JsonStore? store;
 
   /// Injectable for tests. When null, real [SharedPreferences] are used.
   final Prefs? prefs;
+
+  /// Injectable for tests. When null, the real local-notifications service
+  /// is used.
+  final NotificationService? notifications;
 
   @override
   State<RentTrackApp> createState() => _RentTrackAppState();
@@ -32,6 +49,7 @@ class RentTrackApp extends StatefulWidget {
 class _RentTrackAppState extends State<RentTrackApp> {
   late JsonStore _store;
   late Prefs _prefs;
+  late NotificationService _notifications;
   String _month = monthKey(DateTime.now());
   int _tabIndex = 0;
   bool _ready = false;
@@ -41,6 +59,10 @@ class _RentTrackAppState extends State<RentTrackApp> {
   void initState() {
     super.initState();
     _store = widget.store ?? LocalJsonStore(directory: Directory(''));
+    _notifications = widget.notifications ??
+        NotificationService(
+          LocalNotificationScheduler(FlutterLocalNotificationsPlugin()),
+        );
     if (widget.prefs != null) {
       _prefs = widget.prefs!;
     }
@@ -140,6 +162,7 @@ class _RentTrackAppState extends State<RentTrackApp> {
     return _Shell(
       store: _store,
       prefs: _prefs,
+      notifications: _notifications,
       initialMonth: _month,
       tabIndex: _tabIndex,
       onTabChanged: _switchTab,
@@ -155,6 +178,7 @@ class _Shell extends StatefulWidget {
   const _Shell({
     required this.store,
     required this.prefs,
+    required this.notifications,
     required this.initialMonth,
     required this.tabIndex,
     required this.onTabChanged,
@@ -163,6 +187,7 @@ class _Shell extends StatefulWidget {
 
   final JsonStore store;
   final Prefs prefs;
+  final NotificationService notifications;
   final String initialMonth;
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
@@ -189,11 +214,15 @@ class _ShellState extends State<_Shell> {
         children: [
           DashboardScreen(
             store: widget.store,
-            month: _month,
+            notifications: widget.notifications,
             onGoToFlats: () => widget.onTabChanged(1),
           ),
           FlatsScreen(store: widget.store),
           TenantsScreen(store: widget.store),
+          ChecklistScreen(
+            store: widget.store,
+            notifications: widget.notifications,
+          ),
           ReportsScreen(
             store: widget.store,
             initialMonth: _month,
@@ -223,6 +252,11 @@ class _ShellState extends State<_Shell> {
             icon: Icon(Icons.group_outlined),
             selectedIcon: Icon(Icons.group),
             label: 'Tenants',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.checklist_outlined),
+            selectedIcon: Icon(Icons.checklist),
+            label: 'Checklist',
           ),
           NavigationDestination(
             icon: Icon(Icons.assessment_outlined),

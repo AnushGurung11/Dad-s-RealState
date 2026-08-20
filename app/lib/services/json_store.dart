@@ -6,6 +6,8 @@ import '../config.dart';
 import '../models/bed.dart';
 import '../models/expense.dart';
 import '../models/flat.dart';
+import '../models/lease_check_record.dart';
+import '../models/lease_check_setting.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
 
@@ -17,6 +19,8 @@ abstract class JsonStore {
   List<Person> get people;
   List<Payment> get payments;
   List<Expense> get expenses;
+  List<LeaseCheckSetting> get leaseCheckSettings;
+  List<LeaseCheckRecord> get leaseCheckRecords;
 
   /// Invoked whenever a background disk write fails, so the app can surface a
   /// plain error to the user instead of crashing silently. Ignored by
@@ -56,6 +60,13 @@ abstract class JsonStore {
   /// Removes an expense. Schedules a debounced write.
   void deleteExpense(String expenseId);
 
+  /// Persists a flat's lease check setting. Schedules a debounced write.
+  void upsertCheckSetting(LeaseCheckSetting setting);
+
+  /// Appends a lease check payment record (immutable history). Schedules a
+  /// debounced write.
+  void upsertCheckRecord(LeaseCheckRecord record);
+
   /// Forces any pending writes to disk immediately.
   Future<void> flush();
 
@@ -71,6 +82,8 @@ class InMemoryJsonStore implements JsonStore {
   final List<Person> _people = [];
   final List<Payment> _payments = [];
   final List<Expense> _expenses = [];
+  final List<LeaseCheckSetting> _checkSettings = [];
+  final List<LeaseCheckRecord> _checkRecords = [];
 
   @override
   void Function(Object error, StackTrace stackTrace)? onWriteError;
@@ -91,6 +104,14 @@ class InMemoryJsonStore implements JsonStore {
   List<Expense> get expenses => List.unmodifiable(_expenses);
 
   @override
+  List<LeaseCheckSetting> get leaseCheckSettings =>
+      List.unmodifiable(_checkSettings);
+
+  @override
+  List<LeaseCheckRecord> get leaseCheckRecords =>
+      List.unmodifiable(_checkRecords);
+
+  @override
   Future<void> load() async {}
 
   @override
@@ -107,6 +128,7 @@ class InMemoryJsonStore implements JsonStore {
   void deleteFlat(String flatId) {
     _flats.removeWhere((f) => f.id == flatId);
     _beds.removeWhere((b) => b.flatId == flatId);
+    _checkSettings.removeWhere((s) => s.flatId == flatId);
   }
 
   @override
@@ -168,6 +190,26 @@ class InMemoryJsonStore implements JsonStore {
   @override
   void deleteExpense(String expenseId) {
     _expenses.removeWhere((e) => e.id == expenseId);
+  }
+
+  @override
+  void upsertCheckSetting(LeaseCheckSetting setting) {
+    final index = _checkSettings.indexWhere((s) => s.id == setting.id);
+    if (index >= 0) {
+      _checkSettings[index] = setting;
+    } else {
+      _checkSettings.add(setting);
+    }
+  }
+
+  @override
+  void upsertCheckRecord(LeaseCheckRecord record) {
+    final index = _checkRecords.indexWhere((r) => r.id == record.id);
+    if (index >= 0) {
+      _checkRecords[index] = record;
+    } else {
+      _checkRecords.add(record);
+    }
   }
 
   @override
@@ -256,6 +298,14 @@ class LocalJsonStore extends InMemoryJsonStore {
           AppConfig.expensesFileName,
           _encode(expenses, (e) => e.toJson()),
         ),
+        _writeFile(
+          AppConfig.leaseCheckSettingsFileName,
+          _encode(leaseCheckSettings, (s) => s.toJson()),
+        ),
+        _writeFile(
+          AppConfig.leaseCheckRecordsFileName,
+          _encode(leaseCheckRecords, (r) => r.toJson()),
+        ),
       ]);
     } catch (error, stackTrace) {
       onWriteError?.call(error, stackTrace);
@@ -283,6 +333,8 @@ class LocalJsonStore extends InMemoryJsonStore {
     final rawPeople = await _readFile(AppConfig.peopleFileName);
     final rawPayments = await _readFile(AppConfig.paymentsFileName);
     final rawExpenses = await _readFile(AppConfig.expensesFileName);
+    final rawCheckSettings = await _readFile(AppConfig.leaseCheckSettingsFileName);
+    final rawCheckRecords = await _readFile(AppConfig.leaseCheckRecordsFileName);
 
     for (final item in rawFlats?['items'] as List? ?? const <Object?>[]) {
       super.upsertFlat(Flat.fromJson(item as Map<String, dynamic>));
@@ -298,6 +350,18 @@ class LocalJsonStore extends InMemoryJsonStore {
     }
     for (final item in rawExpenses?['items'] as List? ?? const <Object?>[]) {
       super.upsertExpense(Expense.fromJson(item as Map<String, dynamic>));
+    }
+    for (final item in rawCheckSettings?['items'] as List? ??
+        const <Object?>[]) {
+      super.upsertCheckSetting(
+        LeaseCheckSetting.fromJson(item as Map<String, dynamic>),
+      );
+    }
+    for (final item in rawCheckRecords?['items'] as List? ??
+        const <Object?>[]) {
+      super.upsertCheckRecord(
+        LeaseCheckRecord.fromJson(item as Map<String, dynamic>),
+      );
     }
 
     await _writeAll();
@@ -365,6 +429,18 @@ class LocalJsonStore extends InMemoryJsonStore {
   @override
   void deleteExpense(String expenseId) {
     super.deleteExpense(expenseId);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertCheckSetting(LeaseCheckSetting setting) {
+    super.upsertCheckSetting(setting);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertCheckRecord(LeaseCheckRecord record) {
+    super.upsertCheckRecord(record);
     _scheduleSave();
   }
 

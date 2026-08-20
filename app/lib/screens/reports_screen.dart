@@ -509,7 +509,7 @@ class _ExpenseFormState extends State<_ExpenseForm> {
               controller: _amount,
               decoration: const InputDecoration(
                 labelText: 'Amount',
-                prefixText: 'Rs. ',
+                prefixText: '${AppConfig.currencySymbol} ',
                 border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),

@@ -219,7 +219,7 @@ class _PaymentFormState extends State<_PaymentForm> {
               controller: _amountDue,
               decoration: const InputDecoration(
                 labelText: 'Amount due',
-                prefixText: 'Rs. ',
+                prefixText: '${AppConfig.currencySymbol} ',
                 border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(
@@ -238,7 +238,7 @@ class _PaymentFormState extends State<_PaymentForm> {
               controller: _amountPaid,
               decoration: const InputDecoration(
                 labelText: 'Amount paid (optional)',
-                prefixText: 'Rs. ',
+                prefixText: '${AppConfig.currencySymbol} ',
                 border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(

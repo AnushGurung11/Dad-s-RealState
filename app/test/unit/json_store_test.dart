@@ -6,6 +6,8 @@ import 'package:renttrack/config.dart';
 import 'package:renttrack/models/bed.dart';
 import 'package:renttrack/models/expense.dart';
 import 'package:renttrack/models/flat.dart';
+import 'package:renttrack/models/lease_check_record.dart';
+import 'package:renttrack/models/lease_check_setting.dart';
 import 'package:renttrack/models/payment.dart';
 import 'package:renttrack/models/person.dart';
 import 'package:renttrack/services/json_store.dart';
@@ -28,7 +30,7 @@ void main() {
   }
 
   group('LocalJsonStore', () {
-    test('write/read round-trip persists all five collections', () async {
+    test('write/read round-trip persists all seven collections', () async {
       final flat = Flat(
         id: 'f1',
         name: 'Sunrise Residency',
@@ -70,6 +72,24 @@ void main() {
         date: DateTime(2026, 2, 5),
         note: 'February bill',
       );
+      final checkSetting = LeaseCheckSetting(
+        id: 'cs1',
+        flatId: 'f1',
+        ownerName: 'Govt Housing',
+        amount: 5000,
+        nextDueDate: DateTime(2026, 3, 20),
+        intervalMonths: 2,
+        notifyEnabled: true,
+      );
+      final checkRecord = LeaseCheckRecord(
+        id: 'cr1',
+        flatId: 'f1',
+        ownerName: 'Govt Housing',
+        amount: 5000,
+        dueDate: DateTime(2026, 1, 20),
+        paidDate: DateTime(2026, 1, 21),
+        month: '2026-01',
+      );
 
       final store = newStore();
       store.upsertFlat(flat);
@@ -77,6 +97,8 @@ void main() {
       store.upsertPerson(person);
       store.upsertPayment(payment);
       store.upsertExpense(expense);
+      store.upsertCheckSetting(checkSetting);
+      store.upsertCheckRecord(checkRecord);
       await store.flush();
       store.dispose();
 
@@ -109,6 +131,25 @@ void main() {
       expect(reloaded.expenses.single.category, ExpenseCategory.electricity);
       expect(reloaded.expenses.single.amount, 2200);
       expect(reloaded.expenses.single.note, 'February bill');
+
+      expect(reloaded.leaseCheckSettings, hasLength(1));
+      expect(reloaded.leaseCheckSettings.single.ownerName, 'Govt Housing');
+      expect(reloaded.leaseCheckSettings.single.amount, 5000);
+      expect(
+        reloaded.leaseCheckSettings.single.nextDueDate,
+        DateTime(2026, 3, 20),
+      );
+      expect(reloaded.leaseCheckSettings.single.intervalMonths, 2);
+      expect(reloaded.leaseCheckSettings.single.notifyEnabled, isTrue);
+
+      expect(reloaded.leaseCheckRecords, hasLength(1));
+      expect(reloaded.leaseCheckRecords.single.ownerName, 'Govt Housing');
+      expect(reloaded.leaseCheckRecords.single.amount, 5000);
+      expect(
+        reloaded.leaseCheckRecords.single.dueDate,
+        DateTime(2026, 1, 20),
+      );
+      expect(reloaded.leaseCheckRecords.single.month, '2026-01');
       reloaded.dispose();
     });
 
@@ -203,6 +244,8 @@ void main() {
       expect(reloaded.beds, isEmpty);
       expect(reloaded.people, isEmpty);
       expect(reloaded.payments, isEmpty);
+      expect(reloaded.leaseCheckSettings, isEmpty);
+      expect(reloaded.leaseCheckRecords, isEmpty);
       reloaded.dispose();
     });
   });

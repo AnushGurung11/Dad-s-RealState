@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../config.dart';
+
 import '../models/bed.dart';
 import '../models/person.dart';
 import '../services/assignment_service.dart';
@@ -497,7 +499,7 @@ class _AssignmentFormState extends State<_AssignmentForm> {
                 controller: _deposit,
                 decoration: const InputDecoration(
                   labelText: 'Deposit',
-                  prefixText: 'Rs. ',
+                  prefixText: '${AppConfig.currencySymbol} ',
                   helperText: 'Any positive amount.',
                   border: OutlineInputBorder(),
                 ),

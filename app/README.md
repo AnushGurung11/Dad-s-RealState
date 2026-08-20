@@ -31,7 +31,16 @@ app's documents directory.
   `income = rent payments + deposits collected in the period`
   `expenses = expense records in the period`
   `net = income − expenses` (may be negative; shown as a plain signed number
-  like `Rs. -2,400`).
+  like `AED -2,400`).
+- **All amounts are in AED**, centralized in `lib/config.dart` (`currencySymbol`)
+  so no screen hardcodes a currency.
+- **Lease checks**: every flat has a recurring check against its owner. Each
+  flat gets a `LeaseCheckSetting` on creation (due 2 months out, amount 0,
+  owner blank). Marking a check **paid** on the Dashboard archives an immutable
+  `LeaseCheckRecord` (queryable by month) and advances the next due date by the
+  interval (default 2 months). A local notification fires 3 days before the due
+  date at 09:00 when notifications are enabled, and reschedules automatically
+  when the due date changes.
 
 ## Run locally
 
@@ -50,7 +59,7 @@ flutter test
 
 ## Where data lives & how to back it up
 
-Data is stored as five JSON files in the app's **documents directory** on the
+Data is stored as seven JSON files in the app's **documents directory** on the
 device (plus `schema.json` holding the schema version):
 
 | File | Contents |
@@ -60,6 +69,8 @@ device (plus `schema.json` holding the schema version):
 | `people.json` | Tenants (incl. join/leave dates, planned stay, deposit) |
 | `payments.json` | Rent + deposit payment records |
 | `expenses.json` | Expense records per flat |
+| `lease_check_settings.json` | Per-flat lease check config (owner, amount, next due date, interval, notify) |
+| `lease_check_records.json` | Immutable archive of checks marked paid (by month/flat) |
 
 To back up or inspect data manually, copy the app's documents directory off the
 device, e.g.:
@@ -123,7 +134,8 @@ and place `release.keystore` in `app/android/`.
 lib/
   main.dart                 Material 3 app shell, bottom NavigationBar, IndexedStack tabs
   config.dart               App name, JSON file names, schema version
-  models/                   flat, bed, person, payment, expense (plain immutable classes)
+  models/                   flat, bed, person, payment, expense, lease check
+                            setting/record (plain immutable classes)
   services/
     json_store.dart         Storage core: atomic writes, debounced saves, migration hook
     bed_capacity_service.dart  Pure 5–20 beds rule (create/add/delete)
@@ -131,7 +143,10 @@ lib/
     tenure_service.dart        Pure tenure math (totalRentOwed, remainingBalance)
     payment_service.dart       Pure payment math (dues, totals, overdue, mark paid/partial/unpaid)
     report_service.dart        Pure per-flat income/expenses/net + dashboard totals
-  screens/                  Dashboard, Flats, Tenants, Reports (+ flat detail, person history)
+    check_service.dart         Pure lease-check math (due months, mark paid)
+    notification_service.dart  Local reminder scheduling (3 days before due)
+  screens/                  Dashboard, Flats, Tenants, Checklist, Reports
+                            (+ flat detail, person history)
   widgets/                  StatusBadge, NetAmountLabel, BedCapacityHint, EmptyState,
                             ConfirmDeleteDialog, SummaryCard
 test/
@@ -139,6 +154,7 @@ test/
   widget/                   Per-screen widget tests with an in-memory fake store
 integration_test/
   full_flow_test.dart       End-to-end flow against a temp directory
+  checks_flow_test.dart     Lease-check flow against a temp directory
 ```
 
 ## CI/CD

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/bed.dart';
 import '../models/flat.dart';
+import '../models/lease_check_setting.dart';
 import '../services/bed_capacity_service.dart';
 import '../services/json_store.dart';
 import '../utils/ids.dart';
@@ -39,6 +40,16 @@ class _FlatsScreenState extends State<FlatsScreen> {
             ),
           );
         }
+        final now = DateTime.now();
+        widget.store.upsertCheckSetting(
+          LeaseCheckSetting(
+            id: newId(),
+            flatId: result.flat.id,
+            ownerName: '',
+            amount: 0,
+            nextDueDate: DateTime(now.year, now.month + 2, now.day),
+          ),
+        );
       }
     });
   }

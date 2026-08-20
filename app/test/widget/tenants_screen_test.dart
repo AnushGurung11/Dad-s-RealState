@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/models/bed.dart';
 import 'package:renttrack/models/flat.dart';
@@ -185,14 +185,14 @@ void main() {
     await pumpApp(tester, store: store);
     await tapNavTab(tester, 'Tenants');
 
-    // 4000 × 2 − 3000 = 5000
+    // 4000 × 2 - 3000 = 5000
     final balance = TenureService.remainingBalance(
       store.people.singleWhere((p) => p.id == 'p3'),
       4000,
       store.payments,
     );
     expect(balance, 5000);
-    expect(find.textContaining('Balance Rs. 5000'), findsOneWidget);
+    expect(find.textContaining('Balance AED 5000'), findsOneWidget);
   });
 
   testWidgets('delete tenant confirms and removes them', (tester) async {

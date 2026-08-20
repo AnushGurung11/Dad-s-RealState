@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../config.dart';
+
 import '../models/bed.dart';
 import '../models/flat.dart';
 import '../services/bed_capacity_service.dart';
@@ -252,7 +254,7 @@ class _BedFormState extends State<_BedForm> {
               controller: _rent,
               decoration: const InputDecoration(
                 labelText: 'Monthly rent',
-                prefixText: 'Rs. ',
+                prefixText: '${AppConfig.currencySymbol} ',
                 border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
