@@ -40,3 +40,7 @@ release.keystore
 **/*.jks
 **/*.p12
 vision.md
+
+# Google Cloud service account keys - never commit these
+*service-account*.json
+*service_account*.json
