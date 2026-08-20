@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Uploads a built APK to Google Drive (service account) and posts the public
-# download link to a Google Chat webhook.
+# download link to a Discord channel via webhook.
 #
 # Usage: upload_drive.sh [ref]
 #   ref        optional tag/branch name for the notification message
@@ -8,7 +8,7 @@
 # Environment:
 #   SA_JSON    service-account JSON key (raw or base64) — REQUIRED
 #   FOLDER_ID  Drive folder (shared with the service account) — REQUIRED
-#   WEBHOOK_URL  Google Chat webhook URL — OPTIONAL (skips Chat message)
+#   DISCORD_WEBHOOK_URL  Discord webhook URL — OPTIONAL (skips Discord message)
 #
 # Expects exactly one APK at app/../apk/renttrack-*.apk (download-artifact path).
 
@@ -72,12 +72,12 @@ LINK=$(curl -fsS -H "Authorization: Bearer $TOKEN" \
 echo "Public link: $LINK"
 echo "drive_link=$LINK" >> "$GITHUB_OUTPUT"
 
-# --- Notify the Google Chat space (optional).
-if [ -n "${WEBHOOK_URL:-}" ]; then
+# --- Notify the Discord channel (optional).
+if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
   MESSAGE="New renttrack release **$VERSION** is ready.
 Download APK (Google Drive): $LINK"
-  PAYLOAD=$(jq -n --arg t "$MESSAGE" '{text: $t}')
+  PAYLOAD=$(jq -n --arg t "$MESSAGE" '{content: $t}')
   curl -fsS -X POST -H "Content-Type: application/json" \
-    -d "$PAYLOAD" "$WEBHOOK_URL" >/dev/null
-  echo "Posted link to Google Chat."
+    -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" >/dev/null
+  echo "Posted link to Discord."
 fi
