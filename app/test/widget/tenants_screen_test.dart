@@ -40,23 +40,6 @@ void main() {
     );
   }
 
-  testWidgets('add a tenant shows them in the list under No bed assigned',
-      (tester) async {
-    await pumpApp(tester);
-    await tapNavTab(tester, 'Tenants');
-
-    await tester.tap(find.widgetWithText(FilledButton, 'Add tenant').first);
-    await tester.pumpAndSettle();
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Full name'), 'Ramesh Gurung');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Contact'), '9841000001');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Ramesh Gurung'), findsOneWidget);
-    expect(find.text('No bed assigned'), findsWidgets);
-  });
-
   testWidgets('active tenants grouped by flat with search filtering',
       (tester) async {
     final store = seededStore();
@@ -194,7 +177,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alice'), findsNothing);
-    expect(find.text('No tenants yet. Add a tenant to assign them a bed.'),
+    expect(find.text('No tenants yet. Tap a vacant bed on the Flats tab to assign a tenant.'),
         findsOneWidget);
   });
 }

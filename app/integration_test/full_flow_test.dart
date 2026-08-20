@@ -14,8 +14,8 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-      'full flow: boot → create flat with 6 beds → add tenant → assign with '
-      'deposit → add rent payment → add expense → report matches',
+      'full flow: boot → create flat with 6 beds → assign tenant from a vacant '
+      'bed with deposit → add rent payment → add expense → report matches',
       (tester) async {
     final currentMonth = monthKey(DateTime.now());
     SharedPreferences.setMockInitialValues({'currentMonth': currentMonth});
@@ -49,7 +49,9 @@ void main() {
     await tester.tap(find.text('Sunrise Residency'));
     await tester.pumpAndSettle();
     expect(find.text('6 / 20 beds'), findsOneWidget);
-    await tester.tap(find.byTooltip('Edit bed').first);
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit bed'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextFormField, 'Monthly rent'), '4500');
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
@@ -57,30 +59,23 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // --- Add a tenant.
-    await tester.tap(find.text('Tenants').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add tenant').first);
+    // --- Single-step assign: tap the vacant Bed 1 and fill the assign form.
+    await tester.tap(find.text('Bed 1'));
     await tester.pumpAndSettle();
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Full name'), 'Ramesh Gurung');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Contact'), '9841000001');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
-    await tester.pumpAndSettle();
-    expect(find.text('Ramesh Gurung'), findsOneWidget);
-
-    // --- Assign to Bed 1 with a deposit, joining today for 3 months.
-    await tester.tap(find.byIcon(Icons.link));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bed 1'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextFormField, 'Deposit'), '10000');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Deposit'), '10000');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Planned stay (months)'), '3');
-    await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Assign'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Bed 1'), findsOneWidget);
+
+    // --- Open the tenant's history from the occupied bed row.
+    await tester.tap(find.textContaining('Ramesh Gurung'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Balance'), findsOneWidget);
 
     // --- Add a rent payment from the person's history.

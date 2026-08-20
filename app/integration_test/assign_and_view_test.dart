@@ -46,7 +46,9 @@ void main() {
 
     await tester.tap(find.text('Sunrise Residency'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Edit bed').first);
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit bed'));
     await tester.pumpAndSettle();
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Monthly rent'), '4500');

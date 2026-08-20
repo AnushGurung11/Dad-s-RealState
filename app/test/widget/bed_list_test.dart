@@ -55,19 +55,22 @@ void main() {
     await openBedsTab(tester);
 
     expect(find.text('Bed A1'), findsOneWidget);
-    // Uses the tenant's own monthlyRent (3800), not the bed default (4000).
-    expect(find.text('Alice · AED 3800/month'), findsOneWidget);
+    // Name is the row subtitle; rent is the trailing, using the tenant's own
+    // monthlyRent (3800), not the bed default (4000).
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('AED 3800/month'), findsOneWidget);
     expect(find.text('AED 4000/month'), findsNothing);
     // No ledger/tenure detail on the brief row.
     expect(find.textContaining('Balance'), findsNothing);
     expect(find.textContaining('Deposit'), findsNothing);
   });
 
-  testWidgets('vacant bed row shows Vacant and leaks no other bed data',
-      (tester) async {
+  testWidgets('vacant bed row shows a muted Vacant with a + affordance and '
+      'leaks no other bed data', (tester) async {
     await openBedsTab(tester);
 
     expect(find.text('Vacant'), findsOneWidget);
+    expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
     // Only the occupied row carries rent; the vacant row must not show the
     // other bed's tenant or the vacant bed's default rent.
     expect(find.textContaining('/month'), findsOneWidget);

@@ -149,7 +149,9 @@ void main() {
 
     expect(find.text('5 / 20 beds'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Delete bed').first);
+    await tester.tap(find.byIcon(Icons.more_vert).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete bed'));
     await tester.pumpAndSettle();
 
     expect(

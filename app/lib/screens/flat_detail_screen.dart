@@ -331,18 +331,20 @@ class _BedsTabState extends State<_BedsTab>
                         .firstOrNull;
                     final rent =
                         tenant?.monthlyRent ?? bed.defaultMonthlyRent;
+                    final overdue = bed.isOccupied && _isOverdue(bed);
                     final accent = !bed.isOccupied
                         ? Colors.grey
-                        : _isOverdue(bed)
+                        : overdue
                             ? Theme.of(context).colorScheme.error
                             : Theme.of(context).colorScheme.primary;
                     return Card(
                       margin: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: accent.withValues(alpha: 0.6),
-                          width: 1,
+                      shape: Border(
+                        left: BorderSide(
+                          color: !bed.isOccupied
+                              ? Colors.grey.shade400
+                              : accent,
+                          width: 4,
                         ),
                       ),
                       child: ListTile(
@@ -354,38 +356,68 @@ class _BedsTabState extends State<_BedsTab>
                           ),
                         ),
                         title: Text(bed.label),
-                        subtitle: Text(
-                          tenant == null
-                              ? 'Vacant'
-                              : rent > 0
-                                  ? '${tenant.name} · AED ${rent.toStringAsFixed(0)}/month'
-                                  : tenant.name,
-                        ),
+                        subtitle: tenant == null
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Vacant',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(tenant.name),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              tooltip: 'Edit bed',
-                              onPressed: () => widget.onEditBed(bed),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              tooltip: 'Delete bed',
-                              onPressed: widget.canDelete
-                                  ? () => widget.onDeleteBed(bed)
-                                  : () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Cannot delete a bed: a flat '
-                                            'must keep at least '
-                                            '${BedCapacityService.minBeds} '
-                                            'beds.',
-                                          ),
-                                        ),
-                                      );
-                                    },
+                            if (tenant != null && rent > 0)
+                              Text('AED ${rent.toStringAsFixed(0)}/month'),
+                            if (tenant == null)
+                              IconButton(
+                                icon: const Icon(Icons.add_circle_outline),
+                                tooltip: 'Assign tenant',
+                                onPressed: () => widget.onTapBed(bed),
+                              ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert),
+                              tooltip: 'Bed actions',
+                              onSelected: (value) {
+                              if (value == 'edit') widget.onEditBed(bed);
+                              if (value == 'delete') {
+                                if (widget.canDelete) {
+                                  widget.onDeleteBed(bed);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Cannot delete a bed: a flat '
+                                        'must keep at least '
+                                        '${BedCapacityService.minBeds} '
+                                        'beds.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Edit bed'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Delete bed'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -505,6 +537,7 @@ class _LeaseInfoTabState extends State<_LeaseInfoTab>
                 leading: const Icon(Icons.request_quote_outlined),
                 title: Text('AED ${formatMoney(r.amount)}'),
                 subtitle: Text(
+                  '${r.ownerName.isEmpty ? 'Owner not set' : r.ownerName}\n'
                   'Due ${r.dueDate.day}/${r.dueDate.month}/${r.dueDate.year} · '
                   'paid ${r.paidDate.day}/${r.paidDate.month}/${r.paidDate.year}',
                 ),

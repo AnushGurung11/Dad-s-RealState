@@ -5,7 +5,6 @@ import '../models/payment.dart';
 import '../models/person.dart';
 import '../services/json_store.dart';
 import '../services/tenure_service.dart';
-import '../utils/ids.dart';
 import '../widgets/empty_state.dart';
 import 'person_history_screen.dart';
 
@@ -23,18 +22,6 @@ class _TenantsScreenState extends State<TenantsScreen> {
   bool _showPast = false;
 
   bool _isPast(Person person) => !person.hasBed && person.vacatedDate != null;
-
-  Future<void> _openPersonForm() async {
-    final result = await showModalBottomSheet<Person>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _PersonForm(),
-    );
-    if (result == null) return;
-    setState(() {
-      widget.store.upsertPerson(result);
-    });
-  }
 
   Future<void> _openPerson(Person person) async {
     await Navigator.of(context).push(
@@ -101,12 +88,6 @@ class _TenantsScreenState extends State<TenantsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Tenants')),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'tenants-fab',
-        onPressed: _openPersonForm,
-        icon: const Icon(Icons.add),
-        label: const Text('Add tenant'),
-      ),
       body: Column(
         children: [
           Padding(
@@ -158,9 +139,8 @@ class _TenantsScreenState extends State<TenantsScreen> {
                     : EmptyState(
                         icon: Icons.group_outlined,
                         message:
-                            'No tenants yet. Add a tenant to assign them a bed.',
-                        actionLabel: 'Add tenant',
-                        onAction: _openPersonForm,
+                            'No tenants yet. Tap a vacant bed on the Flats tab '
+                            'to assign a tenant.',
                       )
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
@@ -289,115 +269,6 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
-      ),
-    );
-  }
-}
-
-class _PersonForm extends StatefulWidget {
-  const _PersonForm();
-
-  @override
-  State<_PersonForm> createState() => _PersonFormState();
-}
-
-class _PersonFormState extends State<_PersonForm> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _name;
-  late final TextEditingController _contact;
-  late final TextEditingController _workplace;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController();
-    _contact = TextEditingController();
-    _workplace = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _contact.dispose();
-    _workplace.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-    Navigator.of(context).pop(
-      Person(
-        id: newId(),
-        name: _name.text.trim(),
-        contact: _contact.text.trim(),
-        workplaceOrInfo:
-            _workplace.text.trim().isEmpty ? null : _workplace.text.trim(),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: bottomInset + 16,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Add tenant',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(
-                labelText: 'Full name',
-                border: OutlineInputBorder(),
-              ),
-              textInputAction: TextInputAction.next,
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Name is required'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _contact,
-              decoration: const InputDecoration(
-                labelText: 'Contact',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Contact is required'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _workplace,
-              decoration: const InputDecoration(
-                labelText: 'Workplace / info (optional)',
-                border: OutlineInputBorder(),
-              ),
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submit,
-              child: const Text('Add'),
-            ),
-          ],
-        ),
       ),
     );
   }
