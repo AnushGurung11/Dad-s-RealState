@@ -7,3 +7,11 @@ String formatMoney(double amount) {
 }
 
 String formatMoneyShort(double amount) => 'Rs. ${formatMoney(amount)}';
+
+/// Signed money, e.g. `Rs. -2,400` for negative and `Rs. 2,400` for positive.
+/// Plain sign prefix — never parentheses.
+String formatMoneySigned(double amount) {
+  final sign = amount < 0 ? '-' : '';
+  final digits = formatMoney(amount.abs());
+  return 'Rs. $sign$digits';
+}

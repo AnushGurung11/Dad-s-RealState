@@ -2,43 +2,80 @@ class Person {
   const Person({
     required this.id,
     required this.name,
-    required this.phone,
+    required this.contact,
+    this.workplaceOrInfo,
     this.bedId,
-    required this.moveInDate,
+    this.joinDate,
+    this.plannedStayMonths,
+    this.leaveDate,
+    this.depositAmount,
   });
 
   final String id;
   final String name;
-  final String phone;
+  final String contact;
+  final String? workplaceOrInfo;
   final String? bedId;
-  final DateTime moveInDate;
+
+  /// Date the tenant joined a bed. Captured at assignment.
+  final DateTime? joinDate;
+
+  /// Months the tenant stated they would stay. Captured at assignment.
+  final int? plannedStayMonths;
+
+  /// Expected move-out date. Auto-computed at assignment as
+  /// joinDate + plannedStayMonths, editable later to reflect the actual
+  /// move-out date.
+  final DateTime? leaveDate;
+
+  /// Deposit collected at assignment. Counts as income.
+  final double? depositAmount;
 
   Person copyWith({
     String? id,
     String? name,
-    String? phone,
+    String? contact,
+    String? workplaceOrInfo,
     String? bedId,
-    DateTime? moveInDate,
+    DateTime? joinDate,
+    int? plannedStayMonths,
+    DateTime? leaveDate,
+    double? depositAmount,
     bool clearBedId = false,
   }) {
     return Person(
       id: id ?? this.id,
       name: name ?? this.name,
-      phone: phone ?? this.phone,
+      contact: contact ?? this.contact,
+      workplaceOrInfo: workplaceOrInfo ?? this.workplaceOrInfo,
       bedId: clearBedId ? null : bedId ?? this.bedId,
-      moveInDate: moveInDate ?? this.moveInDate,
+      joinDate: joinDate ?? this.joinDate,
+      plannedStayMonths: plannedStayMonths ?? this.plannedStayMonths,
+      leaveDate: leaveDate ?? this.leaveDate,
+      depositAmount: depositAmount ?? this.depositAmount,
     );
   }
 
   bool get hasBed => bedId != null;
 
+  bool get isActiveTenant =>
+      bedId != null && joinDate != null && plannedStayMonths != null;
+
   factory Person.fromJson(Map<String, dynamic> json) {
     return Person(
       id: json['id'] as String,
       name: json['name'] as String,
-      phone: json['phone'] as String,
+      contact: json['contact'] as String,
+      workplaceOrInfo: json['workplaceOrInfo'] as String?,
       bedId: json['bedId'] as String?,
-      moveInDate: DateTime.parse(json['moveInDate'] as String),
+      joinDate: json['joinDate'] == null
+          ? null
+          : DateTime.parse(json['joinDate'] as String),
+      plannedStayMonths: json['plannedStayMonths'] as int?,
+      leaveDate: json['leaveDate'] == null
+          ? null
+          : DateTime.parse(json['leaveDate'] as String),
+      depositAmount: (json['depositAmount'] as num?)?.toDouble(),
     );
   }
 
@@ -46,9 +83,13 @@ class Person {
     return {
       'id': id,
       'name': name,
-      'phone': phone,
+      'contact': contact,
+      'workplaceOrInfo': workplaceOrInfo,
       'bedId': bedId,
-      'moveInDate': moveInDate.toIso8601String(),
+      'joinDate': joinDate?.toIso8601String(),
+      'plannedStayMonths': plannedStayMonths,
+      'leaveDate': leaveDate?.toIso8601String(),
+      'depositAmount': depositAmount,
     };
   }
 }

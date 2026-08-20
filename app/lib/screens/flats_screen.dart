@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/bed.dart';
 import '../models/flat.dart';
+import '../services/bed_capacity_service.dart';
 import '../services/json_store.dart';
 import '../utils/ids.dart';
 import '../widgets/confirm_delete_dialog.dart';
@@ -18,14 +20,26 @@ class FlatsScreen extends StatefulWidget {
 
 class _FlatsScreenState extends State<FlatsScreen> {
   Future<void> _openFlatForm({Flat? existing}) async {
-    final result = await showModalBottomSheet<Flat>(
+    final result = await showModalBottomSheet<({Flat flat, int bedCount})>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _FlatForm(existing: existing),
     );
     if (result == null) return;
     setState(() {
-      widget.store.upsertFlat(result);
+      widget.store.upsertFlat(result.flat);
+      if (existing == null) {
+        for (var i = 1; i <= result.bedCount; i++) {
+          widget.store.upsertBed(
+            Bed(
+              id: '${newId()}-$i',
+              flatId: result.flat.id,
+              label: 'Bed $i',
+              monthlyRent: 0,
+            ),
+          );
+        }
+      }
     });
   }
 
@@ -136,30 +150,39 @@ class _FlatFormState extends State<_FlatForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _address;
+  late final TextEditingController _beds;
 
   @override
   void initState() {
     super.initState();
     _name = TextEditingController(text: widget.existing?.name ?? '');
     _address = TextEditingController(text: widget.existing?.address ?? '');
+    _beds = TextEditingController(
+      text: widget.existing == null ? '5' : '',
+    );
   }
 
   @override
   void dispose() {
     _name.dispose();
     _address.dispose();
+    _beds.dispose();
     super.dispose();
   }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     final existing = widget.existing;
+    final bedCount = int.tryParse(_beds.text.trim()) ?? 0;
     Navigator.of(context).pop(
-      Flat(
-        id: existing?.id ?? newId(),
-        name: _name.text.trim(),
-        address: _address.text.trim(),
-        createdAt: existing?.createdAt ?? DateTime.now(),
+      (
+        flat: Flat(
+          id: existing?.id ?? newId(),
+          name: _name.text.trim(),
+          address: _address.text.trim(),
+          createdAt: existing?.createdAt ?? DateTime.now(),
+        ),
+        bedCount: bedCount,
       ),
     );
   }
@@ -202,11 +225,36 @@ class _FlatFormState extends State<_FlatForm> {
                 labelText: 'Address',
                 border: OutlineInputBorder(),
               ),
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _submit(),
+              textInputAction: TextInputAction.next,
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Address is required' : null,
             ),
+            if (widget.existing == null) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _beds,
+                decoration: const InputDecoration(
+                  labelText: 'Number of beds',
+                  helperText:
+                      'A flat must have ${BedCapacityService.minBeds}-'
+                      '${BedCapacityService.maxBeds} beds.',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _submit(),
+                validator: (v) {
+                  final parsed = int.tryParse(v?.trim() ?? '');
+                  if (parsed == null) return 'Enter a number';
+                  if (!BedCapacityService.canCreateFlat(parsed)) {
+                    return 'Beds must be between '
+                        '${BedCapacityService.minBeds} and '
+                        '${BedCapacityService.maxBeds}';
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _submit,

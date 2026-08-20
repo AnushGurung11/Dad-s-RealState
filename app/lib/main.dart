@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'config.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/flats_screen.dart';
-import 'screens/payments_screen.dart';
+import 'screens/reports_screen.dart';
 import 'screens/tenants_screen.dart';
 import 'services/json_store.dart';
 import 'services/prefs.dart';
@@ -194,13 +194,14 @@ class _ShellState extends State<_Shell> {
           ),
           FlatsScreen(store: widget.store),
           TenantsScreen(store: widget.store),
-          PaymentsScreen(
+          ReportsScreen(
             store: widget.store,
             initialMonth: _month,
             onMonthChanged: (month) {
               widget.onMonthChanged(month);
               setState(() => _month = month);
             },
+            onGoToFlats: () => widget.onTabChanged(1),
           ),
         ],
       ),
@@ -224,9 +225,9 @@ class _ShellState extends State<_Shell> {
             label: 'Tenants',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Payments',
+            icon: Icon(Icons.assessment_outlined),
+            selectedIcon: Icon(Icons.assessment),
+            label: 'Reports',
           ),
         ],
       ),

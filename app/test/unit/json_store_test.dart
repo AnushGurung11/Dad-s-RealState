@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/config.dart';
 import 'package:renttrack/models/bed.dart';
+import 'package:renttrack/models/expense.dart';
 import 'package:renttrack/models/flat.dart';
 import 'package:renttrack/models/payment.dart';
 import 'package:renttrack/models/person.dart';
@@ -27,7 +28,7 @@ void main() {
   }
 
   group('LocalJsonStore', () {
-    test('write/read round-trip persists all four collections', () async {
+    test('write/read round-trip persists all five collections', () async {
       final flat = Flat(
         id: 'f1',
         name: 'Sunrise Residency',
@@ -44,9 +45,12 @@ void main() {
       final person = Person(
         id: 'p1',
         name: 'Ramesh Gurung',
-        phone: '9841000001',
+        contact: '9841000001',
         bedId: 'b1',
-        moveInDate: DateTime(2026, 1, 20),
+        joinDate: DateTime(2026, 1, 20),
+        plannedStayMonths: 3,
+        leaveDate: DateTime(2026, 4, 20),
+        depositAmount: 9000,
       );
       final payment = Payment(
         id: 'pay1',
@@ -56,6 +60,15 @@ void main() {
         month: '2026-02',
         amountDue: 4500,
         amountPaid: 4500,
+        type: PaymentType.deposit,
+      );
+      final expense = Expense(
+        id: 'exp1',
+        flatId: 'f1',
+        category: ExpenseCategory.electricity,
+        amount: 2200,
+        date: DateTime(2026, 2, 5),
+        note: 'February bill',
       );
 
       final store = newStore();
@@ -63,6 +76,7 @@ void main() {
       store.upsertBed(bed);
       store.upsertPerson(person);
       store.upsertPayment(payment);
+      store.upsertExpense(expense);
       await store.flush();
       store.dispose();
 
@@ -79,12 +93,22 @@ void main() {
       expect(reloaded.beds.single.tenantId, 'p1');
 
       expect(reloaded.people, hasLength(1));
-      expect(reloaded.people.single.phone, '9841000001');
+      expect(reloaded.people.single.contact, '9841000001');
       expect(reloaded.people.single.bedId, 'b1');
+      expect(reloaded.people.single.joinDate, DateTime(2026, 1, 20));
+      expect(reloaded.people.single.plannedStayMonths, 3);
+      expect(reloaded.people.single.leaveDate, DateTime(2026, 4, 20));
+      expect(reloaded.people.single.depositAmount, 9000);
 
       expect(reloaded.payments, hasLength(1));
       expect(reloaded.payments.single.status.name, 'paid');
       expect(reloaded.payments.single.month, '2026-02');
+      expect(reloaded.payments.single.type, PaymentType.deposit);
+
+      expect(reloaded.expenses, hasLength(1));
+      expect(reloaded.expenses.single.category, ExpenseCategory.electricity);
+      expect(reloaded.expenses.single.amount, 2200);
+      expect(reloaded.expenses.single.note, 'February bill');
       reloaded.dispose();
     });
 

@@ -11,6 +11,18 @@ enum PaymentStatus {
   }
 }
 
+enum PaymentType {
+  rent,
+  deposit;
+
+  static PaymentType fromString(String value) {
+    return PaymentType.values.firstWhere(
+      (t) => t.name == value,
+      orElse: () => PaymentType.rent,
+    );
+  }
+}
+
 class Payment {
   const Payment({
     required this.id,
@@ -20,6 +32,7 @@ class Payment {
     required this.month,
     required this.amountDue,
     required this.amountPaid,
+    this.type = PaymentType.rent,
   });
 
   final String id;
@@ -31,6 +44,10 @@ class Payment {
   final String month;
   final double amountDue;
   final double amountPaid;
+
+  /// Distinguishes rent from deposits in the single ledger. Both count as
+  /// income, but only rent reduces the tenure balance.
+  final PaymentType type;
 
   PaymentStatus get status {
     if (amountPaid <= 0) return PaymentStatus.unpaid;
@@ -46,6 +63,7 @@ class Payment {
     String? month,
     double? amountDue,
     double? amountPaid,
+    PaymentType? type,
   }) {
     return Payment(
       id: id ?? this.id,
@@ -55,6 +73,7 @@ class Payment {
       month: month ?? this.month,
       amountDue: amountDue ?? this.amountDue,
       amountPaid: amountPaid ?? this.amountPaid,
+      type: type ?? this.type,
     );
   }
 
@@ -67,6 +86,7 @@ class Payment {
       month: json['month'] as String,
       amountDue: (json['amountDue'] as num).toDouble(),
       amountPaid: (json['amountPaid'] as num).toDouble(),
+      type: PaymentType.fromString(json['type'] as String? ?? 'rent'),
     );
   }
 
@@ -79,6 +99,7 @@ class Payment {
       'month': month,
       'amountDue': amountDue,
       'amountPaid': amountPaid,
+      'type': type.name,
     };
   }
 }

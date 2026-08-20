@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../config.dart';
 import '../models/bed.dart';
+import '../models/expense.dart';
 import '../models/flat.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
@@ -15,6 +16,7 @@ abstract class JsonStore {
   List<Bed> get beds;
   List<Person> get people;
   List<Payment> get payments;
+  List<Expense> get expenses;
 
   /// Invoked whenever a background disk write fails, so the app can surface a
   /// plain error to the user instead of crashing silently. Ignored by
@@ -48,6 +50,12 @@ abstract class JsonStore {
   /// Removes a payment. Schedules a debounced write.
   void deletePayment(String paymentId);
 
+  /// Persists an expense. Schedules a debounced write.
+  void upsertExpense(Expense expense);
+
+  /// Removes an expense. Schedules a debounced write.
+  void deleteExpense(String expenseId);
+
   /// Forces any pending writes to disk immediately.
   Future<void> flush();
 
@@ -62,6 +70,7 @@ class InMemoryJsonStore implements JsonStore {
   final List<Bed> _beds = [];
   final List<Person> _people = [];
   final List<Payment> _payments = [];
+  final List<Expense> _expenses = [];
 
   @override
   void Function(Object error, StackTrace stackTrace)? onWriteError;
@@ -77,6 +86,9 @@ class InMemoryJsonStore implements JsonStore {
 
   @override
   List<Payment> get payments => List.unmodifiable(_payments);
+
+  @override
+  List<Expense> get expenses => List.unmodifiable(_expenses);
 
   @override
   Future<void> load() async {}
@@ -141,6 +153,21 @@ class InMemoryJsonStore implements JsonStore {
   @override
   void deletePayment(String paymentId) {
     _payments.removeWhere((p) => p.id == paymentId);
+  }
+
+  @override
+  void upsertExpense(Expense expense) {
+    final index = _expenses.indexWhere((e) => e.id == expense.id);
+    if (index >= 0) {
+      _expenses[index] = expense;
+    } else {
+      _expenses.add(expense);
+    }
+  }
+
+  @override
+  void deleteExpense(String expenseId) {
+    _expenses.removeWhere((e) => e.id == expenseId);
   }
 
   @override
@@ -225,6 +252,10 @@ class LocalJsonStore extends InMemoryJsonStore {
         _writeFile(AppConfig.bedsFileName, _encode(beds, (b) => b.toJson())),
         _writeFile(AppConfig.peopleFileName, _encode(people, (p) => p.toJson())),
         _writeFile(AppConfig.paymentsFileName, _encode(payments, (p) => p.toJson())),
+        _writeFile(
+          AppConfig.expensesFileName,
+          _encode(expenses, (e) => e.toJson()),
+        ),
       ]);
     } catch (error, stackTrace) {
       onWriteError?.call(error, stackTrace);
@@ -251,6 +282,7 @@ class LocalJsonStore extends InMemoryJsonStore {
     final rawBeds = await _readFile(AppConfig.bedsFileName);
     final rawPeople = await _readFile(AppConfig.peopleFileName);
     final rawPayments = await _readFile(AppConfig.paymentsFileName);
+    final rawExpenses = await _readFile(AppConfig.expensesFileName);
 
     for (final item in rawFlats?['items'] as List? ?? const <Object?>[]) {
       super.upsertFlat(Flat.fromJson(item as Map<String, dynamic>));
@@ -263,6 +295,9 @@ class LocalJsonStore extends InMemoryJsonStore {
     }
     for (final item in rawPayments?['items'] as List? ?? const <Object?>[]) {
       super.upsertPayment(Payment.fromJson(item as Map<String, dynamic>));
+    }
+    for (final item in rawExpenses?['items'] as List? ?? const <Object?>[]) {
+      super.upsertExpense(Expense.fromJson(item as Map<String, dynamic>));
     }
 
     await _writeAll();
@@ -318,6 +353,18 @@ class LocalJsonStore extends InMemoryJsonStore {
   @override
   void deletePayment(String paymentId) {
     super.deletePayment(paymentId);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertExpense(Expense expense) {
+    super.upsertExpense(expense);
+    _scheduleSave();
+  }
+
+  @override
+  void deleteExpense(String expenseId) {
+    super.deleteExpense(expenseId);
     _scheduleSave();
   }
 

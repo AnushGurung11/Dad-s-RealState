@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/bed.dart';
 import '../models/flat.dart';
+import '../services/bed_capacity_service.dart';
 import '../services/json_store.dart';
 import '../utils/format.dart';
 import '../utils/ids.dart';
+import '../widgets/bed_capacity_hint.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/empty_state.dart';
 
@@ -52,27 +54,50 @@ class _FlatDetailScreenState extends State<FlatDetailScreen> {
     });
   }
 
+  List<Bed> get _beds =>
+      widget.store.beds.where((b) => b.flatId == widget.flat.id).toList();
+
   @override
   Widget build(BuildContext context) {
-    final beds = widget.store.beds.where((b) => b.flatId == widget.flat.id).toList();
+    final beds = _beds;
+    final canAdd = BedCapacityService.canAddBed(beds);
+    final canDelete = BedCapacityService.canDeleteBed(beds);
     return Scaffold(
       appBar: AppBar(title: Text(widget.flat.name)),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'flat-detail-fab',
-        onPressed: () => _openBedForm(),
+        onPressed: canAdd
+            ? () => _openBedForm()
+            : () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Cannot add a bed: this flat already has '
+                      '${BedCapacityService.maxBeds} beds (the maximum).',
+                    ),
+                  ),
+                );
+              },
         icon: const Icon(Icons.add),
-        label: const Text('Add bed'),
+        label: Text(canAdd ? 'Add bed' : 'Full at 20'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              widget.flat.address,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.flat.address,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
+                ),
+                BedCapacityHint(count: beds.length),
+              ],
             ),
           ),
           Expanded(
@@ -115,7 +140,21 @@ class _FlatDetailScreenState extends State<FlatDetailScreen> {
                               IconButton(
                                 icon: const Icon(Icons.delete_outline),
                                 tooltip: 'Delete bed',
-                                onPressed: () => _deleteBed(bed),
+                                onPressed: canDelete
+                                    ? () => _deleteBed(bed)
+                                    : () {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Cannot delete a bed: a flat '
+                                              'must keep at least '
+                                              '${BedCapacityService.minBeds} '
+                                              'beds.',
+                                            ),
+                                          ),
+                                        );
+                                      },
                               ),
                             ],
                           ),

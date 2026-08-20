@@ -8,6 +8,7 @@ abstract final class AppConfig {
   static const String bedsFileName = 'beds.json';
   static const String peopleFileName = 'people.json';
   static const String paymentsFileName = 'payments.json';
+  static const String expensesFileName = 'expenses.json';
 
   static const String prefKeyCurrentMonth = 'currentMonth';
 }

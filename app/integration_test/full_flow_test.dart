@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:renttrack/config.dart';
 import 'package:renttrack/main.dart';
 import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
 import 'package:renttrack/services/json_store.dart';
 import 'package:renttrack/services/prefs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,10 +14,11 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-      'full flow: boot → add flat → add bed → add tenant → assign bed → '
-      'add payment → mark paid → dashboard reflects it',
+      'full flow: boot → create flat with 6 beds → add tenant → assign with '
+      'deposit → add rent payment → add expense → report matches',
       (tester) async {
-    SharedPreferences.setMockInitialValues({'currentMonth': '2026-06'});
+    final currentMonth = monthKey(DateTime.now());
+    SharedPreferences.setMockInitialValues({'currentMonth': currentMonth});
 
     final tempDir = await Directory.systemTemp.createTemp('renttrack_it_');
     addTearDown(() => tempDir.delete(recursive: true));
@@ -29,7 +30,7 @@ void main() {
     await tester.pumpWidget(RentTrackApp(store: store, prefs: prefs));
     await tester.pumpAndSettle();
 
-    // --- Add a flat.
+    // --- Create a flat with 6 beds (within the 5-20 rule).
     await tester.tap(find.text('Flats').last);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Add flat').first);
@@ -38,21 +39,21 @@ void main() {
         find.widgetWithText(TextFormField, 'Flat name'), 'Sunrise Residency');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Address'), '12 Lake Road');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Number of beds'), '6');
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();
     expect(find.text('Sunrise Residency'), findsOneWidget);
 
-    // --- Add a bed inside the flat.
+    // --- Set a rent on Bed 1 so payments have a real due amount.
     await tester.tap(find.text('Sunrise Residency'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add bed').first);
+    expect(find.text('6 / 20 beds'), findsOneWidget);
+    await tester.tap(find.byTooltip('Edit bed').first);
     await tester.pumpAndSettle();
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Label (e.g. Bed A1)'), 'Bed A1');
     await tester.enterText(find.widgetWithText(TextFormField, 'Monthly rent'), '4500');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
-    expect(find.text('Bed A1'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
 
@@ -64,62 +65,91 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Full name'), 'Ramesh Gurung');
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Phone'), '9841000001');
+        find.widgetWithText(TextFormField, 'Contact'), '9841000001');
     await tester.tap(find.widgetWithText(FilledButton, 'Add'));
     await tester.pumpAndSettle();
     expect(find.text('Ramesh Gurung'), findsOneWidget);
 
-    // --- Assign the tenant to the bed.
+    // --- Assign to Bed 1 with a deposit, joining today for 3 months.
     await tester.tap(find.byIcon(Icons.link));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bed A1'));
+    await tester.tap(find.text('Bed 1'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Bed A1'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Deposit'), '10000');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Planned stay (months)'), '3');
+    await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Bed 1'), findsOneWidget);
+    expect(find.textContaining('Balance'), findsOneWidget);
 
-    // --- Add a payment for the current month.
-    await tester.tap(find.text('Payments').last);
+    // --- Add a rent payment from the person's history.
+    await tester.tap(find.text('Ramesh Gurung'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add payment').first);
+    await tester.tap(find.text('Add payment'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButtonFormField<Person>).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Ramesh Gurung').last);
-    await tester.pumpAndSettle();
+    // Amount due pre-fills from the bed rent (4500); pay it in full.
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount paid (optional)'), '4500');
     await tester.tap(find.widgetWithText(FilledButton, 'Add').last);
     await tester.pumpAndSettle();
-    expect(find.text('Ramesh Gurung'), findsOneWidget);
-    expect(find.text('UNPAID'), findsOneWidget);
-
-    // --- Mark it paid.
-    await tester.tap(find.byIcon(Icons.adaptive.more));
+    expect(find.textContaining('Rent'), findsWidgets);
+    await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Mark paid'));
-    await tester.pumpAndSettle();
-    expect(find.text('PAID'), findsOneWidget);
-    expect(find.text('UNPAID'), findsNothing);
 
-    // --- Dashboard reflects everything.
-    await tester.tap(find.text('Dashboard').last);
+    // --- Add an expense in the reports tab.
+    await tester.tap(find.text('Reports').last);
     await tester.pumpAndSettle();
-    expect(find.text('Flats'), findsWidgets);
-    expect(find.text('No outstanding payments for 2026-06.'), findsOneWidget);
+    await tester.ensureVisible(find.widgetWithText(TextButton, 'Add expense').first);
+    await tester.tap(find.widgetWithText(TextButton, 'Add expense').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '2000');
+    await tester.tap(find.widgetWithText(FilledButton, 'Add').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Other · Rs. 2000'), findsOneWidget);
 
-    // --- Data was persisted to the temp directory.
+    // --- Report matches: income = deposit 10000 + rent 4500, expenses = 2000,
+    // net = 12500.
+    expect(find.text('Rs. 14500'), findsNWidgets(2));
+    expect(find.text('Rs. 2000'), findsNWidgets(2));
+    expect(find.text('Rs. 12500'), findsNWidgets(2));
+
+    // --- Data persisted to the temp directory.
     await store.flush();
     expect(store.flats, hasLength(1));
     expect(store.flats.single.name, 'Sunrise Residency');
-    expect(store.beds, hasLength(1));
-    expect(store.beds.single.tenantId, isNotNull);
+    expect(store.beds, hasLength(6));
+    expect(store.beds.singleWhere((b) => b.label == 'Bed 1').tenantId, isNotNull);
     expect(store.people, hasLength(1));
     expect(store.people.single.bedId, isNotNull);
-    expect(store.payments, hasLength(1));
-    expect(store.payments.single.status, PaymentStatus.paid);
+    expect(store.people.single.depositAmount, 10000);
+    expect(store.people.single.plannedStayMonths, 3);
+    expect(store.people.single.leaveDate, isNotNull);
+    expect(store.payments, hasLength(2));
+    expect(
+      store.payments.where((p) => p.type == PaymentType.deposit),
+      hasLength(1),
+    );
+    expect(
+      store.payments.singleWhere((p) => p.type == PaymentType.rent).amountPaid,
+      4500,
+    );
+    expect(store.expenses, hasLength(1));
+    expect(store.expenses.single.amount, 2000);
 
     final files = tempDir
         .listSync()
         .whereType<File>()
         .map((f) => f.path.split(Platform.pathSeparator).last)
         .toList();
-    expect(files, containsAll(['flats.json', 'beds.json', 'people.json', 'payments.json']));
+    expect(
+      files,
+      containsAll([
+        'flats.json',
+        'beds.json',
+        'people.json',
+        'payments.json',
+        'expenses.json',
+      ]),
+    );
   });
 }

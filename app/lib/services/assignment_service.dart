@@ -1,5 +1,10 @@
+import '../config.dart';
 import '../models/bed.dart';
+import '../models/payment.dart';
+import '../models/person.dart';
+import '../services/tenure_service.dart';
 import 'json_store.dart';
+import '../utils/ids.dart';
 
 /// Raised when an assignment violates the occupancy rules.
 class AssignmentException implements Exception {
@@ -17,31 +22,66 @@ class AssignmentException implements Exception {
 /// Rules enforced:
 ///  * A bed can have at most one active tenant.
 ///  * A person can hold at most one active bed.
-///  * Unassigning never touches payment history.
+///  * Assigning requires a deposit (any positive amount).
+///  * Unassigning never touches payment/deposit history.
 class AssignmentService {
   const AssignmentService(this.store);
 
   final JsonStore store;
 
-  /// Assigns [personId] to [bedId]. Throws [AssignmentException] if the bed is
-  /// occupied or the person is already assigned to another bed.
-  void assignTenant({required String bedId, required String personId}) {
-    final bed = store.beds.firstWhere((b) => b.id == bedId);
-    final person = store.people.firstWhere((p) => p.id == personId);
-
-    if (bed.tenantId != null && bed.tenantId != personId) {
+  /// Assigns [person] to [bed] capturing [deposit], [joinDate] and
+  /// [plannedStayMonths]. Computes and sets [Person.leaveDate]. Records the
+  /// deposit as income (a deposit [Payment]) in the month of [joinDate].
+  /// Throws [AssignmentException] if the bed is occupied or the person is
+  /// already assigned to another bed.
+  void assignTenant({
+    required Bed bed,
+    required Person person,
+    required double deposit,
+    required DateTime joinDate,
+    required int plannedStayMonths,
+  }) {
+    if (deposit <= 0) {
+      throw AssignmentException('A deposit is required to assign a tenant.');
+    }
+    if (plannedStayMonths < 1) {
+      throw AssignmentException('Planned stay must be at least 1 month.');
+    }
+    if (bed.tenantId != null && bed.tenantId != person.id) {
       throw AssignmentException('This bed is already occupied.');
     }
-    if (person.bedId != null && person.bedId != bedId) {
+    if (person.bedId != null && person.bedId != bed.id) {
       throw AssignmentException('This person already has a bed assigned.');
     }
 
-    store.upsertBed(bed.copyWith(tenantId: personId));
-    store.upsertPerson(person.copyWith(bedId: bedId));
+    final leaveDate = TenureService.computedLeaveDate(joinDate, plannedStayMonths);
+
+    store.upsertBed(bed.copyWith(tenantId: person.id));
+    store.upsertPerson(
+      person.copyWith(
+        bedId: bed.id,
+        joinDate: joinDate,
+        plannedStayMonths: plannedStayMonths,
+        leaveDate: leaveDate,
+        depositAmount: deposit,
+      ),
+    );
+    store.upsertPayment(
+      Payment(
+        id: newId(),
+        personId: person.id,
+        bedId: bed.id,
+        flatId: bed.flatId,
+        month: monthKey(joinDate),
+        amountDue: deposit,
+        amountPaid: deposit,
+        type: PaymentType.deposit,
+      ),
+    );
   }
 
   /// Unassigns whatever tenant currently occupies [bedId]. Clears the link in
-  /// both directions. Payment history is untouched.
+  /// both directions. Payment/deposit history is untouched.
   void unassignTenant(String bedId) {
     final bed = store.beds.firstWhere((b) => b.id == bedId);
     final tenantId = bed.tenantId;

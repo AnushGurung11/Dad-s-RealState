@@ -48,9 +48,9 @@ const beds = [
 ];
 
 final people = [
-  Person(id: 'personA', name: 'Alice', phone: '1', moveInDate: DateTime(2026, 1, 1)),
-  Person(id: 'personB', name: 'Bob', phone: '2', moveInDate: DateTime(2026, 1, 1)),
-  Person(id: 'personC', name: 'Carol', phone: '3', moveInDate: DateTime(2026, 1, 1)),
+  Person(id: 'personA', name: 'Alice', contact: '1'),
+  Person(id: 'personB', name: 'Bob', contact: '2'),
+  Person(id: 'personC', name: 'Carol', contact: '3'),
 ];
 
 void main() {

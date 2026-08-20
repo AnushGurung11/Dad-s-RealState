@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/json_store.dart';
 import '../services/payment_service.dart';
+import '../services/report_service.dart';
 import '../utils/format.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/summary_card.dart';
@@ -33,8 +34,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final occupied = beds.where((b) => b.tenantId != null).length;
     final vacant = beds.length - occupied;
 
-    final totals = PaymentService.monthlyTotals(
+    final report = ReportService.dashboardTotals(
       payments: store.payments,
+      expenses: store.expenses,
       month: month,
     );
 
@@ -91,10 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: SummaryCard(
-                  title: 'Overdue ($month)',
-                  value: formatMoneyShort(totals.outstanding),
+                  title: 'Net ($month)',
+                  value: formatMoneySigned(report.net),
                   icon: Icons.payments_outlined,
-                  color: Colors.red.shade600,
+                  color: report.net < 0
+                      ? Colors.red.shade600
+                      : Colors.green.shade700,
                 ),
               ),
             ],

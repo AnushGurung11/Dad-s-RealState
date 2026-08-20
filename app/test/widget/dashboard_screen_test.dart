@@ -26,12 +26,15 @@ void main() {
     ));
     store.upsertBed(const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', monthlyRent: 4000));
     store.upsertBed(const Bed(id: 'b2', flatId: 'f1', label: 'Bed A2', monthlyRent: 4000, tenantId: 'p1'));
-    store.upsertPerson(Person(
+store.upsertPerson(Person(
       id: 'p1',
       name: 'Alice',
-      phone: '9000000001',
+      contact: '9000000001',
       bedId: 'b2',
-      moveInDate: DateTime(2026, 1, 1),
+      joinDate: DateTime(2026, 1, 1),
+      plannedStayMonths: 6,
+      leaveDate: DateTime(2026, 7, 1),
+      depositAmount: 5000,
     ));
     store.upsertPayment(const Payment(
       id: 'pay1',
@@ -75,11 +78,11 @@ await pumpApp(tester, store: store, prefs: {'currentMonth': '2026-06'});
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('Overdue (2026-06)'), findsOneWidget);
+    expect(find.textContaining('Net (2026-06)'), findsOneWidget);
     expect(
       find.descendant(
-        of: find.widgetWithText(SummaryCard, 'Overdue (2026-06)'),
-        matching: find.text('Rs. 3000'),
+        of: find.widgetWithText(SummaryCard, 'Net (2026-06)'),
+        matching: find.text('Rs. 1000'),
       ),
       findsOneWidget,
     );
@@ -111,10 +114,9 @@ await pumpApp(tester, store: store, prefs: {'currentMonth': '2026-06'});
     store.upsertBed(const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', monthlyRent: 4000));
     store.upsertPerson(Person(
       id: 'p1',
-      name: 'Alice',
-      phone: '9000000001',
+name: 'Alice',
+      contact: '9000000001',
       bedId: 'b1',
-      moveInDate: DateTime(2026, 1, 1),
     ));
     store.upsertPayment(const Payment(
       id: 'pay1',
@@ -142,10 +144,9 @@ await pumpApp(tester, store: store, prefs: {'currentMonth': '2026-06'});
     store.upsertBed(const Bed(id: 'b1', flatId: 'f1', label: 'Bed A1', monthlyRent: 4000));
     store.upsertPerson(Person(
       id: 'p1',
-      name: 'Alice',
-      phone: '9000000001',
+name: 'Alice',
+      contact: '9000000001',
       bedId: 'b1',
-      moveInDate: DateTime(2026, 1, 1),
     ));
     store.upsertPayment(const Payment(
       id: 'pay1',
@@ -168,10 +169,10 @@ await pumpApp(tester, store: store, prefs: {'currentMonth': '2026-06'});
 
     await pumpApp(tester, store: store, prefs: {'currentMonth': '2026-06'});
 
-    await tester.tap(find.text('Alice'));
+await tester.tap(find.text('Alice'));
     await tester.pumpAndSettle();
 
-    expect(find.text('2026-05'), findsOneWidget);
-    expect(find.text('2026-06'), findsOneWidget);
+    expect(find.textContaining('2026-05'), findsOneWidget);
+    expect(find.textContaining('2026-06'), findsOneWidget);
   });
 }

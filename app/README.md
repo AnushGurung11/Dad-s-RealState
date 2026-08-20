@@ -1,6 +1,6 @@
 # renttrack
 
-Offline rental/bed-occupancy + payment tracker for landlords who rent out
+Offline rental/bed-occupancy + financial tracker for landlords who rent out
 individual beds across multiple flats to working professionals.
 
 **100% offline. No backend.** All data is persisted to local JSON files in the
@@ -8,13 +8,30 @@ app's documents directory.
 
 ## Domain rules
 
-- A **Flat** has many **Beds**.
-- A **Bed** belongs to one Flat and has at most one active Tenant at a time.
-- A **Person** (tenant) can hold at most one active Bed at a time.
-- A **PaymentRecord** belongs to one Person + Bed + Flat for a given month/year,
-  with `amountDue`, `amountPaid` and a derived `status`
-  (`paid` | `partial` | `unpaid`).
-- Unassigning a tenant from a bed never deletes their payment history.
+- A **Flat** must have **between 5 and 20 Beds**, always. The app enforces this
+  at creation (the form asks for the bed count and rejects anything outside
+  5–20) and during management (add bed is blocked at 20, delete bed is blocked
+  at 5, with an on-screen explanation).
+- A **Bed** belongs to one Flat and holds at most one active Person.
+- A **Person** can hold at most one active Bed at a time.
+- **Assigning** a person to a bed requires a **deposit** (any positive amount).
+- At assignment the app captures `joinDate` and `plannedStayMonths` and
+  auto-computes `leaveDate = joinDate + plannedStayMonths`. `leaveDate` is
+  editable afterwards to reflect the actual move-out date.
+- **Tenure balance** per person:
+  `totalRentOwed = monthlyRent × plannedStayMonths`
+  `remainingBalance = totalRentOwed − deposit − sum(rent payments)`
+  Both recalculate when the planned stay or leave date changes.
+- **Deposit counts as income** at the moment it is collected — the deposit is
+  recorded in the payments ledger (type `deposit`) while also reducing the
+  tenant's remaining balance.
+- **Unassigning** a person (move-out) clears the bed link but keeps the person
+  and their full payment/deposit history.
+- **Financial report per flat, for a period (month):**
+  `income = rent payments + deposits collected in the period`
+  `expenses = expense records in the period`
+  `net = income − expenses` (may be negative; shown as a plain signed number
+  like `Rs. -2,400`).
 
 ## Run locally
 
@@ -33,15 +50,16 @@ flutter test
 
 ## Where data lives & how to back it up
 
-Data is stored as four JSON files in the app's **documents directory** on the
+Data is stored as five JSON files in the app's **documents directory** on the
 device (plus `schema.json` holding the schema version):
 
 | File | Contents |
 |------|----------|
 | `flats.json` | Flats |
 | `beds.json` | Beds |
-| `people.json` | Tenants |
-| `payments.json` | Payment records |
+| `people.json` | Tenants (incl. join/leave dates, planned stay, deposit) |
+| `payments.json` | Rent + deposit payment records |
+| `expenses.json` | Expense records per flat |
 
 To back up or inspect data manually, copy the app's documents directory off the
 device, e.g.:
@@ -105,13 +123,17 @@ and place `release.keystore` in `app/android/`.
 lib/
   main.dart                 Material 3 app shell, bottom NavigationBar, IndexedStack tabs
   config.dart               App name, JSON file names, schema version
-  models/                   flat, bed, person, payment (plain immutable classes)
+  models/                   flat, bed, person, payment, expense (plain immutable classes)
   services/
     json_store.dart         Storage core: atomic writes, debounced saves, migration hook
-    assignment_service.dart Pure bed<->tenant assignment rules
-    payment_service.dart    Pure payment math (dues, totals, overdue, mark paid/partial/unpaid)
-  screens/                  Dashboard, Flats, Tenants, Payments (+ flat detail, person history)
-  widgets/                  StatusBadge, EmptyState, ConfirmDeleteDialog, SummaryCard
+    bed_capacity_service.dart  Pure 5–20 beds rule (create/add/delete)
+    assignment_service.dart    Pure bed<->tenant assignment rules + deposit capture
+    tenure_service.dart        Pure tenure math (totalRentOwed, remainingBalance)
+    payment_service.dart       Pure payment math (dues, totals, overdue, mark paid/partial/unpaid)
+    report_service.dart        Pure per-flat income/expenses/net + dashboard totals
+  screens/                  Dashboard, Flats, Tenants, Reports (+ flat detail, person history)
+  widgets/                  StatusBadge, NetAmountLabel, BedCapacityHint, EmptyState,
+                            ConfirmDeleteDialog, SummaryCard
 test/
   unit/                     Store + service tests with fixtures
   widget/                   Per-screen widget tests with an in-memory fake store
