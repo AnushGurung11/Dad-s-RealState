@@ -133,7 +133,11 @@ class _AppShellState extends State<AppShell> {
 
   void _navigateTo(String route) {
     if (route == _currentRoute) return;
-    _bodyNavKey.currentState?.pushReplacementNamed(route);
+    // Keep the dashboard rooted at the bottom so popping a screen (e.g. after
+    // saving a form) always lands somewhere valid instead of emptying the
+    // navigator.
+    _bodyNavKey.currentState
+        ?.pushNamedAndRemoveUntil(route, (r) => r.isFirst);
   }
 
   @override

@@ -61,6 +61,7 @@ class AssignmentService {
     store.upsertPerson(
       person.copyWith(
         bedId: bed.id,
+        flatId: bed.flatId,
         joinDate: joinDate,
         plannedStayMonths: plannedStayMonths,
         vacatedDate: vacatedDate,
@@ -93,7 +94,9 @@ class AssignmentService {
 
     final tenant = store.people.where((p) => p.id == tenantId);
     if (tenant.isNotEmpty) {
-      store.upsertPerson(tenant.first.copyWith(clearBedId: true));
+      store.upsertPerson(
+        tenant.first.copyWith(clearBedId: true, clearFlatId: true),
+      );
     }
   }
 

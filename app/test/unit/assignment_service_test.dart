@@ -118,6 +118,19 @@ void main() {
       expect(store.people.singleWhere((p) => p.id == 'p1').bedId, isNull);
     });
 
+    test('assign denormalizes flatId onto the person; unassign clears it', () {
+      assign('b1', 'p1');
+
+      final stored = store.people.singleWhere((p) => p.id == 'p1');
+      expect(stored.flatId, 'f1');
+
+      service.unassignTenant('b1');
+      expect(
+        store.people.singleWhere((p) => p.id == 'p1').flatId,
+        isNull,
+      );
+    });
+
     test('unassign leaves payment and deposit history untouched', () {
       store.upsertPayment(const Payment(
         id: 'pay1',

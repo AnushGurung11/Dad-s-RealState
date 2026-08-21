@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../screens/add_member_screen.dart';
+import '../screens/assign_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flats_screen.dart';
+import '../screens/person_detail_screen.dart';
 import '../screens/placeholder_screen.dart';
 
-/// Named routes for the whole app. Chunks 3-8 replace placeholder bodies with
+/// Named routes for the whole app. Chunks 4-8 replace placeholder bodies with
 /// real screens while keeping these names stable.
 abstract final class Routes {
   static const String dashboard = '/';
@@ -12,6 +15,7 @@ abstract final class Routes {
   static const String flatDetail = '/flats/detail';
   static const String tenantsAdd = '/tenants/add';
   static const String tenantsAssign = '/tenants/assign';
+  static const String tenantsDetail = '/tenants/detail';
   static const String paymentsFlatLease = '/payments/flat-lease';
   static const String paymentsTenantRent = '/payments/tenant-rent';
   static const String historyFlatLease = '/history/flat-lease';
@@ -29,6 +33,7 @@ const Map<String, String> routeTitles = {
   Routes.flatDetail: 'Flat',
   Routes.tenantsAdd: 'Add member',
   Routes.tenantsAssign: 'Assign',
+  Routes.tenantsDetail: 'Tenant',
   Routes.paymentsFlatLease: 'Flat Lease Payment',
   Routes.paymentsTenantRent: 'Tenant Rent Payment',
   Routes.historyFlatLease: 'Flat Lease History',
@@ -52,6 +57,18 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       final flatId = settings.arguments as String?;
       return material(
         () => FlatDetailScreen(flatId: flatId ?? ''),
+      );
+    case Routes.tenantsAdd:
+      return material(AddMemberScreen.new);
+    case Routes.tenantsAssign:
+      final bedId = settings.arguments is String
+          ? settings.arguments as String?
+          : null;
+      return material(() => AssignScreen(initialBedId: bedId));
+    case Routes.tenantsDetail:
+      final personId = settings.arguments as String?;
+      return material(
+        () => PersonDetailScreen(personId: personId ?? ''),
       );
     default:
       final title = routeTitles[settings.name] ?? settings.name ?? '';

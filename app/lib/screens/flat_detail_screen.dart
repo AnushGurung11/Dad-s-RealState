@@ -5,6 +5,7 @@ import '../config.dart';
 import '../models/bed.dart';
 import '../models/flat.dart';
 import '../models/person.dart';
+import '../navigation/routes.dart';
 import '../services/payment_service.dart';
 import '../services/store_scope.dart';
 import '../utils/format.dart';
@@ -63,6 +64,19 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
     if (mounted) _refresh();
   }
 
+  /// Vacant beds jump straight into the assign flow with the bed preselected;
+  /// occupied beds open the occupant's detail.
+  Future<void> _onBedTap(Bed bed) async {
+    if (!bed.isOccupied) {
+      await Navigator.pushNamed(context, Routes.tenantsAssign,
+          arguments: bed.id);
+    } else {
+      await Navigator.pushNamed(context, Routes.tenantsDetail,
+          arguments: bed.tenantId);
+    }
+    if (mounted) _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
@@ -107,7 +121,7 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
                 occupantName: occupant?.name,
                 isOverdue:
                     occupant != null && overdueIds.contains(occupant.id),
-                onTap: () {},
+                onTap: () => _onBedTap(bed),
               );
             },
           ),
