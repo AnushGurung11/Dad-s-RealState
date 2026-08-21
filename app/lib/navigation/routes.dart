@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../screens/add_member_screen.dart';
 import '../screens/assign_screen.dart';
 import '../screens/flat_detail_screen.dart';
-import '../screens/flats_screen.dart';
+import '../screens/flat_lease_history_screen.dart';
 import '../screens/flat_lease_payment_screen.dart';
+import '../screens/flats_screen.dart';
+import '../screens/payment_history_screen.dart';
 import '../screens/payments_screen.dart';
 import '../screens/person_detail_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/tenant_rent_history_screen.dart';
 import '../screens/tenant_rent_payment_screen.dart';
 
 /// Named routes for the whole app. Chunks 4-8 replace placeholder bodies with
@@ -23,6 +26,7 @@ abstract final class Routes {
   static const String payments = '/payments';
   static const String paymentsFlatLease = '/payments/flat-lease';
   static const String paymentsTenantRent = '/payments/tenant-rent';
+  static const String paymentHistory = '/payments/history';
   static const String historyFlatLease = '/history/flat-lease';
   static const String historyTenantRent = '/history/tenant-rent';
   static const String expenses = '/expenses';
@@ -42,6 +46,7 @@ const Map<String, String> routeTitles = {
   Routes.payments: 'Payments',
   Routes.paymentsFlatLease: 'Flat Lease Payment',
   Routes.paymentsTenantRent: 'Tenant Rent Payment',
+  Routes.paymentHistory: 'Payment History',
   Routes.historyFlatLease: 'Flat Lease History',
   Routes.historyTenantRent: 'Tenant Rent History',
   Routes.expenses: 'Expenses',
@@ -82,6 +87,12 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(FlatLeasePaymentScreen.new);
     case Routes.paymentsTenantRent:
       return material(TenantRentPaymentScreen.new);
+    case Routes.historyFlatLease:
+      return material(FlatLeaseHistoryScreen.new);
+    case Routes.historyTenantRent:
+      return material(TenantRentHistoryScreen.new);
+    case Routes.paymentHistory:
+      return material(PaymentHistoryScreen.new);
     case Routes.settingsNotifications:
       return material(SettingsScreen.new);
     case Routes.settingsArchive:

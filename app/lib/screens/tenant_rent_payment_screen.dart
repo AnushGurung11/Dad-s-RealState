@@ -6,7 +6,7 @@ import '../services/rent_payment_service.dart';
 import '../services/store_scope.dart';
 import '../services/tenure_service.dart';
 import '../utils/format.dart';
-import '../widgets/grouped_tenant_list.dart';
+import '../widgets/tenant_picker_list.dart';
 
 /// Tenant Rent Payment: searchable, flat-grouped list of active tenants.
 /// Selecting one opens the payment form; saving writes a rent Payment to the
@@ -20,8 +20,6 @@ class TenantRentPaymentScreen extends StatefulWidget {
 }
 
 class _TenantRentPaymentScreenState extends State<TenantRentPaymentScreen> {
-  String _query = '';
-
   void _refresh() => setState(() {});
 
   Future<void> _openPayDialog(Person person) async {
@@ -50,50 +48,15 @@ class _TenantRentPaymentScreenState extends State<TenantRentPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final store = StoreScope.of(context);
-    final needle = _query.trim().toLowerCase();
-    final people = RentPaymentService(store)
-        .payablePeople()
-        .where((p) => needle.isEmpty ||
-            p.name.toLowerCase().contains(needle))
-        .toList();
-    final bedIds = people.map((p) => p.bedId).whereType<String>().toSet();
-    final beds =
-        store.beds.where((b) => bedIds.contains(b.id)).toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        TextField(
-          key: const Key('tenant_payment_search_field'),
-          decoration: const InputDecoration(
-            hintText: 'Search tenants',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) => setState(() => _query = value),
-        ),
-        const SizedBox(height: 12),
-        if (store.people.isEmpty || RentPaymentService(store).payablePeople().isEmpty)
-          Text(
-            'No active tenants.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          )
-        else if (people.isEmpty)
-          Text(
-            'No tenants match "$_query".',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          )
-        else
-          GroupedTenantList(
-            beds: beds,
-            onPersonTap: _openPayDialog,
-          ),
-      ],
+    return Scaffold(
+      appBar: AppBar(title: const Text('Tenant Rent Payment')),
+      body: TenantPickerList(
+        includeArchived: false,
+        emptyText: 'No active tenants.',
+        searchHint: 'Search tenants',
+        searchKey: const Key('tenant_payment_search_field'),
+        onPersonTap: _openPayDialog,
+      ),
     );
   }
 }
