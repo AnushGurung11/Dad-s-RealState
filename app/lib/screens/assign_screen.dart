@@ -151,9 +151,10 @@ class _AssignScreenState extends State<AssignScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final unassignedPeople =
-        store.people.where((p) => p.bedId == null).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+    final unassignedPeople = store.people
+        .where((p) => p.bedId == null && !p.archived)
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     final vacantBeds =
         store.beds.where((b) => !b.isOccupied).toList(growable: false);
     final occupiedBeds =

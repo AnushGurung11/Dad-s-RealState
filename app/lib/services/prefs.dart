@@ -19,4 +19,12 @@ class Prefs {
   Future<void> setCurrentMonth(String month) async {
     await _prefs.setString(AppConfig.prefKeyCurrentMonth, month);
   }
+
+  /// Global notifications switch. Defaults to on.
+  Future<bool> notificationsEnabled() async =>
+      _prefs.getBool(AppConfig.prefKeyNotificationsEnabled) ?? true;
+
+  Future<void> setNotificationsEnabled(bool value) async {
+    await _prefs.setBool(AppConfig.prefKeyNotificationsEnabled, value);
+  }
 }

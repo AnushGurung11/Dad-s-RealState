@@ -13,6 +13,8 @@ class Person {
     this.monthlyRent,
     this.others,
     this.renewalHistory = const [],
+    this.archived = false,
+    this.archivedAt,
   });
 
   final String id;
@@ -51,6 +53,14 @@ class Person {
   /// abandoned tenant apart from an actively renewed one.
   final List<DateTime> renewalHistory;
 
+  /// True once the auto-archive sweep has moved the tenant out of the active
+  /// views (vacatedDate passed without a renewal). Their payment/deposit
+  /// history is never touched.
+  final bool archived;
+
+  /// When the auto-archive sweep archived them.
+  final DateTime? archivedAt;
+
   Person copyWith({
     String? id,
     String? name,
@@ -65,6 +75,8 @@ class Person {
     double? monthlyRent,
     String? others,
     List<DateTime>? renewalHistory,
+    bool? archived,
+    DateTime? archivedAt,
     bool clearBedId = false,
     bool clearFlatId = false,
   }) {
@@ -82,6 +94,8 @@ class Person {
       monthlyRent: monthlyRent ?? this.monthlyRent,
       others: others ?? this.others,
       renewalHistory: renewalHistory ?? this.renewalHistory,
+      archived: archived ?? this.archived,
+      archivedAt: archivedAt ?? this.archivedAt,
     );
   }
 
@@ -114,6 +128,10 @@ class Person {
       renewalHistory: ((json['renewalHistory'] as List?) ?? const [])
           .map((item) => DateTime.parse(item as String))
           .toList(),
+      archived: (json['archived'] as bool?) ?? false,
+      archivedAt: json['archivedAt'] == null
+          ? null
+          : DateTime.parse(json['archivedAt'] as String),
     );
   }
 
@@ -132,6 +150,8 @@ class Person {
       'monthlyRent': monthlyRent,
       'others': others,
       'renewalHistory': renewalHistory.map((d) => d.toIso8601String()).toList(),
+      'archived': archived,
+      'archivedAt': archivedAt?.toIso8601String(),
     };
   }
 }

@@ -17,6 +17,7 @@ abstract final class AppConfig {
   static const String leaseChequeRecordsFileName = 'lease_check_records.json';
 
   static const String prefKeyCurrentMonth = 'currentMonth';
+  static const String prefKeyNotificationsEnabled = 'notificationsEnabled';
 }
 
 /// Helper for building a `YYYY-MM` month string from a [DateTime].

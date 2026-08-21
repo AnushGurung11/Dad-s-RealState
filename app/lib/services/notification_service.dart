@@ -62,14 +62,16 @@ class NotificationService {
 
   final NotificationScheduler _scheduler;
 
-  int _idFor(LeaseChequeSetting setting) =>
+  /// Stable notification id for a cheque setting. Public so tests (and the
+  /// settings screen's cancel-all path) can reason about specific ids.
+  int reminderIdFor(LeaseChequeSetting setting) =>
       setting.id.hashCode & 0x7fffffff;
 
   /// Cancels any existing reminder for [setting], then schedules a new one
   /// 3 days before `nextDueDate` (at 09:00) when notifications are enabled.
   /// No-op when the reminder date is already in the past.
   Future<void> syncFor(LeaseChequeSetting setting) async {
-    final id = _idFor(setting);
+    final id = reminderIdFor(setting);
     await _scheduler.cancel(id);
     if (!setting.notifyEnabled) return;
     final when = DateTime(
@@ -89,6 +91,22 @@ class NotificationService {
       title: 'Lease cheque due $date',
       body: '$owner — ${formatMoneyShort(setting.amount)}',
     );
+  }
+
+  /// Global notifications switch turned OFF: cancel every scheduled cheque
+  /// reminder immediately.
+  Future<void> disableAll(Iterable<LeaseChequeSetting> settings) async {
+    for (final setting in settings) {
+      await _scheduler.cancel(reminderIdFor(setting));
+    }
+  }
+
+  /// Global notifications switch turned ON: reschedule every reminder from
+  /// the current `nextDueDate` values (never stale ones).
+  Future<void> rescheduleAll(Iterable<LeaseChequeSetting> settings) async {
+    for (final setting in settings) {
+      await syncFor(setting);
+    }
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'config.dart';
 import 'navigation/app_drawer.dart';
 import 'navigation/routes.dart';
+import 'services/archive_service.dart';
 import 'services/json_store.dart';
 import 'services/store_scope.dart';
 import 'theme/app_theme.dart';
@@ -121,6 +122,7 @@ class _AppShellState extends State<AppShell> {
   final GlobalKey<NavigatorState> _bodyNavKey = GlobalKey<NavigatorState>();
   late final _RouteTitleObserver _observer;
   String _currentRoute = Routes.dashboard;
+  bool _archiveSweepDone = false;
 
   @override
   void initState() {
@@ -128,6 +130,39 @@ class _AppShellState extends State<AppShell> {
     _observer = _RouteTitleObserver((name) {
       if (!mounted || name == _currentRoute) return;
       setState(() => _currentRoute = name);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Runs once per launch, after the store loads and before the first
+    // dashboard frame — pure local computation, so no async/deferred needed.
+    if (_archiveSweepDone) return;
+    _archiveSweepDone = true;
+    _runArchiveSweep();
+  }
+
+  /// Archives every tenant whose stay lapsed and frees their beds. Only
+  /// changed entries are persisted (unchanged ones keep the same instance).
+  void _runArchiveSweep() {
+    final store = StoreScope.of(context);
+    final (people, beds) = ArchiveService.checkAndArchive(
+      store.people,
+      store.beds,
+      DateTime.now(),
+    );
+    store.runBatched(() {
+      for (var i = 0; i < people.length; i++) {
+        if (!identical(people[i], store.people[i])) {
+          store.upsertPerson(people[i]);
+        }
+      }
+      for (var i = 0; i < beds.length; i++) {
+        if (!identical(beds[i], store.beds[i])) {
+          store.upsertBed(beds[i]);
+        }
+      }
     });
   }
 

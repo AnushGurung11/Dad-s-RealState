@@ -41,6 +41,9 @@ class RenewalService {
         'Only an assigned tenant with a start date can renew.',
       );
     }
+    if (person.archived) {
+      throw const RenewalException('Archived tenants cannot renew.');
+    }
 
     final months = person.plannedStayMonths! + additionalMonths;
     final updated = person.copyWith(

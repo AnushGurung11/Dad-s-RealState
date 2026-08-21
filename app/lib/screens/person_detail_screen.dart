@@ -69,6 +69,18 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (person.archived)
+            Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                leading: const Icon(Icons.archive_outlined),
+                title: const Text('Archived tenant'),
+                subtitle: Text(
+                  'Archived on ${_dateText(person.archivedAt) ?? '—'}. '
+                  'Their history is kept.',
+                ),
+              ),
+            ),
           Card(
             margin: EdgeInsets.zero,
             child: Padding(
@@ -105,12 +117,14 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: person.isActiveTenant ? _openRenewDialog : null,
-            icon: const Icon(Icons.update),
-            label: const Text('Renew stay'),
-          ),
-          const SizedBox(height: 24),
+          // Archived tenants are done — no renew action for them.
+          if (!person.archived)
+            FilledButton.icon(
+              onPressed: person.isActiveTenant ? _openRenewDialog : null,
+              icon: const Icon(Icons.update),
+              label: const Text('Renew stay'),
+            ),
+          if (!person.archived) const SizedBox(height: 24),
           Text('Payment history',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),

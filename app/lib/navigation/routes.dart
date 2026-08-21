@@ -6,6 +6,7 @@ import '../screens/flat_detail_screen.dart';
 import '../screens/flats_screen.dart';
 import '../screens/person_detail_screen.dart';
 import '../screens/placeholder_screen.dart';
+import '../screens/settings_screen.dart';
 
 /// Named routes for the whole app. Chunks 4-8 replace placeholder bodies with
 /// real screens while keeping these names stable.
@@ -69,6 +70,12 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       final personId = settings.arguments as String?;
       return material(
         () => PersonDetailScreen(personId: personId ?? ''),
+      );
+    case Routes.settingsNotifications:
+      return material(SettingsScreen.new);
+    case Routes.settingsArchive:
+      return material(
+        () => const SettingsScreen(initialSection: SettingsSection.archive),
       );
     default:
       final title = routeTitles[settings.name] ?? settings.name ?? '';
