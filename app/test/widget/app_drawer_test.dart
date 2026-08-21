@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:renttrack/main.dart';
-import 'package:renttrack/screens/placeholder_screen.dart';
+import 'package:renttrack/screens/flats_screen.dart';
+import 'package:renttrack/services/json_store.dart';
 
 /// Pumps the app on a tall viewport so the whole drawer fits without
 /// scrolling, then opens the drawer.
@@ -9,7 +10,7 @@ Future<void> openDrawer(WidgetTester tester) async {
   tester.view.physicalSize = const Size(800, 2000);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(const RentTrackApp());
+  await tester.pumpWidget(RentTrackApp(createStore: InMemoryJsonStore.new));
   await tester.pumpAndSettle();
   await tester.tap(find.byTooltip('Open navigation menu'));
   await tester.pumpAndSettle();
@@ -99,7 +100,8 @@ void main() {
 
     // Drawer is closed: its contents are gone from the tree.
     expect(find.byType(Drawer), findsNothing);
-    // AppBar title and centered placeholder body both read "Flats".
+    // AppBar title reads "Flats" and the body is the real Flats screen
+    // (chunk 2 replaced the placeholder).
     expect(
       find.descendant(
         of: find.byType(AppBar),
@@ -107,13 +109,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(
-      find.descendant(
-        of: find.byType(PlaceholderScreen),
-        matching: find.text('Flats'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(FlatsScreen), findsOneWidget);
   });
 
   testWidgets('the currently active route shows a selected state',

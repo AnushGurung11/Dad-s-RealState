@@ -67,6 +67,10 @@ abstract class JsonStore {
   /// debounced write.
   void upsertChequeRecord(LeaseChequeRecord record);
 
+  /// Runs [action] as one atomic batch: every mutation performed inside is
+  /// persisted with a single store write instead of one write per mutation.
+  void runBatched(void Function() action);
+
   /// Forces any pending writes to disk immediately.
   Future<void> flush();
 
@@ -220,6 +224,9 @@ class InMemoryJsonStore implements JsonStore {
   }
 
   @override
+  void runBatched(void Function() action) => action();
+
+  @override
   Future<void> flush() async {}
 
   @override
@@ -241,6 +248,7 @@ class LocalJsonStore extends InMemoryJsonStore {
 
   Timer? _saveTimer;
   bool _disposed = false;
+  int _batchDepth = 0;
 
   Future<File> _file(String name) async {
     await directory.create(recursive: true);
@@ -283,7 +291,7 @@ class LocalJsonStore extends InMemoryJsonStore {
   }
 
   void _scheduleSave() {
-    if (_disposed) return;
+    if (_disposed || _batchDepth > 0) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(debounce, () {
       _saveTimer = null;
@@ -449,6 +457,17 @@ class LocalJsonStore extends InMemoryJsonStore {
   void upsertChequeRecord(LeaseChequeRecord record) {
     super.upsertChequeRecord(record);
     _scheduleSave();
+  }
+
+  @override
+  void runBatched(void Function() action) {
+    _batchDepth++;
+    try {
+      action();
+    } finally {
+      _batchDepth--;
+      if (_batchDepth == 0) _scheduleSave();
+    }
   }
 
   @override

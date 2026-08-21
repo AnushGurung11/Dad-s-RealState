@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../screens/flat_detail_screen.dart';
+import '../screens/flats_screen.dart';
 import '../screens/placeholder_screen.dart';
 
-/// Named routes for the whole app. Chunks 2-8 replace placeholder bodies with
+/// Named routes for the whole app. Chunks 3-8 replace placeholder bodies with
 /// real screens while keeping these names stable.
 abstract final class Routes {
   static const String dashboard = '/';
   static const String flats = '/flats';
+  static const String flatDetail = '/flats/detail';
   static const String tenantsAdd = '/tenants/add';
   static const String tenantsAssign = '/tenants/assign';
   static const String paymentsFlatLease = '/payments/flat-lease';
@@ -23,6 +26,7 @@ abstract final class Routes {
 const Map<String, String> routeTitles = {
   Routes.dashboard: 'Dashboard',
   Routes.flats: 'Flats',
+  Routes.flatDetail: 'Flat',
   Routes.tenantsAdd: 'Add member',
   Routes.tenantsAssign: 'Assign',
   Routes.paymentsFlatLease: 'Flat Lease Payment',
@@ -38,9 +42,19 @@ const Map<String, String> routeTitles = {
 /// Builds the route for [settings], resolving the screen title from
 /// [routeTitles]. Routes not yet implemented render a placeholder body.
 Route<dynamic> buildRoute(RouteSettings settings) {
-  final title = routeTitles[settings.name] ?? settings.name ?? '';
-  return MaterialPageRoute<void>(
-    settings: settings,
-    builder: (_) => PlaceholderScreen(title: title),
-  );
+  MaterialPageRoute<void> material(Widget Function() builder) =>
+      MaterialPageRoute<void>(settings: settings, builder: (_) => builder());
+
+  switch (settings.name) {
+    case Routes.flats:
+      return material(FlatsScreen.new);
+    case Routes.flatDetail:
+      final flatId = settings.arguments as String?;
+      return material(
+        () => FlatDetailScreen(flatId: flatId ?? ''),
+      );
+    default:
+      final title = routeTitles[settings.name] ?? settings.name ?? '';
+      return material(() => PlaceholderScreen(title: title));
+  }
 }
