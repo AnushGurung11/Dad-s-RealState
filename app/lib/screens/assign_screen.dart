@@ -9,6 +9,7 @@ import '../services/assignment_service.dart';
 import '../services/store_scope.dart';
 import '../services/tenure_service.dart';
 import '../theme/flat_color.dart';
+import '../widgets/grouped_tenant_list.dart';
 import '../utils/format.dart';
 
 /// Tenants → Assign. One screen, two sections: the assign form on top and a
@@ -319,7 +320,10 @@ class _AssignScreenState extends State<AssignScreen> {
                 ),
           )
         else
-          ..._assignedGroups(occupiedBeds),
+          GroupedTenantList(
+            beds: occupiedBeds,
+            onPersonTap: (person) => _openPersonDetail(person.id),
+          ),
       ],
     );
   }
@@ -363,56 +367,5 @@ class _AssignScreenState extends State<AssignScreen> {
       }
     }
     return items;
-  }
-
-  List<Widget> _assignedGroups(List<Bed> occupiedBeds) {
-    final widgets = <Widget>[];
-    for (final flat in _flatsWith(occupiedBeds, (b) => true)) {
-      final bedsInFlat =
-          occupiedBeds.where((b) => b.flatId == flat.id).toList()
-            ..sort((a, b) => a.label.compareTo(b.label));
-      widgets.add(Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 4),
-        child: Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: flatColorFor(flat.id),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(flat.name,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-          ],
-        ),
-      ));
-      for (final bed in bedsInFlat) {
-        final tenant = StoreScope.of(context)
-            .people
-            .where((p) => p.id == bed.tenantId)
-            .firstOrNull;
-        widgets.add(Card(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          child: ListTile(
-            leading: Icon(Icons.person_outlined,
-                color: flatColorFor(flat.id)),
-            title: Text(tenant?.name ?? 'Unknown'),
-            subtitle: Text(
-                '${bed.label} · ${formatMoneyShort(bed.defaultMonthlyRent)}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: tenant == null
-                ? null
-                : () => _openPersonDetail(tenant.id),
-          ),
-        ));
-      }
-    }
-    return widgets;
   }
 }

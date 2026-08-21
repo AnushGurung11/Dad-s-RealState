@@ -4,9 +4,12 @@ import '../screens/add_member_screen.dart';
 import '../screens/assign_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flats_screen.dart';
+import '../screens/flat_lease_payment_screen.dart';
+import '../screens/payments_screen.dart';
 import '../screens/person_detail_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/tenant_rent_payment_screen.dart';
 
 /// Named routes for the whole app. Chunks 4-8 replace placeholder bodies with
 /// real screens while keeping these names stable.
@@ -17,6 +20,7 @@ abstract final class Routes {
   static const String tenantsAdd = '/tenants/add';
   static const String tenantsAssign = '/tenants/assign';
   static const String tenantsDetail = '/tenants/detail';
+  static const String payments = '/payments';
   static const String paymentsFlatLease = '/payments/flat-lease';
   static const String paymentsTenantRent = '/payments/tenant-rent';
   static const String historyFlatLease = '/history/flat-lease';
@@ -35,6 +39,7 @@ const Map<String, String> routeTitles = {
   Routes.tenantsAdd: 'Add member',
   Routes.tenantsAssign: 'Assign',
   Routes.tenantsDetail: 'Tenant',
+  Routes.payments: 'Payments',
   Routes.paymentsFlatLease: 'Flat Lease Payment',
   Routes.paymentsTenantRent: 'Tenant Rent Payment',
   Routes.historyFlatLease: 'Flat Lease History',
@@ -71,6 +76,12 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(
         () => PersonDetailScreen(personId: personId ?? ''),
       );
+    case Routes.payments:
+      return material(PaymentsScreen.new);
+    case Routes.paymentsFlatLease:
+      return material(FlatLeasePaymentScreen.new);
+    case Routes.paymentsTenantRent:
+      return material(TenantRentPaymentScreen.new);
     case Routes.settingsNotifications:
       return material(SettingsScreen.new);
     case Routes.settingsArchive:

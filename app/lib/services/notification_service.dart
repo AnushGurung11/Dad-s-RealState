@@ -101,6 +101,11 @@ class NotificationService {
     }
   }
 
+  /// Cancels just this setting's reminder (used when a due date moved or the
+  /// global switch is off).
+  Future<void> cancelReminderFor(LeaseChequeSetting setting) =>
+      _scheduler.cancel(reminderIdFor(setting));
+
   /// Global notifications switch turned ON: reschedule every reminder from
   /// the current `nextDueDate` values (never stale ones).
   Future<void> rescheduleAll(Iterable<LeaseChequeSetting> settings) async {
