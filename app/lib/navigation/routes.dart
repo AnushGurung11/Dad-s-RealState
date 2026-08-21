@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../screens/add_member_screen.dart';
 import '../screens/assign_screen.dart';
+import '../screens/dashboard_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
@@ -63,6 +64,8 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       MaterialPageRoute<void>(settings: settings, builder: (_) => builder());
 
   switch (settings.name) {
+    case Routes.dashboard:
+      return material(DashboardScreen.new);
     case Routes.flats:
       return material(FlatsScreen.new);
     case Routes.flatDetail:

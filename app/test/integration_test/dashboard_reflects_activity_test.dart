@@ -1,0 +1,154 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:renttrack/main.dart';
+import 'package:renttrack/models/bed.dart';
+import 'package:renttrack/models/expense.dart';
+import 'package:renttrack/models/flat.dart';
+import 'package:renttrack/models/lease_cheque_setting.dart';
+import 'package:renttrack/models/payment.dart';
+import 'package:renttrack/models/person.dart';
+import 'package:renttrack/services/json_store.dart';
+
+/// End-to-end dashboard verification: fixtures spanning two months,
+/// Dashboard should only show current month figures.
+void main() {
+  testWidgets('dashboard reflects only current month data', (tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final now = DateTime.now();
+    final prevMonth = DateTime(now.year, now.month - 1, 1);
+    final currMonthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+    final store = InMemoryJsonStore();
+    store.upsertFlat(Flat(
+      id: 'f1',
+      name: 'Alpha',
+      address: '1 A Road',
+      createdAt: DateTime(2026, 1, 1),
+    ));
+    store.upsertBed(const Bed(
+        id: 'b1',
+        flatId: 'f1',
+        label: 'Bed 1',
+        defaultMonthlyRent: 4000,
+        tenantId: 'p1'));
+    store.upsertBed(const Bed(
+        id: 'b2',
+        flatId: 'f1',
+        label: 'Bed 2',
+        defaultMonthlyRent: 4000,
+        tenantId: 'p2'));
+    store.upsertPerson(Person(
+      id: 'p1',
+      name: 'Alice',
+      contact: '9000000001',
+      bedId: 'b1',
+      flatId: 'f1',
+      joinDate: DateTime(now.year, now.month - 1, now.day),
+      plannedStayMonths: 12,
+      depositAmount: 5000,
+      monthlyRent: 4000,
+    ));
+    store.upsertPerson(Person(
+      id: 'p2',
+      name: 'Bob',
+      contact: '9000000002',
+      bedId: 'b2',
+      flatId: 'f1',
+      joinDate: DateTime(now.year, now.month - 1, now.day),
+      plannedStayMonths: 12,
+      depositAmount: 5000,
+      monthlyRent: 4000,
+    ));
+
+    // Payments: one in current month, one in previous month
+    store.upsertPayment(Payment(
+      id: 'pay_curr',
+      personId: 'p1',
+      bedId: 'b1',
+      flatId: 'f1',
+      month: currMonthKey,
+      amountDue: 4000,
+      amountPaid: 4000,
+      type: PaymentType.rent,
+    ));
+    store.upsertPayment(Payment(
+      id: 'pay_prev',
+      personId: 'p2',
+      bedId: 'b2',
+      flatId: 'f1',
+      month: '${prevMonth.year}-${prevMonth.month.toString().padLeft(2, '0')}',
+      amountDue: 4000,
+      amountPaid: 4000,
+      type: PaymentType.rent,
+    ));
+    // Deposit in current month
+    store.upsertPayment(Payment(
+      id: 'dep_curr',
+      personId: 'p1',
+      bedId: 'b1',
+      flatId: 'f1',
+      month: currMonthKey,
+      amountDue: 5000,
+      amountPaid: 5000,
+      type: PaymentType.deposit,
+    ));
+
+    // Expenses: one in current month, one in previous
+    store.upsertExpense(Expense(
+      id: 'exp_curr',
+      flatId: 'f1',
+      category: ExpenseCategory.electricity,
+      amount: 2000,
+      date: DateTime(now.year, now.month, 5),
+    ));
+    store.upsertExpense(Expense(
+      id: 'exp_prev',
+      flatId: 'f1',
+      category: ExpenseCategory.water,
+      amount: 500,
+      date: DateTime(prevMonth.year, prevMonth.month, 10),
+    ));
+
+    // Lease settings
+    store.upsertChequeSetting(LeaseChequeSetting(
+      id: 's1',
+      flatId: 'f1',
+      ownerName: 'Owner A',
+      amount: 12000,
+      nextDueDate: DateTime(now.year, now.month + 1, 15),
+      notifyEnabled: true,
+    ));
+
+    await tester.pumpWidget(RentTrackApp(createStore: () => store));
+    await tester.pumpAndSettle();
+
+    // ── Verify Dashboard shows ONLY current month figures ─────────────
+    // Flats: 1
+    expect(find.text('1'), findsWidgets);
+    // Beds: 2/2 (both occupied)
+    expect(find.text('2/2'), findsOneWidget);
+    // Active tenants: 2
+    expect(find.text('Active Tenants'), findsOneWidget);
+
+    // Profit: current month rent (4000) + deposit (5000) - expense (2000) = 7000
+    // NOT including previous month's 4000 rent
+    expect(find.textContaining('AED 7000'), findsOneWidget);
+    // Expense: current month 2000 only
+    expect(find.textContaining('AED 2000'), findsOneWidget);
+
+    // Who paid: 1 / 2 (only Alice paid rent this month)
+    expect(find.text('Who paid this month'), findsOneWidget);
+    expect(find.text('Paid'), findsOneWidget);
+    expect(find.text('1'), findsWidgets);
+    expect(find.text('Unpaid'), findsOneWidget);
+    expect(find.text('1'), findsWidgets); // unpaid count
+
+    // Next lease: the single setting
+    expect(find.text('Next lease payment'), findsOneWidget);
+    expect(find.text('Alpha'), findsOneWidget);
+    expect(find.textContaining('AED 12000'), findsOneWidget);
+  });
+}

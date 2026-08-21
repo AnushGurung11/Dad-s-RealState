@@ -94,7 +94,10 @@ void main() {
 
     // ── Beds tab: Bed 1 vacant again, Bob still occupied ─────────────
     await openDrawer();
-    await tester.tap(find.text('Flats'));
+    await tester.tap(find.descendant(
+      of: find.byType(Drawer),
+      matching: find.text('Flats'),
+    ));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Alpha'));
     await tester.pumpAndSettle();

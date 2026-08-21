@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/expense.dart';
-import '../models/flat.dart';
 import '../services/expense_service.dart';
 import '../services/store_scope.dart';
 import '../theme/flat_color.dart';
 import '../utils/format.dart';
-import '../utils/ids.dart';
 
 /// Expenses screen: flat picker + per-flat expense list grouped by month.
 /// Supports add/edit/delete.
@@ -31,9 +29,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       return const Center(child: Text('No flats yet. Add a flat first.'));
     }
 
-    if (_selectedFlatId == null) {
-      _selectedFlatId = flats.first.id;
-    }
+    _selectedFlatId ??= flats.first.id;
 
     final selectedFlat = flats.firstWhere(
       (f) => f.id == _selectedFlatId,
@@ -97,7 +93,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 for (final entry in grouped.entries)
-                  _MonthSection(month: entry.key, expenses: entry.value),
+                  _MonthSection(
+                    month: entry.key,
+                    expenses: entry.value,
+                    onChanged: () => setState(() {}),
+                  ),
               ],
             ),
       floatingActionButton: FloatingActionButton(
@@ -127,7 +127,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<ExpenseCategory>(
-                value: category,
+                initialValue: category,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
@@ -234,10 +234,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
 /// Section for a month with its expenses.
 class _MonthSection extends StatelessWidget {
-  const _MonthSection({required this.month, required this.expenses});
+  const _MonthSection({
+    required this.month,
+    required this.expenses,
+    required this.onChanged,
+  });
 
   final String month;
   final List<Expense> expenses;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -254,7 +259,8 @@ class _MonthSection extends StatelessWidget {
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
-        for (final expense in expenses) _ExpenseTile(expense: expense),
+        for (final expense in expenses)
+          _ExpenseTile(expense: expense, onChanged: onChanged),
       ],
     );
   }
@@ -273,9 +279,10 @@ class _MonthSection extends StatelessWidget {
 
 /// Single expense row.
 class _ExpenseTile extends StatelessWidget {
-  const _ExpenseTile({required this.expense});
+  const _ExpenseTile({required this.expense, required this.onChanged});
 
   final Expense expense;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -343,10 +350,7 @@ class _ExpenseTile extends StatelessWidget {
                 ..hideCurrentSnackBar()
                 ..showSnackBar(
                     const SnackBar(content: Text('Expense deleted')));
-              // Find the ExpensesScreen ancestor and refresh
-              final state =
-                  context.findAncestorStateOfType<_ExpensesScreenState>();
-              if (state != null) state.setState(() {});
+              onChanged();
             },
             child: const Text('Delete'),
           ),
