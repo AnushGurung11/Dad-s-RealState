@@ -3,7 +3,7 @@ enum ExpenseCategory {
   water,
   gas,
   internet,
-  repairs,
+  maintenance,
   other;
 
   String get label {
@@ -16,8 +16,8 @@ enum ExpenseCategory {
         return 'Gas';
       case ExpenseCategory.internet:
         return 'Internet';
-      case ExpenseCategory.repairs:
-        return 'Repairs';
+      case ExpenseCategory.maintenance:
+        return 'Maintenance';
       case ExpenseCategory.other:
         return 'Other';
     }

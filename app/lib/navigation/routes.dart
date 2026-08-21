@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../screens/add_member_screen.dart';
 import '../screens/assign_screen.dart';
+import '../screens/expenses_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
 import '../screens/flat_lease_payment_screen.dart';
@@ -93,6 +94,8 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(TenantRentHistoryScreen.new);
     case Routes.paymentHistory:
       return material(PaymentHistoryScreen.new);
+    case Routes.expenses:
+      return material(ExpensesScreen.new);
     case Routes.settingsNotifications:
       return material(SettingsScreen.new);
     case Routes.settingsArchive:

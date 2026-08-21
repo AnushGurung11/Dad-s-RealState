@@ -57,10 +57,10 @@ final electricityFeb = Expense(
   amount: 2000,
   date: DateTime(2026, 2, 10),
 );
-final repairsFeb = Expense(
+final maintenanceFeb = Expense(
   id: 'e2',
   flatId: 'f1',
-  category: ExpenseCategory.repairs,
+  category: ExpenseCategory.maintenance,
   amount: 3500,
   date: DateTime(2026, 2, 20),
 );
@@ -81,7 +81,7 @@ final gasOtherFlat = Expense(
 
 void main() {
   const allPayments = [rentFeb, rentFebPartial, depositFeb, rentJan, rentOtherFlat];
-  final allExpenses = [electricityFeb, repairsFeb, waterJan, gasOtherFlat];
+  final allExpenses = [electricityFeb, maintenanceFeb, waterJan, gasOtherFlat];
 
   group('ReportService.flatIncome', () {
     test('sums rent payments + deposits in the period only', () {
@@ -131,7 +131,7 @@ void main() {
     test('negative when expenses > income', () {
       final net = ReportService.flatNet(
         payments: const [rentFebPartial],
-        expenses: [repairsFeb],
+        expenses: [maintenanceFeb],
         flatId: 'f1',
         month: '2026-02',
       );
