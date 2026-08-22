@@ -41,7 +41,7 @@ class RenewalService {
         'Only an assigned tenant with a start date can renew.',
       );
     }
-    if (person.archived) {
+    if (person.isArchived) {
       throw const RenewalException('Archived tenants cannot renew.');
     }
 

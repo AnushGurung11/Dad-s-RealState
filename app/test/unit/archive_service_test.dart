@@ -1,14 +1,14 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/archive_service.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/archive_service.dart';
 
 void main() {
   Person person({
     String id = 'p1',
     DateTime? vacated,
     List<DateTime> renewals = const [],
-    bool archived = false,
+    PersonStatus status = PersonStatus.active,
     String? bedId = 'b1',
   }) =>
       Person(
@@ -23,7 +23,7 @@ void main() {
         depositAmount: 5000,
         monthlyRent: 4000,
         renewalHistory: renewals,
-        archived: archived,
+        status: status,
       );
 
   group('shouldArchive', () {
@@ -80,7 +80,8 @@ void main() {
     });
 
     test('is false for someone already archived (sweeps are idempotent)', () {
-      final p = person(vacated: DateTime(2026, 6, 1), archived: true);
+      final p = person(
+          vacated: DateTime(2026, 6, 1), status: PersonStatus.archived);
       expect(ArchiveService.shouldArchive(p, DateTime(2026, 7, 1)), isFalse);
     });
   });
@@ -122,13 +123,13 @@ void main() {
       // Alice archived with the sweep date; her tenure data is preserved so
       // the Archive screen can show her former flat/bed.
       final archivedAlice = people[0];
-      expect(archivedAlice.archived, isTrue);
-      expect(archivedAlice.archivedAt, today);
+      expect(archivedAlice.status, PersonStatus.archived);
+      expect(archivedAlice.statusDate, today);
       expect(archivedAlice.bedId, 'b1');
       expect(archivedAlice.depositAmount, 5000);
       expect(archivedAlice.vacatedDate, DateTime(2026, 6, 1));
 
-      // Bob and his bed are untouched — literally the same instances.
+      // Bob and his bed are untouched â€” literally the same instances.
       expect(identical(people[1], active), isTrue);
       expect(identical(beds[1], bedB2), isTrue);
 

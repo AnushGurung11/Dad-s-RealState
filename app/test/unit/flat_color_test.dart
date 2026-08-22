@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/theme/flat_color.dart';
+import 'package:lucky/theme/flat_color.dart';
 
 void main() {
   group('flatColorFor', () {

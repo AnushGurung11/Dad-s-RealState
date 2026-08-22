@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../screens/add_member_screen.dart';
+import '../screens/add_tenant_screen.dart';
+import '../screens/archive_flats_screen.dart';
+import '../screens/archive_tenants_screen.dart';
 import '../screens/assign_screen.dart';
 import '../screens/dashboard_screen.dart';
+import '../screens/edit_tenant_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
@@ -13,18 +16,23 @@ import '../screens/payments_screen.dart';
 import '../screens/person_detail_screen.dart';
 import '../screens/placeholder_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/tenants_screen.dart';
+import '../screens/termination_flow_screen.dart';
 import '../screens/tenant_rent_history_screen.dart';
 import '../screens/tenant_rent_payment_screen.dart';
 
-/// Named routes for the whole app. Chunks 4-8 replace placeholder bodies with
-/// real screens while keeping these names stable.
+/// Named routes for the whole app. Screens swap bodies while these names
+/// stay stable.
 abstract final class Routes {
   static const String dashboard = '/';
   static const String flats = '/flats';
   static const String flatDetail = '/flats/detail';
+  static const String tenants = '/tenants';
   static const String tenantsAdd = '/tenants/add';
   static const String tenantsAssign = '/tenants/assign';
   static const String tenantsDetail = '/tenants/detail';
+  static const String tenantsEdit = '/tenants/edit';
+  static const String tenantsTerminate = '/tenants/terminate';
   static const String payments = '/payments';
   static const String paymentsFlatLease = '/payments/flat-lease';
   static const String paymentsTenantRent = '/payments/tenant-rent';
@@ -32,8 +40,9 @@ abstract final class Routes {
   static const String historyFlatLease = '/history/flat-lease';
   static const String historyTenantRent = '/history/tenant-rent';
   static const String expenses = '/expenses';
-  static const String settingsNotifications = '/settings/notifications';
   static const String settingsArchive = '/settings/archive';
+  static const String archiveTenants = '/archive/tenants';
+  static const String archiveFlats = '/archive/flats';
   static const String financialReport = '/report';
 }
 
@@ -42,9 +51,12 @@ const Map<String, String> routeTitles = {
   Routes.dashboard: 'Dashboard',
   Routes.flats: 'Flats',
   Routes.flatDetail: 'Flat',
-  Routes.tenantsAdd: 'Add member',
+  Routes.tenants: 'Tenants',
+  Routes.tenantsAdd: 'Add tenant',
   Routes.tenantsAssign: 'Assign',
   Routes.tenantsDetail: 'Tenant',
+  Routes.tenantsEdit: 'Edit tenant',
+  Routes.tenantsTerminate: 'End tenure early',
   Routes.payments: 'Payments',
   Routes.paymentsFlatLease: 'Flat Lease Payment',
   Routes.paymentsTenantRent: 'Tenant Rent Payment',
@@ -52,8 +64,9 @@ const Map<String, String> routeTitles = {
   Routes.historyFlatLease: 'Flat Lease History',
   Routes.historyTenantRent: 'Tenant Rent History',
   Routes.expenses: 'Expenses',
-  Routes.settingsNotifications: 'Notifications',
-  Routes.settingsArchive: 'Archive',
+  Routes.settingsArchive: 'Settings',
+  Routes.archiveTenants: 'Archived Tenants',
+  Routes.archiveFlats: 'Archive Flats',
   Routes.financialReport: 'Financial Report',
 };
 
@@ -73,8 +86,10 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(
         () => FlatDetailScreen(flatId: flatId ?? ''),
       );
+    case Routes.tenants:
+      return material(TenantsScreen.new);
     case Routes.tenantsAdd:
-      return material(AddMemberScreen.new);
+      return material(AddTenantScreen.new);
     case Routes.tenantsAssign:
       final bedId = settings.arguments is String
           ? settings.arguments as String?
@@ -84,6 +99,16 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       final personId = settings.arguments as String?;
       return material(
         () => PersonDetailScreen(personId: personId ?? ''),
+      );
+    case Routes.tenantsEdit:
+      final personId = settings.arguments as String?;
+      return material(
+        () => EditTenantScreen(personId: personId ?? ''),
+      );
+    case Routes.tenantsTerminate:
+      final personId = settings.arguments as String?;
+      return material(
+        () => TerminationFlowScreen(personId: personId ?? ''),
       );
     case Routes.payments:
       return material(PaymentsScreen.new);
@@ -99,12 +124,14 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(PaymentHistoryScreen.new);
     case Routes.expenses:
       return material(ExpensesScreen.new);
-    case Routes.settingsNotifications:
-      return material(SettingsScreen.new);
     case Routes.settingsArchive:
       return material(
         () => const SettingsScreen(initialSection: SettingsSection.archive),
       );
+    case Routes.archiveTenants:
+      return material(ArchiveTenantsScreen.new);
+    case Routes.archiveFlats:
+      return material(ArchiveFlatsScreen.new);
     default:
       final title = routeTitles[settings.name] ?? settings.name ?? '';
       return material(() => PlaceholderScreen(title: title));

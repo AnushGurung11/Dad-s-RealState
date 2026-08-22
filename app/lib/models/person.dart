@@ -1,3 +1,16 @@
+enum PersonStatus {
+  active,
+  archived,
+  absconded;
+
+  static PersonStatus fromString(String value) {
+    return PersonStatus.values.firstWhere(
+      (s) => s.name == value,
+      orElse: () => PersonStatus.active,
+    );
+  }
+}
+
 class Person {
   const Person({
     required this.id,
@@ -13,8 +26,10 @@ class Person {
     this.monthlyRent,
     this.others,
     this.renewalHistory = const [],
-    this.archived = false,
-    this.archivedAt,
+    this.status = PersonStatus.active,
+    this.photoPath,
+    this.statusNote,
+    this.statusDate,
   });
 
   final String id;
@@ -49,17 +64,26 @@ class Person {
   /// Free-text notes about the tenant.
   final String? others;
 
-  /// Timestamp of every renewal. Lets the archive logic (chunk 4) tell an
+  /// Timestamp of every renewal. Lets the archive logic tell an
   /// abandoned tenant apart from an actively renewed one.
   final List<DateTime> renewalHistory;
 
-  /// True once the auto-archive sweep has moved the tenant out of the active
-  /// views (vacatedDate passed without a renewal). Their payment/deposit
-  /// history is never touched.
-  final bool archived;
+  /// Lifecycle state. `active` tenants appear on the Tenants page;
+  /// `archived` (stay ended, not renewed) and `absconded` (left without
+  /// paying) are terminal states that free the bed and preserve all records.
+  /// They differ only in badge color/label and the absconded-specific note.
+  final PersonStatus status;
 
-  /// When the auto-archive sweep archived them.
-  final DateTime? archivedAt;
+  /// Local file path of the tenant's photo, copied into the app's documents
+  /// directory at pick time (never the OS picker's transient path).
+  final String? photoPath;
+
+  /// Why the tenant was marked absconded ("left owing 1.5 months"). Required
+  /// for absconded, unused otherwise.
+  final String? statusNote;
+
+  /// When the status changed to archived/absconded.
+  final DateTime? statusDate;
 
   Person copyWith({
     String? id,
@@ -75,10 +99,15 @@ class Person {
     double? monthlyRent,
     String? others,
     List<DateTime>? renewalHistory,
-    bool? archived,
-    DateTime? archivedAt,
+    PersonStatus? status,
+    String? photoPath,
+    String? statusNote,
+    DateTime? statusDate,
     bool clearBedId = false,
     bool clearFlatId = false,
+    bool clearPhotoPath = false,
+    bool clearStatusNote = false,
+    bool clearVacatedDate = false,
   }) {
     return Person(
       id: id ?? this.id,
@@ -89,13 +118,15 @@ class Person {
       flatId: clearFlatId ? null : flatId ?? this.flatId,
       joinDate: joinDate ?? this.joinDate,
       plannedStayMonths: plannedStayMonths ?? this.plannedStayMonths,
-      vacatedDate: vacatedDate ?? this.vacatedDate,
+      vacatedDate: clearVacatedDate ? null : vacatedDate ?? this.vacatedDate,
       depositAmount: depositAmount ?? this.depositAmount,
       monthlyRent: monthlyRent ?? this.monthlyRent,
       others: others ?? this.others,
       renewalHistory: renewalHistory ?? this.renewalHistory,
-      archived: archived ?? this.archived,
-      archivedAt: archivedAt ?? this.archivedAt,
+      status: status ?? this.status,
+      photoPath: clearPhotoPath ? null : photoPath ?? this.photoPath,
+      statusNote: clearStatusNote ? null : statusNote ?? this.statusNote,
+      statusDate: statusDate ?? this.statusDate,
     );
   }
 
@@ -104,7 +135,19 @@ class Person {
   bool get isActiveTenant =>
       bedId != null && joinDate != null && plannedStayMonths != null;
 
+  /// Compatibility helper for code that only cares "is this tenant gone".
+  bool get isArchived => status != PersonStatus.active;
+
+  bool get isAbsconded => status == PersonStatus.absconded;
+
   factory Person.fromJson(Map<String, dynamic> json) {
+    // Older builds stored a plain `archived` bool and `archivedAt` date;
+    // migrate them into the status enum transparently on read.
+    final legacyArchived = json['archived'] as bool? ?? false;
+    final rawStatus = json['status'] as String?;
+    final status = rawStatus != null
+        ? PersonStatus.fromString(rawStatus)
+        : (legacyArchived ? PersonStatus.archived : PersonStatus.active);
     return Person(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -128,10 +171,12 @@ class Person {
       renewalHistory: ((json['renewalHistory'] as List?) ?? const [])
           .map((item) => DateTime.parse(item as String))
           .toList(),
-      archived: (json['archived'] as bool?) ?? false,
-      archivedAt: json['archivedAt'] == null
+      status: status,
+      photoPath: json['photoPath'] as String?,
+      statusNote: json['statusNote'] as String?,
+      statusDate: (json['statusDate'] ?? json['archivedAt']) == null
           ? null
-          : DateTime.parse(json['archivedAt'] as String),
+          : DateTime.parse((json['statusDate'] ?? json['archivedAt']) as String),
     );
   }
 
@@ -150,8 +195,10 @@ class Person {
       'monthlyRent': monthlyRent,
       'others': others,
       'renewalHistory': renewalHistory.map((d) => d.toIso8601String()).toList(),
-      'archived': archived,
-      'archivedAt': archivedAt?.toIso8601String(),
+      'status': status.name,
+      'photoPath': photoPath,
+      'statusNote': statusNote,
+      'statusDate': statusDate?.toIso8601String(),
     };
   }
 }

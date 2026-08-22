@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/payment_service.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/payment_service.dart';
 
 const payment1 = Payment(
   id: 'p1',

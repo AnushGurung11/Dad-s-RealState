@@ -33,7 +33,7 @@ class FlatCreationService {
   Flat createFlat({
     required String name,
     required String address,
-    DateTime? contractDate,
+    DateTime? registeredDate,
     String? contractPerson,
     required double yearlyRent,
     required int bedCount,
@@ -56,7 +56,7 @@ class FlatCreationService {
       name: trimmedName,
       address: address.trim(),
       createdAt: now,
-      contractDate: contractDate,
+      registeredDate: registeredDate,
       contractPerson: contractPerson?.trim(),
       yearlyRent: yearlyRent,
     );
@@ -75,7 +75,7 @@ class FlatCreationService {
       flatId: flat.id,
       ownerName: (owner == null || owner.isEmpty) ? flat.name : owner,
       amount: yearlyRent / chequesPerYear,
-      nextDueDate: contractDate ?? now,
+      nextDueDate: registeredDate ?? now,
     );
 
     store.runBatched(() {

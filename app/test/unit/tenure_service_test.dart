@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/tenure_service.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/tenure_service.dart';
 
 void main() {
   final join = DateTime(2026, 2, 10);

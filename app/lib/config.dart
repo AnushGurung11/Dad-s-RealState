@@ -1,5 +1,5 @@
 abstract final class AppConfig {
-  static const String appName = 'renttrack';
+  static const String appName = 'LUCKY';
 
   /// App-wide currency symbol. Every amount-display widget must go through
   /// this constant — never hardcode a currency string per-screen.
@@ -15,9 +15,9 @@ abstract final class AppConfig {
   static const String expensesFileName = 'expenses.json';
   static const String leaseChequeSettingsFileName = 'lease_check_settings.json';
   static const String leaseChequeRecordsFileName = 'lease_check_records.json';
+  static const String terminationsFileName = 'terminations.json';
 
   static const String prefKeyCurrentMonth = 'currentMonth';
-  static const String prefKeyNotificationsEnabled = 'notificationsEnabled';
 }
 
 /// Helper for building a `YYYY-MM` month string from a [DateTime].

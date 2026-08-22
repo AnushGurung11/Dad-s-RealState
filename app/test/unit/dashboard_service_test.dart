@@ -1,11 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/expense.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_cheque_setting.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/dashboard_service.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/expense.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_setting.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/dashboard_service.dart';
 
 void main() {
   final flatA = Flat(
@@ -57,7 +57,7 @@ void main() {
     plannedStayMonths: 12,
     depositAmount: 5000,
     monthlyRent: 4000,
-    archived: true,
+    status: PersonStatus.archived,
   );
 
   const paymentFebRent = Payment(

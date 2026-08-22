@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/main.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/expense.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_cheque_setting.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/json_store.dart';
+import 'package:lucky/main.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/expense.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_setting.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/json_store.dart';
 
 /// End-to-end dashboard verification: fixtures spanning two months,
 /// Dashboard should only show current month figures.
@@ -122,7 +122,7 @@ void main() {
       notifyEnabled: true,
     ));
 
-    await tester.pumpWidget(RentTrackApp(createStore: () => store));
+    await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
     // ── Verify Dashboard shows ONLY current month figures ─────────────

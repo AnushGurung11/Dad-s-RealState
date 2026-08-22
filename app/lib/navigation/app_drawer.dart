@@ -69,8 +69,15 @@ class AppDrawer extends StatelessWidget {
             currentRoute: currentRoute,
             children: [
               _Tile(
+                icon: Icons.groups_outlined,
+                label: 'All tenants',
+                route: Routes.tenants,
+                currentRoute: currentRoute,
+                onTap: () => _go(context, Routes.tenants),
+              ),
+              _Tile(
                 icon: Icons.person_add_outlined,
-                label: 'Add member',
+                label: 'Add tenant',
                 route: Routes.tenantsAdd,
                 currentRoute: currentRoute,
                 onTap: () => _go(context, Routes.tenantsAdd),
@@ -138,13 +145,6 @@ class AppDrawer extends StatelessWidget {
             label: 'Settings',
             currentRoute: currentRoute,
             children: [
-              _Tile(
-                icon: Icons.notifications_outlined,
-                label: 'Notifications',
-                route: Routes.settingsNotifications,
-                currentRoute: currentRoute,
-                onTap: () => _go(context, Routes.settingsNotifications),
-              ),
               _Tile(
                 icon: Icons.archive_outlined,
                 label: 'Archive',

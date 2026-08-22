@@ -35,7 +35,7 @@ class FlatLeasePaymentService {
   ///  1. creates a [LeaseChequeRecord] with the entered amount/date,
   ///  2. advances `nextDueDate` by the interval from the original due date.
   /// Both writes happen as one batched store write. Returns the updated
-  /// setting so the caller can reschedule its notification.
+  /// setting so callers can reflect the advanced due date.
   LeaseChequeSetting pay({
     required LeaseChequeSetting setting,
     required double amount,

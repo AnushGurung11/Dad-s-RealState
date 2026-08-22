@@ -1,5 +1,7 @@
 Add-Type -AssemblyName System.Drawing
 
+# LUCKY brand icon: a simple finance-app mark — three ascending bars with a
+# coin above them, drawn in the single accent color from app_theme.dart.
 $accent = [System.Drawing.Color]::FromArgb(255, 15, 118, 110)
 $white = [System.Drawing.Color]::FromArgb(255, 246, 246, 246)
 $size = 1024
@@ -16,39 +18,29 @@ function Draw-Icon([bool]$transparent) {
 
   $brush = New-Object System.Drawing.SolidBrush($accent)
   $whiteBrush = New-Object System.Drawing.SolidBrush($white)
-  $clearBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::Transparent)
-  $pen = New-Object System.Drawing.Pen($accent, 48)
-  $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-  $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-  $pen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
 
-  # House: roof lines
-  $g.DrawLine($pen, 232, 440, 512, 248)
-  $g.DrawLine($pen, 512, 248, 792, 440)
+  # Ascending bar chart (symbol only - text does not read at launcher size).
+  # Bars share a baseline and grow left to right.
+  $barWidth = 130
+  $baseline = 820
+  $g.FillRectangle($brush, 200, $baseline - 260, $barWidth, 260)   # bar 1
+  $g.FillRectangle($brush, 447, $baseline - 420, $barWidth, 420)   # bar 2
+  $g.FillRectangle($brush, 694, $baseline - 580, $barWidth, 580)   # bar 3
 
-  # House: body outline (three sides, open top to let the roof meet)
-  $g.DrawLine($pen, 232, 440, 232, 800)
-  $g.DrawLine($pen, 792, 440, 792, 800)
-  $g.DrawLine($pen, 232, 800, 792, 800)
-
-  # Key: bow (filled ring)
-  $ringOuter = New-Object System.Drawing.Rectangle(398, 566, 128, 128)
-  $ringInner = New-Object System.Drawing.Rectangle(430, 598, 64, 64)
-  $g.FillEllipse($brush, $ringOuter)
+  # Coin above the tallest bar: filled disc with an accent ring cut by a
+  # white inner ring so it reads as a coin, not a dot.
+  $coinOuter = New-Object System.Drawing.Rectangle(521, 120, 220, 220)
+  $g.FillEllipse($brush, $coinOuter)
+  $coinInner = New-Object System.Drawing.Rectangle(561, 160, 140, 140)
   if ($transparent) {
-    $g.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
-    $g.FillEllipse($clearBrush, $ringInner)
-    $g.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
+    $hole = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(90, $accent))
+    $g.FillEllipse($hole, $coinInner)
+    $hole.Dispose()
   } else {
-    $g.FillEllipse($whiteBrush, $ringInner)
+    $g.FillEllipse($whiteBrush, $coinInner)
+    $ring = New-Object System.Drawing.Rectangle(591, 190, 80, 80)
+    $g.FillEllipse($brush, $ring)
   }
-
-  # Key: shaft
-  $g.FillRectangle($brush, 506, 594, 150, 44)
-
-  # Key: teeth
-  $g.FillRectangle($brush, 586, 638, 44, 78)
-  $g.FillRectangle($brush, 640, 638, 44, 46)
 
   $g.Dispose()
   return $bmp

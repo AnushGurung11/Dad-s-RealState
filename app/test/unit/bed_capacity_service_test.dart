@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/services/bed_capacity_service.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/services/bed_capacity_service.dart';
 
 void main() {
   group('BedCapacityService.canCreateFlat', () {

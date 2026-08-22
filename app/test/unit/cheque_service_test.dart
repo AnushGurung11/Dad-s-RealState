@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/lease_cheque_setting.dart';
-import 'package:renttrack/services/cheque_service.dart';
+import 'package:lucky/models/lease_cheque_setting.dart';
+import 'package:lucky/services/cheque_service.dart';
 
 void main() {
   final today = DateTime(2026, 8, 20);

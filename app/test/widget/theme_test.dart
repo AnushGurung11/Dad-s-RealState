@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/theme/app_theme.dart';
+import 'package:lucky/theme/app_theme.dart';
 
 void main() {
   test('light and dark ThemeData both build without error', () {

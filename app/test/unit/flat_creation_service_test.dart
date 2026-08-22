@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/services/bed_capacity_service.dart';
-import 'package:renttrack/services/flat_creation_service.dart';
-import 'package:renttrack/services/json_store.dart';
+import 'package:lucky/services/bed_capacity_service.dart';
+import 'package:lucky/services/flat_creation_service.dart';
+import 'package:lucky/services/json_store.dart';
 
 void main() {
   late InMemoryJsonStore store;
@@ -39,7 +39,7 @@ void main() {
       final flat = service.createFlat(
         name: 'Alpha',
         address: '1 A Road',
-        contractDate: DateTime(2026, 3, 1),
+        registeredDate: DateTime(2026, 3, 1),
         contractPerson: 'Mr. Khan',
         yearlyRent: 60000,
         bedCount: 5,

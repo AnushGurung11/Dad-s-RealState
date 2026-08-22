@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/config.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/expense.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_cheque_setting.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/navigation/routes.dart';
-import 'package:renttrack/screens/dashboard_screen.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/services/store_scope.dart';
-import 'package:renttrack/theme/app_theme.dart';
+import 'package:lucky/config.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/expense.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/navigation/routes.dart';
+import 'package:lucky/screens/dashboard_screen.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/services/store_scope.dart';
+import 'package:lucky/theme/app_theme.dart';
 
 void main() {
   late InMemoryJsonStore store;
@@ -47,7 +46,7 @@ void main() {
   );
 
   const bed1 = Bed(id: 'b1', flatId: 'f1', label: 'Bed 1', defaultMonthlyRent: 4000, tenantId: 'p1');
-  const bed2 = Bed(id: 'b2', flatId: 'f1', label: 'Bed 2', defaultMonthlyRent: 4000, tenantId: null);
+  const bed2 = Bed(id: 'b2', flatId: 'f1', label: 'Bed 2', defaultMonthlyRent: 4000);
   const bed3 = Bed(id: 'b3', flatId: 'f2', label: 'Bed 1', defaultMonthlyRent: 4500, tenantId: 'p2');
 
   Person person({
@@ -55,7 +54,7 @@ void main() {
     required String name,
     String? bedId,
     String? flatId,
-    bool archived = false,
+    PersonStatus status = PersonStatus.active,
   }) =>
       Person(
         id: id,
@@ -67,57 +66,10 @@ void main() {
         plannedStayMonths: 12,
         depositAmount: 5000,
         monthlyRent: 4000,
-        archived: archived,
+        status: status,
       );
 
-  // Use current month for test fixtures to match DashboardScreen's monthKey(DateTime.now())
   final currentMonth = monthKey(DateTime.now());
-
-  final paymentCurrRent = Payment(
-    id: 'pay1',
-    personId: 'p1',
-    bedId: 'b1',
-    flatId: 'f1',
-    month: currentMonth,
-    amountDue: 4000,
-    amountPaid: 4000,
-    type: PaymentType.rent,
-  );
-  final paymentCurrDeposit = Payment(
-    id: 'pay2',
-    personId: 'p1',
-    bedId: 'b1',
-    flatId: 'f1',
-    month: currentMonth,
-    amountDue: 5000,
-    amountPaid: 5000,
-    type: PaymentType.deposit,
-  );
-
-  final expenseCurr = Expense(
-    id: 'e1',
-    flatId: 'f1',
-    category: ExpenseCategory.electricity,
-    amount: 2000,
-    date: DateTime(DateTime.now().year, DateTime.now().month, 10),
-  );
-
-  final setting1 = LeaseChequeSetting(
-    id: 's1',
-    flatId: 'f1',
-    ownerName: 'Owner A',
-    amount: 12000,
-    nextDueDate: DateTime(DateTime.now().year, DateTime.now().month + 1, 15),
-    notifyEnabled: true,
-  );
-  final setting2 = LeaseChequeSetting(
-    id: 's2',
-    flatId: 'f2',
-    ownerName: 'Owner B',
-    amount: 15000,
-    nextDueDate: DateTime(DateTime.now().year, DateTime.now().month, 28),
-    notifyEnabled: true,
-  );
 
   setUp(() {
     store = InMemoryJsonStore();
@@ -128,80 +80,119 @@ void main() {
     store.upsertBed(bed3);
     store.upsertPerson(person(id: 'p1', name: 'Alice', bedId: 'b1', flatId: 'f1'));
     store.upsertPerson(person(id: 'p2', name: 'Bob', bedId: 'b3', flatId: 'f2'));
-    store.upsertPerson(person(id: 'p3', name: 'Carol', bedId: 'b2', flatId: 'f1', archived: true));
+    store.upsertPerson(person(
+        id: 'p3', name: 'Carol', bedId: 'b2', flatId: 'f1',
+        status: PersonStatus.archived));
   });
 
-  testWidgets('summary cards render values from dashboard_service', (tester) async {
-    store.upsertPayment(paymentCurrRent);
-    store.upsertPayment(paymentCurrDeposit);
-    store.upsertExpense(expenseCurr);
-    store.upsertChequeSetting(setting1);
-    store.upsertChequeSetting(setting2);
+  Payment rent(double paid) => Payment(
+        id: 'pay-${paid.toString()}',
+        personId: 'p1',
+        bedId: 'b1',
+        flatId: 'f1',
+        month: currentMonth,
+        amountDue: paid,
+        amountPaid: paid,
+        type: PaymentType.rent,
+      );
+
+  testWidgets('summary cards render values from dashboard_service and the '
+      'two payment buttons navigate', (tester) async {
+    // Profit: 9000 rent + deposit 5000 − expense 2000.
+    store.upsertPayment(rent(9000));
+    store.upsertPayment(Payment(
+      id: 'dep1',
+      personId: 'p1',
+      bedId: 'b1',
+      flatId: 'f1',
+      month: currentMonth,
+      amountDue: 5000,
+      amountPaid: 5000,
+      type: PaymentType.deposit,
+    ));
+    store.upsertExpense(Expense(
+      id: 'e1',
+      flatId: 'f1',
+      category: ExpenseCategory.electricity,
+      amount: 2000,
+      date: DateTime(DateTime.now().year, DateTime.now().month, 10),
+    ));
 
     await pumpDashboard(tester);
 
-    // Flats: 2
-    expect(find.text('2'), findsWidgets);
-    // Beds: 2/3
-    expect(find.text('2/3'), findsOneWidget);
-    // Active tenants: 2
+    expect(find.text('Flats'), findsOneWidget);
+    expect(find.text('Beds'), findsOneWidget);
     expect(find.text('Active Tenants'), findsOneWidget);
-    // Profit: 4000+5000-2000 = 7000
-    expect(find.textContaining('AED 7000'), findsOneWidget);
-    // Expense: 2000
-    expect(find.textContaining('AED 2000'), findsOneWidget);
+    expect(find.textContaining('12K'), findsOneWidget);
+
+    // Lease Payment button → flat lease payment screen.
+    await tester.tap(find.byKey(const Key('dashboard_lease_payment_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('No flats with lease cheques yet.'), findsOneWidget);
+
+    await pumpDashboard(tester);
+    // Rent Payment button → tenant rent payment screen.
+    await tester.tap(find.byKey(const Key('dashboard_rent_payment_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('tenant_payment_search_field')),
+        findsOneWidget);
   });
 
-  testWidgets('who paid shows count summary not full tenant list', (tester) async {
-    store.upsertPayment(paymentCurrRent); // only Alice paid
+  testWidgets('profit card renders a huge positive value without overflow',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+
+    store.upsertPayment(rent(999999));
+    store.upsertPayment(Payment(
+      id: 'dep-x',
+      personId: 'p2',
+      bedId: 'b3',
+      flatId: 'f2',
+      month: currentMonth,
+      amountDue: 999999,
+      amountPaid: 999999,
+      type: PaymentType.rent,
+    ));
 
     await pumpDashboard(tester);
 
-    expect(find.text('Who paid this month'), findsOneWidget);
-    expect(find.text('Paid'), findsOneWidget);
-    expect(find.text('Unpaid'), findsOneWidget);
-    expect(find.text('Total'), findsOneWidget);
-    // Should NOT show full tenant names list
-    expect(find.text('Alice'), findsNothing);
-    expect(find.text('Bob'), findsNothing);
+    expect(tester.takeException(), isNull);
+    // RenderFlex overflows would surface via takeException / error widgets.
+    expect(find.text('2M AED'), findsOneWidget);
   });
 
-  testWidgets('next lease shows exactly one item and tapping navigates', (tester) async {
-    store.upsertChequeSetting(setting1); // Mar 15
-    store.upsertChequeSetting(setting2); // Feb 28 - earliest
+  testWidgets('profit card renders a large NEGATIVE value without overflow '
+      '(sign included)', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+
+    store.upsertExpense(Expense(
+      id: 'e-big',
+      flatId: 'f1',
+      category: ExpenseCategory.maintenance,
+      amount: 1234567,
+      date: DateTime(DateTime.now().year, DateTime.now().month, 5),
+    ));
 
     await pumpDashboard(tester);
 
-    expect(find.text('Next lease payment'), findsOneWidget);
-    expect(find.text('Owner B'), findsNothing); // flat name not owner
-    expect(find.text('Beta'), findsOneWidget); // flat name from setting2
-    expect(find.textContaining('AED 15000'), findsOneWidget);
-    expect(find.text('View all lease payments'), findsOneWidget);
-
-    await tester.tap(find.text('View all lease payments'));
-    await tester.pumpAndSettle();
-
-    // FlatLeasePaymentScreen shows a list of flats with lease cheques
-    expect(find.text('Alpha'), findsOneWidget);
-    expect(find.text('Beta'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(find.text('-1.2M AED'), findsOneWidget);
   });
 
-  testWidgets('empty state shows zeros and no crash', (tester) async {
-    // Fresh store with no data
-    final emptyStore = InMemoryJsonStore();
+  testWidgets('"Lease coming up next" section and the who-paid summary no '
+      'longer exist — just cards + two buttons', (tester) async {
+    await pumpDashboard(tester);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: appLightTheme,
-        onGenerateRoute: buildRoute,
-        builder: (context, child) =>
-            StoreScope(store: emptyStore, child: child ?? const SizedBox.shrink()),
-        home: const DashboardScreen(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('0'), findsWidgets); // flats, beds, people, profit
-    expect(find.text('No lease cheques scheduled.'), findsOneWidget);
+    expect(find.text('Next lease payment'), findsNothing);
+    expect(find.text('Who paid this month'), findsNothing);
+    expect(find.text('Unpaid'), findsNothing);
+    expect(find.textContaining("who\u2019s paid"), findsNothing);
+    expect(find.text('Collect rent'), findsNothing);
+    expect(find.byKey(const Key('dashboard_lease_payment_button')),
+        findsOneWidget);
+    expect(find.byKey(const Key('dashboard_rent_payment_button')),
+        findsOneWidget);
   });
 }

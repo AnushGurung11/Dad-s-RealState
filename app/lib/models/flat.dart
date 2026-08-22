@@ -4,9 +4,11 @@ class Flat {
     required this.name,
     required this.address,
     required this.createdAt,
-    this.contractDate,
+    this.registeredDate,
     this.contractPerson,
     this.yearlyRent,
+    this.archived = false,
+    this.archivedAt,
   });
 
   final String id;
@@ -14,8 +16,9 @@ class Flat {
   final String address;
   final DateTime createdAt;
 
-  /// When the flat was leased.
-  final DateTime? contractDate;
+  /// When the flat was registered with its owner. Explicitly NOT a lease
+  /// payment date — cheque due dates live on [LeaseChequeSetting].
+  final DateTime? registeredDate;
 
   /// Name the flat is registered/rented under.
   final String? contractPerson;
@@ -24,23 +27,37 @@ class Flat {
   /// (`yearlyRent / 6`), which remains editable afterward.
   final double? yearlyRent;
 
+  /// Soft-delete marker. Archived flats keep every bed and historical
+  /// occupant link for reporting but are no longer assignable, and they move
+  /// out of the main Flats grid into the Archive Flats screen.
+  final bool archived;
+
+  /// When the flat was archived.
+  final DateTime? archivedAt;
+
   Flat copyWith({
     String? id,
     String? name,
     String? address,
     DateTime? createdAt,
-    DateTime? contractDate,
+    DateTime? registeredDate,
     String? contractPerson,
     double? yearlyRent,
+    bool? archived,
+    DateTime? archivedAt,
+    bool clearRegisteredDate = false,
   }) {
     return Flat(
       id: id ?? this.id,
       name: name ?? this.name,
       address: address ?? this.address,
       createdAt: createdAt ?? this.createdAt,
-      contractDate: contractDate ?? this.contractDate,
+      registeredDate:
+          clearRegisteredDate ? null : registeredDate ?? this.registeredDate,
       contractPerson: contractPerson ?? this.contractPerson,
       yearlyRent: yearlyRent ?? this.yearlyRent,
+      archived: archived ?? this.archived,
+      archivedAt: archivedAt ?? this.archivedAt,
     );
   }
 
@@ -50,11 +67,19 @@ class Flat {
       name: json['name'] as String,
       address: json['address'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      contractDate: json['contractDate'] == null
-          ? null
-          : DateTime.parse(json['contractDate'] as String),
+      // Older builds stored the registration date under `contractDate`.
+      registeredDate:
+          (json['registeredDate'] ?? json['contractDate']) == null
+              ? null
+              : DateTime.parse(
+                  (json['registeredDate'] ?? json['contractDate']) as String,
+                ),
       contractPerson: json['contractPerson'] as String?,
       yearlyRent: (json['yearlyRent'] as num?)?.toDouble(),
+      archived: (json['archived'] as bool?) ?? false,
+      archivedAt: json['archivedAt'] == null
+          ? null
+          : DateTime.parse(json['archivedAt'] as String),
     );
   }
 
@@ -64,9 +89,11 @@ class Flat {
       'name': name,
       'address': address,
       'createdAt': createdAt.toIso8601String(),
-      'contractDate': contractDate?.toIso8601String(),
+      'registeredDate': registeredDate?.toIso8601String(),
       'contractPerson': contractPerson,
       'yearlyRent': yearlyRent,
+      'archived': archived,
+      'archivedAt': archivedAt?.toIso8601String(),
     };
   }
 }

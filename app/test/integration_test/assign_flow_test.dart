@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/main.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/theme/flat_color.dart';
+import 'package:lucky/main.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/theme/flat_color.dart';
 
 /// End-to-end tenant flow driven through the real app shell:
 /// Add member → Assign → appears in "Currently assigned" → bed shows
@@ -28,7 +28,7 @@ void main() {
     store.upsertBed(const Bed(
         id: 'b2', flatId: 'f1', label: 'Bed 2', defaultMonthlyRent: 4000));
 
-    await tester.pumpWidget(RentTrackApp(createStore: () => store));
+    await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
     Future<void> openDrawer() async {

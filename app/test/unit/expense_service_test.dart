@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/expense.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/services/expense_service.dart';
-import 'package:renttrack/services/json_store.dart';
+import 'package:lucky/models/expense.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/services/expense_service.dart';
+import 'package:lucky/services/json_store.dart';
 
 void main() {
   late InMemoryJsonStore store;

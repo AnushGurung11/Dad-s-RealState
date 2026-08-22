@@ -51,9 +51,9 @@ class DashboardService {
     final occupied = beds.where((b) => b.tenantId != null).length;
     final vacant = beds.where((b) => b.tenantId == null).length;
 
-    // People: active tenants (non-archived, isActiveTenant)
+    // People: active tenants only
     final activePeople = people
-        .where((p) => p.isActiveTenant && !p.archived)
+        .where((p) => p.isActiveTenant && p.status == PersonStatus.active)
         .toList();
 
     // Expenses in month

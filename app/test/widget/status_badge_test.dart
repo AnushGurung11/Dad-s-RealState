@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/theme/app_theme.dart';
-import 'package:renttrack/widgets/status_badge.dart';
+import 'package:lucky/theme/app_theme.dart';
+import 'package:lucky/widgets/status_badge.dart';
 
 void main() {
   testWidgets('each StatusKind renders with its themed color and label',

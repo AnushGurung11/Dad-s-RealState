@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/config.dart';
+import 'package:lucky/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:renttrack/main.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_cheque_setting.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/utils/format.dart';
+import 'package:lucky/main.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_setting.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/utils/format.dart';
 
 /// End-to-end payments flow: a lease cheque payment advances the schedule and
 /// refreshes the due row; a tenant rent payment lands in the ledger and the
@@ -63,7 +63,7 @@ void main() {
       notifyEnabled: true,
     ));
 
-    await tester.pumpWidget(RentTrackApp(createStore: () => store));
+    await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
     Future<void> openDrawer() async {

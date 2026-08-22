@@ -1,40 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/lease_cheque_setting.dart';
-import 'package:renttrack/screens/flat_lease_payment_screen.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/services/notification_service.dart';
-import 'package:renttrack/services/prefs.dart';
-import 'package:renttrack/services/store_scope.dart';
-import 'package:renttrack/theme/app_theme.dart';
-import 'package:renttrack/utils/format.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-/// Records scheduling calls instead of touching platform channels.
-class SpyScheduler implements NotificationScheduler {
-  final List<DateTime> scheduled = [];
-  final List<int> cancelledIds = [];
-
-  @override
-  Future<void> scheduleAt({
-    required DateTime when,
-    required int id,
-    required String title,
-    required String body,
-  }) async {
-    scheduled.add(when);
-  }
-
-  @override
-  Future<void> cancel(int id) async {
-    cancelledIds.add(id);
-  }
-}
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_setting.dart';
+import 'package:lucky/screens/flat_lease_payment_screen.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/services/store_scope.dart';
+import 'package:lucky/theme/app_theme.dart';
+import 'package:lucky/utils/format.dart';
 
 void main() {
   late InMemoryJsonStore store;
-  late Prefs prefs;
 
   final flatA = Flat(
     id: 'f1',
@@ -60,32 +35,21 @@ void main() {
         ownerName: 'Owner',
         amount: 4000,
         nextDueDate: nextDueDate,
-        notifyEnabled: true,
       );
 
-  Future<void> pumpScreen(
-    WidgetTester tester, {
-    NotificationService? notificationService,
-  }) async {
+  Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: appLightTheme,
         builder: (context, child) =>
             StoreScope(store: store, child: child ?? const SizedBox.shrink()),
-        home: Scaffold(
-          body: FlatLeasePaymentScreen(
-            notificationService: notificationService,
-            prefs: prefs,
-          ),
-        ),
+        home: const Scaffold(body: FlatLeasePaymentScreen()),
       ),
     );
     await tester.pumpAndSettle();
   }
 
-  setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    prefs = Prefs(await SharedPreferences.getInstance());
+  setUp(() {
     store = InMemoryJsonStore();
     store.upsertFlat(flatA);
     store.upsertFlat(flatB);
@@ -112,19 +76,17 @@ void main() {
 
     await pumpScreen(tester);
 
-    final danger =
-        appLightTheme.extension<AppStatusColors>()!.danger;
+    final danger = appLightTheme.extension<AppStatusColors>()!.danger;
     final text = tester.widget<Text>(find.text('5 days overdue'));
     expect(text.style?.color, danger);
   });
 
   testWidgets('pay flow records the payment and advances the row to the new '
-      'due date', (tester) async {
+      'due date — with no notification side effects', (tester) async {
     final due = DateTime(2026, 10, 25);
     store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
 
-    final spy = SpyScheduler();
-    await pumpScreen(tester, notificationService: NotificationService(spy));
+    await pumpScreen(tester);
 
     await tester.tap(find.byKey(const Key('pay-s1')));
     await tester.pumpAndSettle();
@@ -148,32 +110,5 @@ void main() {
     expect(record.dueDate, due);
     expect(store.leaseChequeSettings.single.nextDueDate,
         DateTime(2026, 12, 25));
-
-    // Reminder rescheduled for the NEW due date only (global toggle on).
-    DateTime reminderFor(DateTime d) =>
-        DateTime(d.year, d.month, d.day - 3, 9);
-    expect(spy.scheduled, contains(reminderFor(DateTime(2026, 12, 25))));
-    expect(spy.scheduled, isNot(contains(reminderFor(due))));
-  });
-
-  testWidgets('cancels the reminder instead when the global toggle is off',
-      (tester) async {
-    SharedPreferences.setMockInitialValues({'notificationsEnabled': false});
-    prefs = Prefs(await SharedPreferences.getInstance());
-    store.upsertChequeSetting(setting(
-        id: 's1', flatId: 'f1', nextDueDate: DateTime(2026, 10, 25)));
-
-    final spy = SpyScheduler();
-    await pumpScreen(tester, notificationService: NotificationService(spy));
-
-    await tester.tap(find.byKey(const Key('pay-s1')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('record_lease_payment')));
-    await tester.pumpAndSettle();
-
-    expect(spy.scheduled, isEmpty);
-    final service = NotificationService(spy);
-    expect(spy.cancelledIds,
-        contains(service.reminderIdFor(store.leaseChequeSettings.single)));
   });
 }

@@ -10,13 +10,14 @@ import 'services/archive_service.dart';
 import 'services/json_store.dart';
 import 'services/store_scope.dart';
 import 'theme/app_theme.dart';
+import 'widgets/lucky_wordmark.dart';
 
 void main() {
-  runApp(const RentTrackApp());
+  runApp(const LuckyApp());
 }
 
-class RentTrackApp extends StatelessWidget {
-  const RentTrackApp({super.key, this.createStore});
+class LuckyApp extends StatelessWidget {
+  const LuckyApp({super.key, this.createStore});
 
   /// Optional override for where the [JsonStore] comes from. Tests inject an
   /// in-memory store here; production uses the file-backed local store.
@@ -99,8 +100,20 @@ class _StoreLoaderState extends State<StoreLoader> {
           );
         }
         if (!snapshot.hasData) {
+          // Login-less landing moment: the LUCKY wordmark fills the first
+          // frame while the store loads.
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(
+              child: Column(
+                key: Key('splash_wordmark'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LuckyWordmark(size: 48),
+                  SizedBox(height: 24),
+                  CircularProgressIndicator(),
+                ],
+              ),
+            ),
           );
         }
         return StoreScope(store: snapshot.data!, child: widget.child);

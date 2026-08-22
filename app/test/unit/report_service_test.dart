@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/expense.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/services/report_service.dart';
+import 'package:lucky/models/expense.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/services/report_service.dart';
 
 const rentFeb = Payment(
   id: 'r1',

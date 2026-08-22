@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/screens/flat_detail_screen.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/services/store_scope.dart';
-import 'package:renttrack/theme/app_theme.dart';
-import 'package:renttrack/widgets/bed_row.dart';
-import 'package:renttrack/widgets/status_badge.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/screens/flat_detail_screen.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/services/store_scope.dart';
+import 'package:lucky/theme/app_theme.dart';
+import 'package:lucky/widgets/bed_row.dart';
+import 'package:lucky/widgets/status_badge.dart';
 
 void main() {
   late InMemoryJsonStore store;
@@ -18,7 +18,7 @@ void main() {
     id: 'f1',
     name: 'Alpha',
     address: '1 A Road',
-    contractDate: DateTime(2026, 1, 15),
+    registeredDate: DateTime(2026, 1, 15),
     contractPerson: 'Mr. Khan',
     yearlyRent: 60000,
     createdAt: DateTime(2026, 1, 1),
@@ -94,34 +94,27 @@ void main() {
     expect(find.textContaining('Payments'), findsNothing);
   });
 
-  testWidgets('editing a Lease info field persists via the store',
-      (tester) async {
+  testWidgets('registeredDate label reads "Flat registered on", not '
+      '"Contract date"', (tester) async {
     await pumpDetail(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Lease info'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Edit lease info'));
+    expect(find.text('Flat registered on'), findsOneWidget);
+    expect(find.textContaining('Contract date'), findsNothing);
+  });
+
+  testWidgets('Lease info tab no longer offers an edit control', (tester) async {
+    await pumpDetail(tester);
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Address'),
-      '99 New Road',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Contract person'),
-      'Ms. Lee',
-    );
-
-    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Lease info'));
     await tester.pumpAndSettle();
 
-    expect(store.flats.single.address, '99 New Road');
-    expect(store.flats.single.contractPerson, 'Ms. Lee');
-
-    // The read-only view reflects the edit.
-    expect(find.text('99 New Road'), findsOneWidget);
+    expect(find.text('Edit lease info'), findsNothing);
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
   });
 
   testWidgets('an overdue occupant marks their bed row with the danger color',

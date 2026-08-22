@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config.dart';
+import '../models/bed.dart';
 import '../models/flat.dart';
 import '../navigation/routes.dart';
 import '../services/bed_capacity_service.dart';
 import '../services/flat_creation_service.dart';
+import '../services/flat_deletion_service.dart';
 import '../services/store_scope.dart';
+import '../utils/format.dart';
+import '../utils/ids.dart';
 
-/// Flats grid — the brief view. Each card shows only the flat name and its
-/// occupancy count; tapping opens the detail screen.
+/// Flats grid — the brief view of ACTIVE (non-archived) flats. Each card
+/// shows the flat name and its occupancy count; tapping opens the detail
+/// screen. Edit and Delete live here on the main page.
 class FlatsScreen extends StatefulWidget {
   const FlatsScreen({super.key});
 
@@ -33,10 +38,82 @@ class _FlatsScreenState extends State<FlatsScreen> {
     if (created == true && mounted) _refresh();
   }
 
+  Future<void> _openEditFlow() async {
+    final store = StoreScope.of(context);
+    final active =
+        store.flats.where((f) => !f.archived).toList(growable: false);
+    if (active.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+            const SnackBar(content: Text('No flats to edit yet.')));
+      return;
+    }
+    final selected = await showDialog<Flat>(
+      context: context,
+      builder: (_) => _FlatPickerDialog(flats: active),
+    );
+    if (selected == null || !mounted) return;
+    final edited = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(builder: (_) => FlatEditScreen(flat: selected)),
+    );
+    if (edited == true && mounted) _refresh();
+  }
+
+  Future<void> _deleteFlat(Flat flat) async {
+    final store = StoreScope.of(context);
+    final decision = FlatDeletionService.resolveDelete(
+      flat: flat,
+      expenses: store.expenses,
+      leaseChequeRecords: store.leaseChequeRecords,
+      payments: store.payments,
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Delete ${flat.name}?'),
+        content: Text(decision.confirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm_delete_flat'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(decision.isHardDelete ? 'Delete' : 'Archive'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    if (decision.isHardDelete) {
+      // History-free flat: remove it AND its beds entirely, no trace.
+      store.runBatched(() {
+        for (final bed
+            in store.beds.where((b) => b.flatId == flat.id).toList()) {
+          store.deleteBed(bed.id);
+        }
+        store.deleteFlat(flat.id);
+      });
+    } else {
+      // Soft delete: keep every record, just move out of the main grid.
+      store.upsertFlat(flat.copyWith(archived: true, archivedAt: DateTime.now()));
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('${flat.name} ${decision.isHardDelete ? 'deleted' : 'archived'}')));
+    _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final flats = store.flats;
+    final flats = store.flats.where((f) => !f.archived).toList();
     final beds = store.beds;
 
     if (flats.isEmpty) {
@@ -52,10 +129,23 @@ class _FlatsScreenState extends State<FlatsScreen> {
             const SizedBox(height: 12),
             Text('No flats yet', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _openCreateForm,
-              icon: const Icon(Icons.add),
-              label: const Text('Add flat'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  key: const Key('add_flat_empty_state'),
+                  onPressed: _openCreateForm,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add flat'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  key: const Key('edit_flats_button_empty_state'),
+                  onPressed: _openEditFlow,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit'),
+                ),
+              ],
             ),
           ],
         ),
@@ -78,17 +168,34 @@ class _FlatsScreenState extends State<FlatsScreen> {
               beds.where((b) => b.flatId == flat.id).toList(growable: false);
           final occupied = flatBeds.where((b) => b.isOccupied).length;
           return _FlatCard(
+            key: ValueKey('flat-card-${flat.id}'),
             flat: flat,
             occupiedBeds: occupied,
             totalBeds: flatBeds.length,
             onTap: () => _openDetail(flat),
+            onDelete: () => _deleteFlat(flat),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openCreateForm,
-        icon: const Icon(Icons.add),
-        label: const Text('Add flat'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            key: const Key('edit_flats_button'),
+            heroTag: 'edit_flats',
+            onPressed: _openEditFlow,
+            tooltip: 'Edit flats',
+            child: const Icon(Icons.edit_outlined),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            key: const Key('add_flats_button'),
+            onPressed: _openCreateForm,
+            icon: const Icon(Icons.add),
+            label: const Text('Add flat'),
+          ),
+        ],
       ),
     );
   }
@@ -96,16 +203,19 @@ class _FlatsScreenState extends State<FlatsScreen> {
 
 class _FlatCard extends StatelessWidget {
   const _FlatCard({
+    super.key,
     required this.flat,
     required this.occupiedBeds,
     required this.totalBeds,
     required this.onTap,
+    required this.onDelete,
   });
 
   final Flat flat;
   final int occupiedBeds;
   final int totalBeds;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -120,14 +230,32 @@ class _FlatCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                flat.name,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      flat.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  SizedBox(
+                    height: 28,
+                    width: 28,
+                    child: IconButton(
+                      key: ValueKey('delete-flat-${flat.id}'),
+                      tooltip: 'Delete flat',
+                      padding: EdgeInsets.zero,
+                      iconSize: 18,
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: onDelete,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Text(
@@ -144,6 +272,43 @@ class _FlatCard extends StatelessWidget {
   }
 }
 
+/// Picker shown before the edit form opens: lists active, non-archived flats.
+class _FlatPickerDialog extends StatelessWidget {
+  const _FlatPickerDialog({required this.flats});
+
+  final List<Flat> flats;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit which flat?'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: flats.length,
+          itemBuilder: (context, index) {
+            final flat = flats[index];
+            return ListTile(
+              key: ValueKey('pick-flat-${flat.id}'),
+              leading: const Icon(Icons.apartment_outlined),
+              title: Text(flat.name),
+              subtitle: Text(flat.address, maxLines: 1),
+              onTap: () => Navigator.pop(context, flat),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
+
 /// Full-screen flat creation form. On save, [FlatCreationService] creates the
 /// flat, its N beds and the lease cheque setting in one atomic write.
 class FlatCreateScreen extends StatefulWidget {
@@ -153,17 +318,53 @@ class FlatCreateScreen extends StatefulWidget {
   State<FlatCreateScreen> createState() => _FlatCreateScreenState();
 }
 
-class _FlatCreateScreenState extends State<FlatCreateScreen> {
-  final _formKey = GlobalKey<FormState>();
-  FlatCreationService? _service;
+/// Shared form state for create + edit so both flows stay identical.
+mixin _FlatFormMixin<T extends StatefulWidget> on State<T> {
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+  final TextEditingController contractPersonController =
+      TextEditingController();
+  final TextEditingController yearlyRentController = TextEditingController();
 
-  final _nameController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _contractPersonController = TextEditingController();
-  final _yearlyRentController = TextEditingController();
+  DateTime? registeredDate;
+
+  double? parseMoney(String raw) {
+    final value = double.tryParse(raw.trim().replaceAll(',', ''));
+    return (value == null || value < 0) ? null : value;
+  }
+
+  String dateText(DateTime date) =>
+      '${date.year}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  Future<void> pickRegisteredDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: registeredDate ?? now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked != null) setState(() => registeredDate = picked);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    addressController.dispose();
+    contractPersonController.dispose();
+    yearlyRentController.dispose();
+    super.dispose();
+  }
+}
+
+class _FlatCreateScreenState extends State<FlatCreateScreen>
+    with _FlatFormMixin {
+  FlatCreationService? _service;
   final _bedCountController = TextEditingController(text: '5');
   final _defaultRentController = TextEditingController();
-  DateTime? _contractDate;
 
   @override
   void didChangeDependencies() {
@@ -173,29 +374,9 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _addressController.dispose();
-    _contractPersonController.dispose();
-    _yearlyRentController.dispose();
     _bedCountController.dispose();
     _defaultRentController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickContractDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _contractDate ?? now,
-      firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 10),
-    );
-    if (picked != null) setState(() => _contractDate = picked);
-  }
-
-  double? _parseMoney(String raw) {
-    final value = double.tryParse(raw.trim().replaceAll(',', ''));
-    return (value == null || value < 0) ? null : value;
   }
 
   int? _parseBedCount(String raw) {
@@ -204,24 +385,25 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
   }
 
   Future<void> _save() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!(formKey.currentState?.validate() ?? false)) return;
     final service = _service;
     if (service == null) return;
 
     try {
       service.createFlat(
-        name: _nameController.text,
-        address: _addressController.text,
-        contractDate: _contractDate,
-        contractPerson: _contractPersonController.text,
-        yearlyRent: _parseMoney(_yearlyRentController.text)!,
+        name: nameController.text,
+        address: addressController.text,
+        registeredDate: registeredDate,
+        contractPerson: contractPersonController.text,
+        yearlyRent: parseMoney(yearlyRentController.text)!,
         bedCount: _parseBedCount(_bedCountController.text)!,
-        defaultRentPerBed: _parseMoney(_defaultRentController.text)!,
+        defaultRentPerBed: parseMoney(_defaultRentController.text)!,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('${_nameController.text.trim()} created')));
+        ..showSnackBar(SnackBar(
+            content: Text('${nameController.text.trim()} created')));
       Navigator.pop(context, true);
     } on FlatCreationException catch (error) {
       ScaffoldMessenger.of(context)
@@ -235,12 +417,12 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Add flat')),
       body: Form(
-        key: _formKey,
+        key: formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             TextFormField(
-              controller: _nameController,
+              controller: nameController,
               decoration: const InputDecoration(
                 labelText: 'Flat name',
                 border: OutlineInputBorder(),
@@ -251,7 +433,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _addressController,
+              controller: addressController,
               decoration: const InputDecoration(
                 labelText: 'Address',
                 border: OutlineInputBorder(),
@@ -261,26 +443,18 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                   (value == null || value.trim().isEmpty) ? 'Required' : null,
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickContractDate,
-                    icon: const Icon(Icons.event_outlined),
-                    label: Text(
-                      _contractDate == null
-                          ? 'Contract date'
-                          : '${_contractDate!.year}-'
-                              '${_contractDate!.month.toString().padLeft(2, '0')}-'
-                              '${_contractDate!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-              ],
+            OutlinedButton.icon(
+              onPressed: pickRegisteredDate,
+              icon: const Icon(Icons.event_outlined),
+              label: Text(
+                registeredDate == null
+                    ? 'Flat registered on'
+                    : 'Flat registered on ${dateText(registeredDate!)}',
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _contractPersonController,
+              controller: contractPersonController,
               decoration: const InputDecoration(
                 labelText: 'Contract person',
                 border: OutlineInputBorder(),
@@ -289,7 +463,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _yearlyRentController,
+              controller: yearlyRentController,
               decoration: InputDecoration(
                 labelText: 'Yearly rent (${AppConfig.currencySymbol})',
                 border: const OutlineInputBorder(),
@@ -304,7 +478,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
               ],
               textInputAction: TextInputAction.next,
               validator: (value) =>
-                  _parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
+                  parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -337,7 +511,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
               ],
               validator: (value) =>
-                  _parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
+                  parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
@@ -350,4 +524,295 @@ class _FlatCreateScreenState extends State<FlatCreateScreen> {
       ),
     );
   }
+}
+
+/// Combined flat + beds edit form. Covers both flat fields (name, address,
+/// registeredDate, contractPerson, yearlyRent) and bed management (add/remove
+/// beds within the 5–20 rule, edit each bed's label/default rent) in one
+/// screen, saved as one atomic batch.
+class FlatEditScreen extends StatefulWidget {
+  const FlatEditScreen({super.key, required this.flat});
+
+  final Flat flat;
+
+  @override
+  State<FlatEditScreen> createState() => _FlatEditScreenState();
+}
+
+class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
+  List<_BedDraft>? _bedsDrafts;
+
+  List<_BedDraft> get _beds => _bedsDrafts ??= _loadBeds();
+
+  List<_BedDraft> _loadBeds() {
+    final existing = StoreScope.of(context)
+        .beds
+        .where((b) => b.flatId == widget.flat.id)
+        .toList()
+      ..sort((a, b) => a.label.compareTo(b.label));
+    return existing.map(_BedDraft.fromBed).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final flat = widget.flat;
+    nameController.text = flat.name;
+    addressController.text = flat.address;
+    contractPersonController.text = flat.contractPerson ?? '';
+    yearlyRentController.text = formatMoney(flat.yearlyRent ?? 0);
+    registeredDate = flat.registeredDate;
+  }
+
+  bool get _canAddBed => _beds.length < BedCapacityService.maxBeds;
+  bool get _canRemoveBed => _beds.length > BedCapacityService.minBeds;
+
+  void _addBed() {
+    if (!_canAddBed) return;
+    setState(() {
+      var index = 1;
+      while (_beds.any((d) => d.label == 'Bed $index')) {
+        index++;
+      }
+      _beds.add(_BedDraft(id: null, label: 'Bed $index', rent: _guessRent()));
+    });
+  }
+
+  double _guessRent() {
+    for (final draft in _beds) {
+      if (draft.rent > 0) return draft.rent;
+    }
+    return 0;
+  }
+
+  Future<void> _save() async {
+    if (!(formKey.currentState?.validate() ?? false)) return;
+    if (_beds.length < BedCapacityService.minBeds ||
+        _beds.length > BedCapacityService.maxBeds) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+            content: Text(
+                'A flat must have between ${BedCapacityService.minBeds} and '
+                '${BedCapacityService.maxBeds} beds.')));
+      return;
+    }
+    final store = StoreScope.of(context);
+    final yearlyRent = parseMoney(yearlyRentController.text);
+
+    store.runBatched(() {
+      store.upsertFlat(widget.flat.copyWith(
+        name: nameController.text.trim(),
+        address: addressController.text.trim(),
+        registeredDate: registeredDate,
+        clearRegisteredDate: registeredDate == null,
+        contractPerson: contractPersonController.text.trim(),
+        yearlyRent: yearlyRent,
+      ));
+      final keptIds = <String>{};
+      for (final draft in _beds) {
+        final id = draft.id ?? newId();
+        keptIds.add(id);
+        store.upsertBed(Bed(
+          id: id,
+          flatId: widget.flat.id,
+          label: draft.label.trim(),
+          defaultMonthlyRent: draft.rent,
+          tenantId: draft.tenantId,
+        ));
+      }
+      // Beds removed in the form disappear from the store entirely.
+      for (final bed in store.beds
+          .where((b) => b.flatId == widget.flat.id && !keptIds.contains(b.id))
+          .toList()) {
+        store.deleteBed(bed.id);
+      }
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('${widget.flat.name} updated')));
+    Navigator.pop(context, true);
+  }
+
+  /// Fresh ids only when adding new beds; keeps existing beds stable.
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Edit flat')),
+      body: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            TextFormField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Flat name',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) =>
+                  (value == null || value.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: addressController,
+              decoration: const InputDecoration(
+                labelText: 'Address',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) =>
+                  (value == null || value.trim().isEmpty) ? 'Required' : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: pickRegisteredDate,
+                    icon: const Icon(Icons.event_outlined),
+                    label: Text(
+                      registeredDate == null
+                          ? 'Flat registered on'
+                          : 'Flat registered on ${dateText(registeredDate!)}',
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Clear registration date',
+                  onPressed: () => setState(() => registeredDate = null),
+                  icon: const Icon(Icons.clear),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: contractPersonController,
+              decoration: const InputDecoration(
+                labelText: 'Contract person',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: yearlyRentController,
+              decoration: InputDecoration(
+                labelText: 'Yearly rent (${AppConfig.currencySymbol})',
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
+              ],
+              validator: (value) =>
+                  parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Beds (${_beds.length})',
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                IconButton(
+                  key: const Key('add_bed_button'),
+                  tooltip: 'Add bed',
+                  onPressed: _canAddBed ? _addBed : null,
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+              ],
+            ),
+            ..._beds.asMap().entries.map((entry) {
+              final index = entry.key;
+              final draft = entry.value;
+              return Card(
+                key: draft.stateKey,
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: draft.label,
+                              decoration: const InputDecoration(
+                                labelText: 'Label',
+                                border: OutlineInputBorder(),
+                              ),
+                              onChanged: (v) => draft.label = v,
+                              validator: (v) => (v == null ||
+                                      v.trim().isEmpty)
+                                  ? 'Required'
+                                  : null,
+                            ),
+                          ),
+                          IconButton(
+                            key: ValueKey('remove-bed-${draft.stateKey}'),
+                            tooltip: 'Remove bed',
+                            onPressed: _canRemoveBed
+                                ? () => setState(() => _beds.removeAt(index))
+                                : null,
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        initialValue:
+                            draft.rent == 0 ? '' : formatMoney(draft.rent),
+                        decoration: InputDecoration(
+                          labelText:
+                              'Default monthly rent (${AppConfig.currencySymbol})',
+                          border: const OutlineInputBorder(),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*[.,]?\d*')),
+                        ],
+                        onChanged: (v) =>
+                            draft.rent = parseMoney(v) ?? draft.rent,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              key: const Key('save_flat_edit'),
+              onPressed: _save,
+              icon: const Icon(Icons.check),
+              label: const Text('Save changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mutable working copy of a bed inside the edit form.
+class _BedDraft {
+  _BedDraft({required this.id, required this.label, required this.rent, this.tenantId});
+
+  factory _BedDraft.fromBed(Bed bed) => _BedDraft(
+        id: bed.id,
+        label: bed.label,
+        rent: bed.defaultMonthlyRent,
+        tenantId: bed.tenantId,
+      );
+
+  /// Existing bed id, or null while the bed is brand new.
+  final String? id;
+  String label;
+  double rent;
+  final String? tenantId;
+
+  Key get stateKey => Key('bed-draft-${id ?? label}');
 }

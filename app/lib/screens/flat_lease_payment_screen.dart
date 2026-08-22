@@ -1,30 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'
-    hide Person;
 
 import '../models/lease_cheque_setting.dart';
 import '../services/flat_lease_payment_service.dart';
-import '../services/notification_service.dart';
-import '../services/prefs.dart';
 import '../services/store_scope.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 
 /// Flat Lease Payment: every flat's cheque due list sorted by due date,
 /// with a pay flow that records the payment and advances the schedule.
+/// (Reminders were removed — this page IS the "what's coming up" view.)
 class FlatLeasePaymentScreen extends StatefulWidget {
-  const FlatLeasePaymentScreen({
-    super.key,
-    this.notificationService,
-    this.prefs,
-  });
-
-  /// Injectable for tests; defaults to the plugin-backed scheduler.
-  final NotificationService? notificationService;
-
-  /// Injectable for tests; defaults to [Prefs.load].
-  final Prefs? prefs;
+  const FlatLeasePaymentScreen({super.key});
 
   @override
   State<FlatLeasePaymentScreen> createState() =>
@@ -32,17 +19,6 @@ class FlatLeasePaymentScreen extends StatefulWidget {
 }
 
 class _FlatLeasePaymentScreenState extends State<FlatLeasePaymentScreen> {
-  NotificationService? _notificationService;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _notificationService ??= widget.notificationService ??
-        NotificationService(
-          LocalNotificationScheduler(FlutterLocalNotificationsPlugin()),
-        );
-  }
-
   int _daysRemaining(DateTime due, DateTime today) {
     final dueDate = DateTime(due.year, due.month, due.day);
     final todayDate = DateTime(today.year, today.month, today.day);
@@ -63,12 +39,11 @@ class _FlatLeasePaymentScreenState extends State<FlatLeasePaymentScreen> {
     try {
       final service =
           FlatLeasePaymentService(StoreScope.of(context));
-      final updated = service.pay(
+      service.pay(
         setting: setting,
         amount: result.amount,
         paidDate: result.date,
       );
-      await _syncReminder(updated);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -79,23 +54,6 @@ class _FlatLeasePaymentScreenState extends State<FlatLeasePaymentScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(error.message)));
-    }
-  }
-
-  /// Reschedules (or cancels) this flat's reminder based on the global
-  /// toggle. Best-effort: never blocks a saved payment.
-  Future<void> _syncReminder(LeaseChequeSetting updated) async {
-    try {
-      final prefs = widget.prefs ?? await Prefs.load();
-      final enabled = await prefs.notificationsEnabled();
-      final service = _notificationService!;
-      if (enabled) {
-        await service.syncFor(updated);
-      } else {
-        await service.cancelReminderFor(updated);
-      }
-    } catch (_) {
-      // Notifications unavailable (e.g. plugin not initialized); ignore.
     }
   }
 

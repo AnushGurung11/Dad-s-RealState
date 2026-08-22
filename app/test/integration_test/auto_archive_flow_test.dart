@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/config.dart';
-import 'package:renttrack/main.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/services/tenure_service.dart';
+import 'package:lucky/config.dart';
+import 'package:lucky/main.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/services/tenure_service.dart';
 
 /// End-to-end auto-archive flow: a tenant whose vacatedDate passed without a
-/// renewal is archived at boot — their bed shows vacant again, they surface
-/// in the Archive (searchable), they are gone from Assign's "currently
-/// assigned" list, and their payment history stays intact.
+/// renewal is archived at boot — their bed shows vacant again, they vanish
+/// from the active Tenants page, they surface in Settings → Archived Tenants
+/// (searchable), and their payment history stays intact.
 void main() {
   testWidgets('lapsed tenant is auto-archived on launch', (tester) async {
     tester.view.physicalSize = const Size(800, 2400);
@@ -78,12 +78,13 @@ void main() {
       amountPaid: 4000,
     ));
 
-    await tester.pumpWidget(RentTrackApp(createStore: () => store));
+    await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
     // The boot sweep archived Alice and freed her bed.
-    expect(store.people.singleWhere((p) => p.id == 'p1').archived, isTrue);
-    expect(store.people.singleWhere((p) => p.id == 'p1').archivedAt, isNotNull);
+    final aliceAfter = store.people.singleWhere((p) => p.id == 'p1');
+    expect(aliceAfter.status, PersonStatus.archived);
+    expect(aliceAfter.statusDate, isNotNull);
     expect(store.beds.singleWhere((b) => b.id == 'b1').tenantId, isNull);
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, 'p2');
 
@@ -105,19 +106,18 @@ void main() {
     expect(find.text('Bob'), findsOneWidget);
     expect(find.text('Vacant'), findsOneWidget); // exactly one bed free now
 
-    // ── Assign page: Alice gone from "currently assigned" ────────────
+    // ── Tenants page: only ACTIVE tenants are listed ────────────────
     await openDrawer();
     await tester.tap(find.text('Tenants'));
     await tester.pumpAndSettle();
     await tester.tap(find.descendant(
       of: find.byType(Drawer),
-      matching: find.text('Assign'),
+      matching: find.text('All tenants'),
     ));
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView), const Offset(0, -1200));
-    await tester.pumpAndSettle();
-    expect(find.text('Currently assigned'), findsOneWidget);
+    // Alice (archived at boot) is gone; Bob is still active.
+    expect(find.byKey(const Key('tenants_search_field')), findsOneWidget);
     expect(find.text('Bob'), findsOneWidget);
     expect(find.text('Alice'), findsNothing);
 
@@ -131,6 +131,10 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    // Settings → "Archived Tenants" opens the tenant archive list.
+    await tester.tap(find.byKey(const Key('settings_archived_tenants')));
+    await tester.pumpAndSettle();
+
     expect(find.text('Alice'), findsOneWidget);
     expect(find.text('Bob'), findsNothing);
 
@@ -142,7 +146,7 @@ void main() {
     await tester.tap(find.text('Alice'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Archived tenant'), findsOneWidget);
+    expect(find.text('Left'), findsWidgets);
     expect(find.text('Renew stay'), findsNothing);
     expect(find.text(monthKey(aliceJoin)), findsOneWidget);
     expect(find.textContaining('AED 4000'), findsWidgets);

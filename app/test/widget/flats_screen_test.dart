@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/flat.dart';
-import 'package:renttrack/navigation/routes.dart';
-import 'package:renttrack/screens/flats_screen.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/services/store_scope.dart';
-import 'package:renttrack/theme/app_theme.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/navigation/routes.dart';
+import 'package:lucky/screens/flats_screen.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/services/store_scope.dart';
+import 'package:lucky/theme/app_theme.dart';
 
 void main() {
   late InMemoryJsonStore store;
@@ -132,5 +133,96 @@ void main() {
 
     expect(store.flats.map((f) => f.name), isNot(contains('Bad')));
     expect(find.text('Must be 5–20'), findsOneWidget);
+  });
+
+  testWidgets('Edit button opens the flat picker, then the combined '
+      'flat+beds edit form', (tester) async {
+    // Tall viewport so every lazy ListView item is built.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await pumpFlats(tester);
+
+    await tester.tap(find.byKey(const Key('edit_flats_button')));
+    await tester.pumpAndSettle();
+
+    // Picker lists active flats only.
+    expect(find.text('Edit which flat?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pick-flat-f1')));
+    await tester.pumpAndSettle();
+
+    // Combined form: flat fields AND bed drafts are present.
+    expect(find.text('Edit flat'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Flat name'), findsOneWidget);
+    expect(find.byKey(const Key('bed-draft-b1')), findsOneWidget);
+    expect(find.byKey(const Key('bed-draft-b2')), findsOneWidget);
+
+    // Edit a bed label and save.
+    await tester.enterText(
+      find
+          .descendant(
+            of: find.byKey(const Key('bed-draft-b1')),
+            matching: find.byType(TextFormField),
+          )
+          .first,
+      'Bed One',
+    );
+    await tester.tap(find.byKey(const Key('save_flat_edit')));
+    await tester.pumpAndSettle();
+
+    expect(store.beds.where((b) => b.id == 'b1').single.label, 'Bed One');
+  });
+
+  testWidgets('delete on a history-free flat warns of permanent deletion '
+      'and removes it from the grid entirely', (tester) async {
+    await pumpFlats(tester);
+
+    await tester.tap(find.byKey(const Key('delete-flat-f1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('permanently deleted'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirm_delete_flat')));
+    await tester.pumpAndSettle();
+
+    // Hard delete: flat AND its beds are gone from the store.
+    expect(store.flats, isEmpty);
+    expect(store.beds.where((b) => b.flatId == 'f1'), isEmpty);
+    expect(find.text('Alpha'), findsNothing);
+  });
+
+  testWidgets('delete on a flat with payment history warns it will be '
+      'archived and moves it out of the main grid', (tester) async {
+    store.upsertPayment(Payment(
+      id: 'pay1',
+      personId: 'p1',
+      bedId: 'b3',
+      flatId: 'f1',
+      month: '2026-01',
+      amountDue: 4000,
+      amountPaid: 4000,
+      type: PaymentType.rent,
+    ));
+
+    await pumpFlats(tester);
+
+    await tester.tap(find.byKey(const Key('delete-flat-f1')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('will be archived'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirm_delete_flat')));
+    await tester.pumpAndSettle();
+
+    // Soft delete: flat stays in the store but leaves the main grid.
+    expect(store.flats.single.archived, isTrue);
+    expect(store.flats.single.archivedAt, isNotNull);
+    expect(find.text('Alpha'), findsNothing);
+  });
+
+  testWidgets('archived flats never render in the grid', (tester) async {
+    store.upsertFlat(flat.copyWith(archived: true));
+    await pumpFlats(tester);
+
+    expect(find.text('Alpha'), findsNothing);
   });
 }

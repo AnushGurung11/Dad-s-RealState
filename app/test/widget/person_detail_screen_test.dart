@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/models/bed.dart';
-import 'package:renttrack/models/payment.dart';
-import 'package:renttrack/models/person.dart';
-import 'package:renttrack/screens/person_detail_screen.dart';
-import 'package:renttrack/services/json_store.dart';
-import 'package:renttrack/services/store_scope.dart';
-import 'package:renttrack/theme/app_theme.dart';
+import 'package:lucky/models/bed.dart';
+import 'package:lucky/models/payment.dart';
+import 'package:lucky/models/person.dart';
+import 'package:lucky/screens/person_detail_screen.dart';
+import 'package:lucky/services/json_store.dart';
+import 'package:lucky/services/store_scope.dart';
+import 'package:lucky/theme/app_theme.dart';
 
 void main() {
   late InMemoryJsonStore store;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:renttrack/main.dart';
-import 'package:renttrack/screens/flats_screen.dart';
-import 'package:renttrack/services/json_store.dart';
+import 'package:lucky/main.dart';
+import 'package:lucky/screens/flats_screen.dart';
+import 'package:lucky/services/json_store.dart';
 
 /// Pumps the app on a tall viewport so the whole drawer fits without
 /// scrolling, then opens the drawer.
@@ -10,7 +10,7 @@ Future<void> openDrawer(WidgetTester tester) async {
   tester.view.physicalSize = const Size(800, 2000);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(RentTrackApp(createStore: InMemoryJsonStore.new));
+  await tester.pumpWidget(LuckyApp(createStore: InMemoryJsonStore.new));
   await tester.pumpAndSettle();
   await tester.tap(find.byTooltip('Open navigation menu'));
   await tester.pumpAndSettle();

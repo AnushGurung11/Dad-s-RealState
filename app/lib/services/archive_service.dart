@@ -12,7 +12,7 @@ abstract final class ArchiveService {
   /// people never qualify again (idempotent sweeps).
   static bool shouldArchive(Person person, DateTime today) {
     final vacated = person.vacatedDate;
-    if (vacated == null || person.archived) return false;
+    if (vacated == null || person.isArchived) return false;
     if (!vacated.isBefore(today)) return false;
     // Only the most recent renewal counts — a renewal from an earlier stay
     // does not rescue a later lapsed cycle.
@@ -36,7 +36,7 @@ abstract final class ArchiveService {
     for (var i = 0; i < people.length; i++) {
       final person = people[i];
       if (!shouldArchive(person, today)) continue;
-      people[i] = person.copyWith(archived: true, archivedAt: today);
+      people[i] = person.copyWith(status: PersonStatus.archived, statusDate: today);
       final bedId = person.bedId;
       if (bedId != null) freedBedIds.add(bedId);
     }

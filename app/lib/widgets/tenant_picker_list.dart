@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../config.dart';
 import '../models/person.dart';
 import '../services/store_scope.dart';
+import '../services/tenant_rent_payment_service.dart';
 import '../theme/flat_color.dart';
+import 'status_badge.dart';
 
 /// Shared tenant picker: flat-grouped, color-coded list with optional search.
 /// Used by:
-///   - TenantRentPaymentScreen (active-only, `includeArchived: false`)
+///   - TenantRentPaymentScreen (active-only, `includeArchived: false`,
+///     `showPaidBadge: true`)
 ///   - TenantRentHistoryScreen (active + archived, `includeArchived: true`)
 class TenantPickerList extends StatefulWidget {
   const TenantPickerList({
     super.key,
     required this.onPersonTap,
     this.includeArchived = false,
+    this.showPaidBadge = false,
     this.emptyText = 'No tenants.',
     this.noMatchesText = 'No tenants match "\$query".',
     this.searchHint = 'Search tenants',
@@ -21,6 +26,10 @@ class TenantPickerList extends StatefulWidget {
 
   final ValueChanged<Person> onPersonTap;
   final bool includeArchived;
+
+  /// Renders a "Paid" badge (rent record dated in the current month) or a
+  /// muted "Unpaid" label on every active row.
+  final bool showPaidBadge;
   final String emptyText;
   final String noMatchesText;
   final String searchHint;
@@ -43,7 +52,7 @@ class _TenantPickerListState extends State<TenantPickerList> {
     final people = store.people
         .where((p) =>
             p.flatId != null &&
-            (widget.includeArchived || !p.archived) &&
+            (widget.includeArchived || p.status == PersonStatus.active) &&
             (needle.isEmpty || p.name.toLowerCase().contains(needle)))
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
@@ -73,7 +82,7 @@ class _TenantPickerListState extends State<TenantPickerList> {
       // Check if there are any people at all (regardless of search)
       final hasAnyPeople = store.people.any((p) =>
           p.flatId != null &&
-          (widget.includeArchived || !p.archived));
+          (widget.includeArchived || p.status == PersonStatus.active));
       if (hasAnyPeople) {
         // Search has results but filtered out
         children.add(
@@ -127,6 +136,7 @@ class _TenantPickerListState extends State<TenantPickerList> {
         );
 
         for (final person in peopleInFlat) {
+          final archived = person.isArchived;
           children.add(
             Card(
               margin: const EdgeInsets.symmetric(vertical: 4),
@@ -134,10 +144,10 @@ class _TenantPickerListState extends State<TenantPickerList> {
                 leading: Icon(Icons.person_outlined,
                     color: flatColorFor(flat.id)),
                 title: Text(person.name),
-                subtitle: Text(person.archived
-                    ? 'Archived'
+                subtitle: Text(archived
+                    ? (person.isAbsconded ? 'Absconded' : 'Left')
                     : 'Active'),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: _trailingFor(context, person, archived),
                 onTap: () => widget.onPersonTap(person),
               ),
             ),
@@ -150,5 +160,24 @@ class _TenantPickerListState extends State<TenantPickerList> {
       padding: const EdgeInsets.all(16),
       children: children,
     );
+  }
+
+  /// Paid/Unpaid badge for payment mode; chevron otherwise.
+  Widget? _trailingFor(BuildContext context, Person person, bool archived) {
+    if (!widget.showPaidBadge || archived) {
+      return const Icon(Icons.chevron_right);
+    }
+    final month = monthKey(DateTime.now());
+    final paid = TenantRentPaymentService.hasPaidForMonth(
+        StoreScope.of(context).payments, person.id, month);
+    return paid
+        ? const StatusBadge(kind: StatusKind.success, label: 'Paid')
+        : Text(
+            'Unpaid',
+            key: Key('unpaid-${person.id}'),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          );
   }
 }

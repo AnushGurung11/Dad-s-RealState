@@ -42,6 +42,9 @@ release.keystore
 vision.md
 chunk*.md
 
+# Incoming patch instructions - never commit these
+patch*.md
+
 # Google Cloud service account keys - never commit these
 *service-account*.json
 *service_account*.json
