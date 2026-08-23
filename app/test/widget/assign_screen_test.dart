@@ -141,8 +141,9 @@ void main() {
       'exists when nobody is waiting', (tester) async {
     // Everyone assigned → empty picker, shortcut visible.
     store.upsertBed(bedA1.copyWith(tenantId: 'p9'));
+    store.deletePerson('p1'); // no unassigned people left
     store.upsertPerson(const Person(
-        id: 'p1x', name: 'Alice', contact: '9000000001', bedId: 'b1',
+        id: 'p1x', name: 'Zed', contact: '9000000001', bedId: 'b1',
         flatId: 'f1'));
 
     await pumpAssign(tester);

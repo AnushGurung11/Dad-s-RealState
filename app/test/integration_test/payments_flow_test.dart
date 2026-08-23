@@ -125,17 +125,17 @@ void main() {
     expect(rentPayment.month, monthKey(DateTime.now()));
 
     // ── Balance reflects immediately on the detail page ──────────────
+    // The Assign page no longer lists tenants (patch 3 moved that to the
+    // standalone Tenants page).
     await openDrawer();
     await tester.tap(find.text('Tenants'));
     await tester.pumpAndSettle();
     await tester.tap(find.descendant(
       of: find.byType(Drawer),
-      matching: find.text('Assign'),
+      matching: find.text('All tenants'),
     ));
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView), const Offset(0, -1200));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Alice'));
     await tester.pumpAndSettle();
 

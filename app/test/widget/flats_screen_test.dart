@@ -142,6 +142,13 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
+    // A valid flat needs at least 5 beds or the save is blocked by the
+    // capacity rule.
+    store.upsertBed(const Bed(
+        id: 'b4', flatId: 'f1', label: 'Bed 4', defaultMonthlyRent: 4000));
+    store.upsertBed(const Bed(
+        id: 'b5', flatId: 'f1', label: 'Bed 5', defaultMonthlyRent: 4000));
+
     await pumpFlats(tester);
 
     await tester.tap(find.byKey(const Key('edit_flats_button')));

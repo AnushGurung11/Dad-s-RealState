@@ -119,11 +119,11 @@ void main() {
     expect(find.text('Bed 3'), findsOneWidget);
     expect(find.text('Bed 1'), findsOneWidget);
 
-    // Nobody paid yet → overdue for both.
+    // Nobody paid yet → unpaid for both.
     final danger = appLightTheme.extension<AppStatusColors>()!.danger;
     final badge = tester.widget<Container>(
       find.ancestor(
-        of: find.text('Overdue'),
+        of: find.text('Unpaid'),
         matching: find.byType(Container),
       ).first,
     );
@@ -145,7 +145,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await pumpTenants(tester);
     expect(find.text('Paid'), findsOneWidget);
-    expect(find.text('Overdue'), findsOneWidget);
+    expect(find.text('Unpaid'), findsOneWidget);
   });
 
   testWidgets('search filters by name across flats', (tester) async {

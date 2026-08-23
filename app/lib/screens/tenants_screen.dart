@@ -71,7 +71,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
   String _statusLabel(TenantPaymentStatus status) => switch (status) {
         TenantPaymentStatus.paid => 'Paid',
         TenantPaymentStatus.partial => 'Partial',
-        TenantPaymentStatus.overdue => 'Overdue',
+        TenantPaymentStatus.overdue => 'Unpaid',
       };
 
   @override

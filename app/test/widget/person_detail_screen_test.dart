@@ -24,6 +24,11 @@ void main() {
       );
 
   Future<void> pumpDetail(WidgetTester tester) async {
+    // Tall viewport so the whole lazy ListView (actions + history) builds.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(
       MaterialApp(
         theme: appLightTheme,
@@ -127,8 +132,8 @@ void main() {
     store.upsertPerson(activeTenant());
     await pumpDetail(tester);
 
-    final button =
-        tester.widget<FilledButton>(find.byType(FilledButton));
+    final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Renew stay'));
     expect(button.onPressed, isNull);
   });
 }

@@ -134,21 +134,19 @@ void main() {
     expect(find.text('Active Tenants'), findsOneWidget);
 
     // Profit: current month rent (4000) + deposit (5000) - expense (2000) = 7000
-    // NOT including previous month's 4000 rent
-    expect(find.textContaining('AED 7000'), findsOneWidget);
-    // Expense: current month 2000 only
-    expect(find.textContaining('AED 2000'), findsOneWidget);
-
-    // Who paid: 1 / 2 (only Alice paid rent this month)
-    expect(find.text('Who paid this month'), findsOneWidget);
-    expect(find.text('Paid'), findsOneWidget);
-    expect(find.text('1'), findsWidgets);
-    expect(find.text('Unpaid'), findsOneWidget);
-    expect(find.text('1'), findsWidgets); // unpaid count
-
-    // Next lease: the single setting
-    expect(find.text('Next lease payment'), findsOneWidget);
-    expect(find.text('Alpha'), findsOneWidget);
-    expect(find.textContaining('AED 12000'), findsOneWidget);
+    // NOT including previous month's 4000 rent. Compact formatting keeps
+    // sub-10K values verbatim with the suffix currency style.
+    expect(find.textContaining('7000 AED'), findsOneWidget);
+    // The old "who paid" summary and next-lease teaser are gone (patch 6):
+    // the dashboard is summary cards + two payment buttons only.
+    expect(find.text('Who paid this month'), findsNothing);
+    expect(find.text('Unpaid'), findsNothing);
+    expect(find.text('Next lease payment'), findsNothing);
+    expect(
+        find.byKey(const Key('dashboard_lease_payment_button')),
+        findsOneWidget);
+    expect(
+        find.byKey(const Key('dashboard_rent_payment_button')),
+        findsOneWidget);
   });
 }

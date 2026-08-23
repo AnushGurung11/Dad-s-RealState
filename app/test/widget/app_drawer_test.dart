@@ -42,11 +42,12 @@ void main() {
       'their sub-items when tapped', (tester) async {
     await openDrawer(tester);
 
-    expect(inDrawer(find.text('Add member')), findsNothing);
+    expect(inDrawer(find.text('Add tenant')), findsNothing);
 
     await tester.tap(inDrawer(find.text('Tenants')));
     await tester.pumpAndSettle();
-    expect(inDrawer(find.text('Add member')), findsOneWidget);
+    expect(inDrawer(find.text('All tenants')), findsOneWidget);
+    expect(inDrawer(find.text('Add tenant')), findsOneWidget);
     expect(inDrawer(find.text('Assign')), findsOneWidget);
 
     await tester.tap(inDrawer(find.text('Payments')));
@@ -61,7 +62,8 @@ void main() {
 
     await tester.tap(inDrawer(find.text('Settings')));
     await tester.pumpAndSettle();
-    expect(inDrawer(find.text('Notifications')), findsOneWidget);
+    // Notifications were removed entirely — only Archive remains.
+    expect(inDrawer(find.text('Notifications')), findsNothing);
     expect(inDrawer(find.text('Archive')), findsOneWidget);
   });
 

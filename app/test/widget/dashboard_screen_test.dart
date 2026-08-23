@@ -129,9 +129,12 @@ void main() {
     await tester.tap(find.byKey(const Key('dashboard_lease_payment_button')));
     await tester.pumpAndSettle();
     expect(find.text('No flats with lease cheques yet.'), findsOneWidget);
+  });
 
+  testWidgets('Rent Payment button navigates to tenant rent payment',
+      (tester) async {
     await pumpDashboard(tester);
-    // Rent Payment button → tenant rent payment screen.
+
     await tester.tap(find.byKey(const Key('dashboard_rent_payment_button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('tenant_payment_search_field')),

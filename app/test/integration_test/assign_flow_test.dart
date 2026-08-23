@@ -3,14 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky/main.dart';
 import 'package:lucky/models/bed.dart';
 import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/payment.dart';
 import 'package:lucky/services/json_store.dart';
 import 'package:lucky/theme/flat_color.dart';
 
 /// End-to-end tenant flow driven through the real app shell:
-/// Add member → Assign → appears in "Currently assigned" → bed shows
-/// occupied on the Beds tab → Renew stay extends the vacated date.
+/// Add tenant → Assign (flat → bed → person) → bed shows occupied on the
+/// Beds tab → Renew stay extends the vacated date.
 void main() {
-  testWidgets('add member, assign to a bed and renew the stay',
+  testWidgets('add tenant, assign to a bed and renew the stay',
       (tester) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -23,10 +24,11 @@ void main() {
       address: '1 A Road',
       createdAt: DateTime(2026, 1, 1),
     ));
-    store.upsertBed(const Bed(
-        id: 'b1', flatId: 'f1', label: 'Bed 1', defaultMonthlyRent: 4000));
-    store.upsertBed(const Bed(
-        id: 'b2', flatId: 'f1', label: 'Bed 2', defaultMonthlyRent: 4000));
+    for (var i = 1; i <= 5; i++) {
+      store.upsertBed(Bed(
+          id: 'b$i', flatId: 'f1', label: 'Bed $i',
+          defaultMonthlyRent: 4000));
+    }
 
     await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
@@ -36,42 +38,50 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // ── 1. Add member ────────────────────────────────────────────────
-    await openDrawer();
-    await tester.tap(find.text('Tenants'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Add member'));
+    Future<void> expandTenants() async {
+      await openDrawer();
+      await tester.tap(find.text('Tenants'));
+      await tester.pumpAndSettle();
+    }
+
+    // ── 1. Add an unassigned tenant ──────────────────────────────────
+    await expandTenants();
+    await tester.tap(inDrawer(find.text('Add tenant')));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Name'), 'Alice');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Contact'), '0501234567');
-    await tester.ensureVisible(find.text('Save member'));
+    await tester.ensureVisible(find.byKey(const Key('save_tenant_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save member'));
+    await tester.tap(find.byKey(const Key('save_tenant_button')));
     await tester.pumpAndSettle();
 
     expect(store.people.single.name, 'Alice');
+    expect(store.people.single.bedId, isNull);
 
-    // ── 2. Assign Alice to Alpha · Bed 1 ─────────────────────────────
-    await openDrawer();
-    // The Assign item hides inside the collapsible Tenants section, which
-    // starts collapsed again now that the current route is the dashboard.
-    await tester.tap(find.text('Tenants'));
-    await tester.pumpAndSettle();
+    // ── 2. Assign Alice via the reordered flow ───────────────────────
+    await expandTenants();
     await tester.tap(inDrawer(find.text('Assign')));
     await tester.pumpAndSettle();
 
-    await tester.tap(dropdownField('Select tenant'));
+    // Step 1: flat (only vacancy-bearing flats are listed).
+    await tester.tap(find.byKey(const Key('assign_flat_picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Alice').last);
+    await tester.tap(find.text('Alpha').last);
     await tester.pumpAndSettle();
 
-    await tester.tap(dropdownField('Select bed'));
+    // Step 2: vacant bed inside Alpha.
+    await tester.tap(find.byKey(const Key('assign_bed_picker')));
     await tester.pumpAndSettle();
-    // Grouped under Alpha with its flat color.
     expect(dotColorOf(tester, 'b1'), flatColorFor('f1'));
     await tester.tap(find.byKey(const ValueKey('bed-dot-b1')));
+    await tester.pumpAndSettle();
+
+    // Step 3: the unassigned person.
+    await tester.tap(find.byKey(const Key('assign_person_picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Alice').last);
     await tester.pumpAndSettle();
 
     // Rent pre-filled from the bed default.
@@ -79,18 +89,18 @@ void main() {
 
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Deposit (AED)'), '5000');
-    await tester.ensureVisible(find.text('Assign tenant'));
+    await tester.ensureVisible(find.byKey(const Key('assign_submit')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Assign tenant'));
+    await tester.tap(find.byKey(const Key('assign_submit')));
     await tester.pumpAndSettle();
 
-    // ── 3. Appears in "Currently assigned" immediately ───────────────
-    expect(find.text('Currently assigned'), findsOneWidget);
-    expect(find.text('Alice'), findsWidgets);
     expect(store.people.single.bedId, 'b1');
     expect(store.people.single.flatId, 'f1');
+    // Deposit recorded as income in the join month.
+    expect(
+        store.payments.single.type, PaymentType.deposit);
 
-    // ── 4. Bed shows occupied on the Beds tab ────────────────────────
+    // ── 3. Bed shows occupied on the Beds tab ────────────────────────
     await openDrawer();
     await tester.tap(inDrawer(find.text('Flats')));
     await tester.pumpAndSettle();
@@ -99,9 +109,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alice'), findsOneWidget);
-    expect(find.text('Vacant'), findsOneWidget); // Bed 2 still free
+    expect(find.text('Vacant'), findsNWidgets(4)); // beds 2-5 still free
 
-    // ── 5. Open person detail from the occupied bed, renew stay ──────
+    // ── 4. Open person detail from the occupied bed, renew stay ──────
     await tester.tap(find.text('Alice'));
     await tester.pumpAndSettle();
 
@@ -131,10 +141,7 @@ void main() {
 Finder inDrawer(Finder matching) =>
     find.descendant(of: find.byType(Drawer), matching: matching);
 
-Finder dropdownField(String hint) =>
-    find.widgetWithText(DropdownButtonFormField<String>, hint);
-
-Color dotColorOf(WidgetTester tester, String bedId) =>
-    (tester.widget<Container>(find.byKey(ValueKey('bed-dot-$bedId')))
+Color dotColorOf(WidgetTester tester, String id) =>
+    (tester.widget<Container>(find.byKey(ValueKey('bed-dot-$id')))
                 .decoration as BoxDecoration)
             .color!;

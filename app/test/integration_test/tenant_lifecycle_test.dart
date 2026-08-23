@@ -42,18 +42,23 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    /// Opens the drawer and navigates to [item], expanding its [group]
+    /// first when the section starts collapsed.
+    Future<void> drawerGo(String group, String item) async {
+      await openDrawer();
+      Finder itemFinder() => find.descendant(
+          of: find.byType(Drawer), matching: find.text(item));
+      if (!tester.any(itemFinder())) {
+        await tester.tap(find.descendant(
+            of: find.byType(Drawer), matching: find.text(group)));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(itemFinder());
+      await tester.pumpAndSettle();
+    }
+
     // ── 1. Add an unassigned tenant ─────────────────────────────────
-    await openDrawer();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Tenants'),
-    ));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Add tenant'),
-    ));
-    await tester.pumpAndSettle();
+    await drawerGo('Tenants', 'Add tenant');
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Name'), 'Zara');
     await tester.enterText(
@@ -66,12 +71,7 @@ void main() {
     expect(store.people.singleWhere((p) => p.id == zaraId).bedId, isNull);
 
     // ── 2. Assign via the reordered flow: flat → bed → person ──────
-    await openDrawer();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Assign'),
-    ));
-    await tester.pumpAndSettle();
+    await drawerGo('Tenants', 'Assign');
 
     await tester.tap(find.byKey(const Key('assign_flat_picker')));
     await tester.pumpAndSettle();
@@ -98,12 +98,7 @@ void main() {
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, zaraId);
 
     // ── 3. Zara shows up on the Tenants page under Alpha ────────────
-    await openDrawer();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('All tenants'),
-    ));
-    await tester.pumpAndSettle();
+    await drawerGo('Tenants', 'All tenants');
 
     expect(find.text('Zara'), findsOneWidget);
     expect(find.text('Alpha'), findsOneWidget);
@@ -118,6 +113,7 @@ void main() {
     await tester.enterText(
         find.byKey(const Key('absconded_note_field')),
         'left owing 2 months');
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('confirm_absconded')));
     await tester.pumpAndSettle();
 
@@ -129,9 +125,8 @@ void main() {
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, isNull);
 
     // ── 5. Archive shows her with the red badge + note ──────────────
-    await openDrawer();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await drawerGo('Settings', 'Archive');
+    // The Archive section links out to the tenant archive list.
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
     await tester.pumpAndSettle();
 

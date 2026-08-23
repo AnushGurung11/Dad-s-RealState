@@ -63,13 +63,23 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    /// Opens the drawer and navigates to [item], expanding its [group]
+    /// first when the section starts collapsed.
+    Future<void> drawerGo(String group, String item) async {
+      await openDrawer();
+      Finder itemFinder() => find.descendant(
+          of: find.byType(Drawer), matching: find.text(item));
+      if (!tester.any(itemFinder())) {
+        await tester.tap(find.descendant(
+            of: find.byType(Drawer), matching: find.text(group)));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(itemFinder());
+      await tester.pumpAndSettle();
+    }
+
     // ── 1. Pay 3 months upfront via Tenant Rent Payment ─────────────
-    await openDrawer();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Tenant Rent Payment'),
-    ));
-    await tester.pumpAndSettle();
+    await drawerGo('Payments', 'Tenant Rent Payment');
 
     await tester.tap(find.text('Nina'));
     await tester.pumpAndSettle();
@@ -96,25 +106,33 @@ void main() {
       ]),
     );
 
-    // ── 2. Terminate mid-way through "month 2" (i.e. day ~15) ───────
-    await openDrawer();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('All tenants'),
-    ));
-    await tester.pumpAndSettle();
+    // ── 2. Terminate mid-way through "month 2" (i.e. day ~15 of next month) ───────
+    await drawerGo('Tenants', 'All tenants');
 
     await tester.tap(find.text('Nina'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('end_tenure_action')));
     await tester.pumpAndSettle();
 
-    // Reason: workplace change (no note needed).
+    // Set termination date to day 15 of NEXT month (month 1 of stay = month 2 in comment).
+    final terminationDate = DateTime(now.year, now.month + 1, 15);
     await tester.tap(find.byKey(const Key('termination_reason_picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Workplace change').last);
     await tester.pumpAndSettle();
 
+    // Pick termination date: navigate to next month, then pick day 15.
+    await tester.tap(find.byIcon(Icons.event_outlined));
+    await tester.pumpAndSettle();
+    // Date picker starts at current month; tap next month button (chevron_right).
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('15').last); // day 15 of next month
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Reason: workplace change (no note needed).
     // Confirm.
     await tester.tap(find.byKey(const Key('termination_ack')));
     await tester.pumpAndSettle();
@@ -122,12 +140,15 @@ void main() {
     await tester.pumpAndSettle();
 
     // ── 3. Verify refund math from persisted records ─────────────────
-    final terminationDay = DateTime.now().day;
-    final daysInMonth =
-        DateTime(now.year, now.month + 1).difference(DateTime(now.year, now.month)).inDays;
+    // Terminated on day 15 of next month (month 1 of stay).
+    final terminationDay = 15;
+    final terminationMonth = now.month + 1;
+    final terminationYear = now.year + (terminationMonth > 12 ? 1 : 0);
+    final adjustedTerminationMonth = terminationMonth > 12 ? terminationMonth - 12 : terminationMonth;
+    final daysInMonth = DateTime(terminationYear, adjustedTerminationMonth + 1, 0).day;
     final earnedFinalMonth = terminationDay / daysInMonth * rent;
     final expectedRefund =
-        (rent - earnedFinalMonth) + rent /* full month 3 */;
+        (rent - earnedFinalMonth) + rent /* full month 3 (month 2 of stay) */;
 
     final record = store.terminations.single;
     expect(record.refundAmount, closeTo(expectedRefund, 0.01));
@@ -143,9 +164,7 @@ void main() {
         hasLength(3));
 
     // ── 4. Archive shows Nina with the neutral "Left" badge ─────────
-    await openDrawer();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await drawerGo('Settings', 'Archive');
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
     await tester.pumpAndSettle();
 

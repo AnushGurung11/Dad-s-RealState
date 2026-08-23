@@ -155,7 +155,10 @@ class _AssignScreenState extends State<AssignScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Tenant assigned')));
+      // Full reset — the consumed bed may also have emptied its flat's
+      // vacancy, so every picker starts over.
       setState(() {
+        _flatId = null;
         _personId = null;
         _bedId = null;
         _stayMonthsController.text = '12';
@@ -177,7 +180,16 @@ class _AssignScreenState extends State<AssignScreen> {
   @override
   Widget build(BuildContext context) {
     final flatsWithVacancy = _flatsWithVacantBeds();
+    // Clamp stale selections: a flat whose last vacancy was just consumed
+    // (or a bed that just got taken) must not linger as an initialValue.
+    if (_flatId != null && !flatsWithVacancy.any((f) => f.id == _flatId)) {
+      _flatId = null;
+      _bedId = null;
+    }
     final beds = _vacantBedsIn(_flatId);
+    if (_bedId != null && !beds.any((b) => b.id == _bedId)) {
+      _bedId = null;
+    }
     final unassigned = _unassignedPeople();
 
     return ListView(
