@@ -3,23 +3,27 @@ import 'package:flutter/material.dart';
 import '../models/bed.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../widgets/person_avatar.dart';
 import 'status_badge.dart';
 
 /// One bed row on a flat's Beds tab. Shows the bed label, the occupant's name
 /// (or a "Vacant" badge) and — when occupied — the rent. The left border
 /// encodes state: danger when the occupant is overdue, neutral when simply
 /// occupied, and vacant beds get a dashed gray outline instead.
+/// Also shows the occupant's photo avatar when available.
 class BedRow extends StatelessWidget {
   const BedRow({
     super.key,
     required this.bed,
     required this.occupantName,
+    this.occupantPhotoPath,
     required this.isOverdue,
     this.onTap,
   });
 
   final Bed bed;
   final String? occupantName;
+  final String? occupantPhotoPath;
   final bool isOverdue;
   final VoidCallback? onTap;
 
@@ -52,9 +56,17 @@ class BedRow extends StatelessWidget {
                 border: Border(left: BorderSide(color: accent, width: 4)),
                 borderRadius: BorderRadius.circular(12),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
+                  if (occupied && occupantName != null) ...[
+                    PersonAvatar(
+                      photoPath: occupantPhotoPath,
+                      name: occupantName!,
+                      radius: 18,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

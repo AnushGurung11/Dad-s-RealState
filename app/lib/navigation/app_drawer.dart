@@ -98,7 +98,7 @@ class AppDrawer extends StatelessWidget {
             children: [
               _Tile(
                 icon: Icons.description_outlined,
-                label: 'Flat Lease Payment',
+                label: 'Cheque Payment (Flat)',
                 route: Routes.paymentsFlatLease,
                 currentRoute: currentRoute,
                 onTap: () => _go(context, Routes.paymentsFlatLease),

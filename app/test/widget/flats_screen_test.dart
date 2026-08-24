@@ -75,11 +75,18 @@ void main() {
 
   testWidgets('creating a flat from the form persists it in the store',
       (tester) async {
+    // Tall viewport so the entire form fits without scrolling.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await pumpFlats(tester);
 
     await tester.tap(find.text('Add flat'));
     await tester.pumpAndSettle();
 
+    // Fields are in order: Flat name, Address, Lease paid through (button),
+    // Payment frequency, Contract person, Yearly rent, Total beds, Default rent
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Flat name'), 'Beta');
     await tester.enterText(
@@ -93,6 +100,9 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Default rent per bed (AED)'),
         '3500');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Payment frequency (months)'),
+        '2');
     await tester.ensureVisible(find.text('Create flat'));
     await tester.pumpAndSettle();
 
@@ -109,6 +119,11 @@ void main() {
   });
 
   testWidgets('form rejects a bed count outside 5-20', (tester) async {
+    // Tall viewport so the entire form fits without scrolling.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await pumpFlats(tester);
 
     await tester.tap(find.text('Add flat'));
@@ -125,6 +140,9 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Default rent per bed (AED)'),
         '3500');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Payment frequency (months)'),
+        '2');
     await tester.ensureVisible(find.text('Create flat'));
     await tester.pumpAndSettle();
 

@@ -47,26 +47,37 @@ class DashboardService {
   }) {
     final m = month ?? monthKey(DateTime.now());
 
-    // Beds
-    final occupied = beds.where((b) => b.tenantId != null).length;
-    final vacant = beds.where((b) => b.tenantId == null).length;
+    // Filter out archived flats and their beds
+    final activeFlats = flats.where((f) => !f.archived).toList();
+    final activeFlatIds = activeFlats.map((f) => f.id).toSet();
+    final activeBeds = beds.where((b) => activeFlatIds.contains(b.flatId)).toList();
+    final activeLeaseSettings = leaseSettings.where((s) => activeFlatIds.contains(s.flatId)).toList();
 
-    // People: active tenants only
+    // Beds
+    final occupied = activeBeds.where((b) => b.tenantId != null).length;
+    final vacant = activeBeds.where((b) => b.tenantId == null).length;
+
+    // People: active tenants only (only those in active flats)
     final activePeople = people
-        .where((p) => p.isActiveTenant && p.status == PersonStatus.active)
+        .where((p) => p.isActiveTenant && p.status == PersonStatus.active && activeFlatIds.contains(p.flatId))
         .toList();
 
-    // Expenses in month
+    // Expenses in month (only for active flats)
+    final activeExpenseFlatIds = expenses
+        .where((e) => monthKey(e.date) == m && activeFlatIds.contains(e.flatId))
+        .map((e) => e.flatId)
+        .toSet();
     final monthExpenses = expenses
-        .where((e) => monthKey(e.date) == m)
+        .where((e) => monthKey(e.date) == m && activeFlatIds.contains(e.flatId))
         .toList();
     final monthExpenseTotal = monthExpenses.fold(0.0, (sum, e) => sum + e.amount);
 
-    // Payments in month: rent + deposit
+    // Payments in month: rent + deposit (only for active flats)
     final monthPayments = payments
         .where((p) =>
             p.month == m &&
-            (p.type == PaymentType.rent || p.type == PaymentType.deposit))
+            (p.type == PaymentType.rent || p.type == PaymentType.deposit) &&
+            activeFlatIds.contains(p.flatId))
         .toList();
     final monthIncome = monthPayments.fold(0.0, (sum, p) => sum + p.amountPaid);
 
@@ -78,16 +89,16 @@ class DashboardService {
     final paidCount = activePeople.where((p) => paidPersonIds.contains(p.id)).length;
     final totalActiveTenantCount = activePeople.length;
 
-    // Next lease payment: earliest nextDueDate
+    // Next lease payment: earliest nextDueDate (only for active flats)
     LeaseChequeSetting? nextLease;
-    if (leaseSettings.isNotEmpty) {
-      final sorted = [...leaseSettings]
+    if (activeLeaseSettings.isNotEmpty) {
+      final sorted = [...activeLeaseSettings]
         ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
       nextLease = sorted.first;
     }
 
     return DashboardSummary(
-      flatsCount: flats.length,
+      flatsCount: activeFlats.length,
       bedsOccupied: occupied,
       bedsVacant: vacant,
       activePeopleCount: activePeople.length,

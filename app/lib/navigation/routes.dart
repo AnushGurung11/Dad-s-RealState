@@ -4,12 +4,12 @@ import '../screens/add_tenant_screen.dart';
 import '../screens/archive_flats_screen.dart';
 import '../screens/archive_tenants_screen.dart';
 import '../screens/assign_screen.dart';
+import '../screens/cheque_payment_flat_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/edit_tenant_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
-import '../screens/flat_lease_payment_screen.dart';
 import '../screens/flats_screen.dart';
 import '../screens/payment_history_screen.dart';
 import '../screens/payments_screen.dart';
@@ -58,7 +58,7 @@ const Map<String, String> routeTitles = {
   Routes.tenantsEdit: 'Edit tenant',
   Routes.tenantsTerminate: 'End tenure early',
   Routes.payments: 'Payments',
-  Routes.paymentsFlatLease: 'Flat Lease Payment',
+  Routes.paymentsFlatLease: 'Cheque Payment (Flat)',
   Routes.paymentsTenantRent: 'Tenant Rent Payment',
   Routes.paymentHistory: 'Payment History',
   Routes.historyFlatLease: 'Flat Lease History',
@@ -113,7 +113,7 @@ Route<dynamic> buildRoute(RouteSettings settings) {
     case Routes.payments:
       return material(PaymentsScreen.new);
     case Routes.paymentsFlatLease:
-      return material(FlatLeasePaymentScreen.new);
+      return material(ChequePaymentFlatScreen.new);
     case Routes.paymentsTenantRent:
       return material(TenantRentPaymentScreen.new);
     case Routes.historyFlatLease:

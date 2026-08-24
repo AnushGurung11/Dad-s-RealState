@@ -9,10 +9,12 @@ import '../theme/flat_color.dart';
 import '../widgets/person_avatar.dart';
 import '../widgets/status_badge.dart';
 
-/// Standalone Tenants page: every ACTIVE tenant, grouped by flat with the
-/// flat's color dot. Each row shows photo/avatar, name, bed label and this
-/// month's payment status (paid / partial / overdue). Add tenant + Assign
-/// live on this page as buttons — no need to open the drawer.
+/// Standalone Tenants page: every ACTIVE tenant (assigned or unassigned),
+/// grouped by flat with the flat's color dot. Unassigned active tenants
+/// appear in their own "Unassigned" section. Each row shows photo/avatar,
+/// name, bed label (or "Unassigned" badge) and this month's payment status
+/// (paid / partial / overdue). Add tenant + Assign live on this page as
+/// buttons — no need to open the drawer.
 class TenantsScreen extends StatefulWidget {
   const TenantsScreen({super.key});
 
@@ -80,15 +82,24 @@ class _TenantsScreenState extends State<TenantsScreen> {
     final month = monthKey(DateTime.now());
 
     final needle = _query.trim().toLowerCase();
-    final activeTenants = store.people
-        .where((p) => p.bedId != null && p.status == PersonStatus.active)
+    
+    // All active people (assigned or unassigned)
+    final allActivePeople = store.people
+        .where((p) => p.status == PersonStatus.active)
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
-    final filtered = needle.isEmpty
-        ? activeTenants
-        : activeTenants
-            .where((p) => p.name.toLowerCase().contains(needle))
-            .toList();
+    
+    // Separate assigned and unassigned
+    final assignedPeople = allActivePeople.where((p) => p.bedId != null).toList();
+    final unassignedPeople = allActivePeople.where((p) => p.bedId == null).toList();
+    
+    // Filter both lists by search query
+    final filteredAssigned = needle.isEmpty
+        ? assignedPeople
+        : assignedPeople.where((p) => p.name.toLowerCase().contains(needle)).toList();
+    final filteredUnassigned = needle.isEmpty
+        ? unassignedPeople
+        : unassignedPeople.where((p) => p.name.toLowerCase().contains(needle)).toList();
 
     final children = <Widget>[
       Row(
@@ -126,12 +137,14 @@ class _TenantsScreenState extends State<TenantsScreen> {
       const SizedBox(height: 8),
     ];
 
-    if (activeTenants.isEmpty) {
+    final hasAnyTenants = assignedPeople.isNotEmpty || unassignedPeople.isNotEmpty;
+    
+    if (!hasAnyTenants) {
       children.add(Center(
         child: Padding(
           padding: const EdgeInsets.only(top: 48),
           child: Text(
-            'No active tenants yet.\nAssign someone to a bed to see them here.',
+            'No active tenants yet.\nAdd a tenant or assign someone to a bed.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -143,7 +156,8 @@ class _TenantsScreenState extends State<TenantsScreen> {
           body: ListView(padding: const EdgeInsets.all(16), children: children));
     }
 
-    if (filtered.isEmpty) {
+    final hasFiltered = filteredAssigned.isNotEmpty || filteredUnassigned.isNotEmpty;
+    if (!hasFiltered) {
       children.add(Padding(
         padding: const EdgeInsets.only(top: 24),
         child: Text(
@@ -157,28 +171,81 @@ class _TenantsScreenState extends State<TenantsScreen> {
           body: ListView(padding: const EdgeInsets.all(16), children: children));
     }
 
-    // Group by flat via each bed's flatId.
-    final flatIds = filtered.map((p) => p.flatId).toSet();
-    final flats =
-        store.flats.where((f) => flatIds.contains(f.id)).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+    // Assigned tenants grouped by flat
+    if (filteredAssigned.isNotEmpty) {
+      final flatIds = filteredAssigned.map((p) => p.flatId).where((id) => id != null).cast<String>().toSet();
+      final flats =
+          store.flats.where((f) => flatIds.contains(f.id)).toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
 
-    for (final flat in flats) {
+      for (final flat in flats) {
+        children.add(Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: Row(
+            children: [
+              Container(
+                key: ValueKey('group-dot-${flat.id}'),
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: flatColorFor(flat.id),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(flat.name,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ));
+
+        final peopleInFlat =
+            filteredAssigned.where((p) => p.flatId == flat.id).toList()
+              ..sort((a, b) => a.name.compareTo(b.name));
+
+        for (final person in peopleInFlat) {
+          final bed = store.beds
+              .where((b) => b.id == person.bedId)
+              .firstOrNull;
+          final status = paymentStatusFor(store.payments, person.id, month);
+          children.add(Card(
+            key: ValueKey('tenant-row-${person.id}'),
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            child: ListTile(
+              leading:
+                  PersonAvatar(photoPath: person.photoPath, name: person.name),
+              title: Text(person.name),
+              subtitle: Text(bed == null ? '—' : 'Bed ${_bedNumber(bed.label)}'),
+              trailing: StatusBadge(
+                kind: _statusKind(status),
+                label: _statusLabel(status),
+              ),
+              onTap: () => _openPerson(person.id),
+            ),
+          ));
+        }
+      }
+    }
+
+    // Unassigned tenants section
+    if (filteredUnassigned.isNotEmpty) {
       children.add(Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        padding: const EdgeInsets.only(top: 16, bottom: 4),
         child: Row(
           children: [
             Container(
-              key: ValueKey('group-dot-${flat.id}'),
               width: 12,
               height: 12,
               decoration: BoxDecoration(
-                color: flatColorFor(flat.id),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 8),
-            Text(flat.name,
+            Text('Unassigned',
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall
@@ -187,15 +254,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
         ),
       ));
 
-      final peopleInFlat =
-          filtered.where((p) => p.flatId == flat.id).toList()
-            ..sort((a, b) => a.name.compareTo(b.name));
-
-      for (final person in peopleInFlat) {
-        final bed = store.beds
-            .where((b) => b.id == person.bedId)
-            .firstOrNull;
-        final status = paymentStatusFor(store.payments, person.id, month);
+      for (final person in filteredUnassigned) {
         children.add(Card(
           key: ValueKey('tenant-row-${person.id}'),
           margin: const EdgeInsets.symmetric(vertical: 4),
@@ -203,10 +262,29 @@ class _TenantsScreenState extends State<TenantsScreen> {
             leading:
                 PersonAvatar(photoPath: person.photoPath, name: person.name),
             title: Text(person.name),
-            subtitle: Text(bed == null ? '—' : 'Bed ${_bedNumber(bed.label)}'),
-            trailing: StatusBadge(
-              kind: _statusKind(status),
-              label: _statusLabel(status),
+            subtitle: const Text('Unassigned'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StatusBadge(
+                  kind: StatusKind.neutral,
+                  label: 'Unassigned',
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  key: ValueKey('assign-shortcut-${person.id}'),
+                  tooltip: 'Assign',
+                  icon: const Icon(Icons.link, size: 20),
+                  onPressed: () async {
+                    await Navigator.pushNamed(
+                      context,
+                      Routes.tenantsAssign,
+                      arguments: person.id,
+                    );
+                    if (mounted) _refresh();
+                  },
+                ),
+              ],
             ),
             onTap: () => _openPerson(person.id),
           ),

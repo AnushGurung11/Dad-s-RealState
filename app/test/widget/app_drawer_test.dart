@@ -52,7 +52,7 @@ void main() {
 
     await tester.tap(inDrawer(find.text('Payments')));
     await tester.pumpAndSettle();
-    expect(inDrawer(find.text('Flat Lease Payment')), findsOneWidget);
+    expect(inDrawer(find.text('Cheque Payment (Flat)')), findsOneWidget);
     expect(inDrawer(find.text('Tenant Rent Payment')), findsOneWidget);
 
     await tester.tap(inDrawer(find.text('Payment History')));

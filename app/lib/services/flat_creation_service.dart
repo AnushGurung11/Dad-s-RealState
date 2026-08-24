@@ -5,6 +5,18 @@ import '../services/bed_capacity_service.dart';
 import '../utils/ids.dart';
 import 'json_store.dart';
 
+/// Adds [months] to [date], handling month boundaries correctly.
+DateTime _addMonths(DateTime date, int months) {
+  final month = date.month + months;
+  final year = date.year + (month - 1) ~/ 12;
+  final normalizedMonth = (month - 1) % 12 + 1;
+  // Try to keep the same day, but clamp to the last day of the target month
+  final day = date.day;
+  final lastDayOfMonth = DateTime(year, normalizedMonth + 1, 0).day;
+  final clampedDay = day > lastDayOfMonth ? lastDayOfMonth : day;
+  return DateTime(year, normalizedMonth, clampedDay);
+}
+
 /// Raised when a flat creation request violates the validation rules.
 class FlatCreationException implements Exception {
   const FlatCreationException(this.message);
@@ -22,14 +34,11 @@ class FlatCreationService {
 
   final JsonStore store;
 
-  /// Number of lease cheques per year — the auto-calc rule divides the yearly
-  /// rent by this to get each cheque's amount.
-  static const int chequesPerYear = 6;
-
   /// Creates a [Flat] with [bedCount] beds labeled "Bed 1".."Bed N", each
   /// renting for [defaultRentPerBed] by default, plus the flat's recurring
-  /// [LeaseChequeSetting] (amount = yearlyRent / 6, first due on the contract
-  /// date). Throws [FlatCreationException] when validation fails.
+  /// [LeaseChequeSetting] (amount = yearlyRent / (12 / frequencyMonths), first
+  /// due on the contract date or [leasePaidThroughDate] if provided). Throws
+  /// [FlatCreationException] when validation fails.
   Flat createFlat({
     required String name,
     required String address,
@@ -38,6 +47,8 @@ class FlatCreationService {
     required double yearlyRent,
     required int bedCount,
     required double defaultRentPerBed,
+    DateTime? leasePaidThroughDate,
+    int frequencyMonths = 2,
   }) {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
@@ -49,6 +60,9 @@ class FlatCreationService {
         '${BedCapacityService.maxBeds} beds.',
       );
     }
+    if (frequencyMonths < 1 || frequencyMonths > 12) {
+      throw const FlatCreationException('Frequency must be between 1 and 12 months.');
+    }
 
     final now = DateTime.now();
     final flat = Flat(
@@ -59,6 +73,8 @@ class FlatCreationService {
       registeredDate: registeredDate,
       contractPerson: contractPerson?.trim(),
       yearlyRent: yearlyRent,
+      leasePaidThroughDate: leasePaidThroughDate,
+      frequencyMonths: frequencyMonths,
     );
     final beds = List<Bed>.generate(
       bedCount,
@@ -70,12 +86,22 @@ class FlatCreationService {
       ),
     );
     final owner = flat.contractPerson;
+    
+    // Calculate cheque amount: yearlyRent / (12 / frequencyMonths)
+    final chequesPerYear = 12 / frequencyMonths;
+    final chequeAmount = yearlyRent / chequesPerYear;
+    
+    // Determine nextDueDate: if leasePaidThroughDate is set, use it; otherwise registeredDate + frequencyMonths
+    final baseDate = registeredDate ?? now;
+    final nextDueDate = leasePaidThroughDate ?? _addMonths(baseDate, frequencyMonths);
+    
     final chequeSetting = LeaseChequeSetting(
       id: newId(),
       flatId: flat.id,
       ownerName: (owner == null || owner.isEmpty) ? flat.name : owner,
-      amount: yearlyRent / chequesPerYear,
-      nextDueDate: registeredDate ?? now,
+      amount: chequeAmount,
+      nextDueDate: nextDueDate,
+      intervalMonths: frequencyMonths,
     );
 
     store.runBatched(() {

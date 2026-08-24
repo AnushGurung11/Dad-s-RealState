@@ -15,9 +15,10 @@ class LeasePaymentException implements Exception {
 }
 
 /// Records flat lease cheque payments: appends an immutable
-/// [LeaseChequeRecord] and advances the setting's `nextDueDate` by its
-/// interval counted from the ORIGINAL due date — never from today, so paying
-/// early or late does not drift the schedule.
+/// [LeaseChequeRecord] and advances the setting's `nextDueDate` by the
+/// specified months (or the setting's interval if not provided) counted from
+/// the ORIGINAL due date — never from today, so paying early or late does
+/// not drift the schedule.
 class FlatLeasePaymentService {
   const FlatLeasePaymentService(this.store);
 
@@ -33,13 +34,15 @@ class FlatLeasePaymentService {
 
   /// Marks [setting]'s current cheque as paid:
   ///  1. creates a [LeaseChequeRecord] with the entered amount/date,
-  ///  2. advances `nextDueDate` by the interval from the original due date.
+  ///  2. advances `nextDueDate` by [monthsCovered] from the original due date.
+  ///     If [monthsCovered] is null, uses the setting's intervalMonths.
   /// Both writes happen as one batched store write. Returns the updated
   /// setting so callers can reflect the advanced due date.
   LeaseChequeSetting pay({
     required LeaseChequeSetting setting,
     required double amount,
     DateTime? paidDate,
+    int? monthsCovered,
   }) {
     if (amount <= 0) {
       throw const LeasePaymentException('Enter an amount greater than 0.');
@@ -55,15 +58,11 @@ class FlatLeasePaymentService {
       month: monthKey(setting.nextDueDate),
     );
 
-    // Advance from the ORIGINAL due date, not from today.
-    final interval =
-        setting.intervalMonths < 1 ? 2 : setting.intervalMonths;
+    // Advance from the ORIGINAL due date by the specified months (or interval).
+    final monthsToAdvance = monthsCovered ?? setting.intervalMonths;
+    final interval = monthsToAdvance < 1 ? 2 : monthsToAdvance;
     final original = setting.nextDueDate;
-    final nextDue = DateTime(
-      original.year,
-      original.month + interval,
-      original.day,
-    );
+    final nextDue = _addMonths(original, interval);
     final updated = setting.copyWith(nextDueDate: nextDue);
 
     store.runBatched(() {
@@ -72,4 +71,16 @@ class FlatLeasePaymentService {
     });
     return updated;
   }
+}
+
+/// Adds [months] to [date], handling month boundaries correctly.
+DateTime _addMonths(DateTime date, int months) {
+  final month = date.month + months;
+  final year = date.year + (month - 1) ~/ 12;
+  final normalizedMonth = (month - 1) % 12 + 1;
+  // Try to keep the same day, but clamp to the last day of the target month
+  final day = date.day;
+  final lastDayOfMonth = DateTime(year, normalizedMonth + 1, 0).day;
+  final clampedDay = day > lastDayOfMonth ? lastDayOfMonth : day;
+  return DateTime(year, normalizedMonth, clampedDay);
 }

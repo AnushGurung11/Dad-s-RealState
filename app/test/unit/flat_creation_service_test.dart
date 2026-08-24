@@ -35,7 +35,7 @@ void main() {
     });
 
     test('creating a flat also creates exactly one LeaseChequeSetting with '
-        'amount == yearlyRent / 6', () {
+        'amount == yearlyRent / 6 (default frequencyMonths=2)', () {
       final flat = service.createFlat(
         name: 'Alpha',
         address: '1 A Road',
@@ -51,7 +51,69 @@ void main() {
       expect(settings, hasLength(1));
       expect(settings.single.amount, closeTo(10000, 0.001));
       expect(settings.single.ownerName, 'Mr. Khan');
-      expect(settings.single.nextDueDate, DateTime(2026, 3, 1));
+      // With default frequencyMonths=2 and no leasePaidThroughDate, nextDueDate = registeredDate + 2 months
+      expect(settings.single.nextDueDate, DateTime(2026, 5, 1));
+      expect(settings.single.intervalMonths, 2);
+    });
+
+    test('creating a flat with leasePaidThroughDate uses it for nextDueDate', () {
+      final flat = service.createFlat(
+        name: 'Alpha',
+        address: '1 A Road',
+        registeredDate: DateTime(2026, 3, 1),
+        yearlyRent: 60000,
+        bedCount: 5,
+        defaultRentPerBed: 4000,
+        leasePaidThroughDate: DateTime(2024, 1, 15),
+        frequencyMonths: 2,
+      );
+
+      final settings =
+          store.leaseChequeSettings.where((s) => s.flatId == flat.id).toList();
+      expect(settings, hasLength(1));
+      expect(settings.single.nextDueDate, DateTime(2024, 1, 15));
+      expect(settings.single.intervalMonths, 2);
+    });
+
+    test('creating a flat with custom frequencyMonths calculates cheque amount correctly', () {
+      final flat = service.createFlat(
+        name: 'Alpha',
+        address: '1 A Road',
+        registeredDate: DateTime(2026, 3, 1),
+        yearlyRent: 60000,
+        bedCount: 5,
+        defaultRentPerBed: 4000,
+        frequencyMonths: 3,
+      );
+
+      final settings =
+          store.leaseChequeSettings.where((s) => s.flatId == flat.id).toList();
+      expect(settings, hasLength(1));
+      // yearlyRent / (12/3) = 60000 / 4 = 15000
+      expect(settings.single.amount, closeTo(15000, 0.001));
+      expect(settings.single.intervalMonths, 3);
+      // nextDueDate = registeredDate + 3 months = 2026-06-01
+      expect(settings.single.nextDueDate, DateTime(2026, 6, 1));
+    });
+
+    test('creating a flat with both leasePaidThroughDate and custom frequency uses leasePaidThroughDate for nextDueDate', () {
+      final flat = service.createFlat(
+        name: 'Alpha',
+        address: '1 A Road',
+        registeredDate: DateTime(2026, 3, 1),
+        yearlyRent: 60000,
+        bedCount: 5,
+        defaultRentPerBed: 4000,
+        leasePaidThroughDate: DateTime(2024, 1, 15),
+        frequencyMonths: 3,
+      );
+
+      final settings =
+          store.leaseChequeSettings.where((s) => s.flatId == flat.id).toList();
+      expect(settings, hasLength(1));
+      expect(settings.single.nextDueDate, DateTime(2024, 1, 15));
+      expect(settings.single.intervalMonths, 3);
+      expect(settings.single.amount, closeTo(15000, 0.001));
     });
 
     test('rejects bedCount outside 5-20 (reuses bed_capacity_service)', () {
@@ -71,6 +133,26 @@ void main() {
       expect(BedCapacityService.canCreateFlat(5), isTrue);
       expect(BedCapacityService.canCreateFlat(20), isTrue);
       // Nothing was written on failure.
+      expect(store.flats, isEmpty);
+      expect(store.beds, isEmpty);
+      expect(store.leaseChequeSettings, isEmpty);
+    });
+
+    test('rejects frequencyMonths outside 1-12', () {
+      for (final bad in [0, 13]) {
+        expect(
+          () => service.createFlat(
+            name: 'Bad',
+            address: 'x',
+            yearlyRent: 60000,
+            bedCount: 5,
+            defaultRentPerBed: 4000,
+            frequencyMonths: bad,
+          ),
+          throwsA(isA<FlatCreationException>()),
+          reason: '$bad frequencyMonths must be rejected',
+        );
+      }
       expect(store.flats, isEmpty);
       expect(store.beds, isEmpty);
       expect(store.leaseChequeSettings, isEmpty);

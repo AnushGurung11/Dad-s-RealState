@@ -105,6 +105,7 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
                 key: ValueKey(bed.id),
                 bed: bed,
                 occupantName: occupant?.name,
+                occupantPhotoPath: occupant?.photoPath,
                 isOverdue:
                     occupant != null && overdueIds.contains(occupant.id),
                 onTap: () => _onBedTap(bed),

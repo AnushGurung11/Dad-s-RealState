@@ -9,6 +9,8 @@ class Flat {
     this.yearlyRent,
     this.archived = false,
     this.archivedAt,
+    this.leasePaidThroughDate,
+    this.frequencyMonths = 2,
   });
 
   final String id;
@@ -24,7 +26,7 @@ class Flat {
   final String? contractPerson;
 
   /// Total annual lease cost. Drives the auto-calculated cheque amount
-  /// (`yearlyRent / 6`), which remains editable afterward.
+  /// (`yearlyRent / (12 / frequencyMonths)`), which remains editable afterward.
   final double? yearlyRent;
 
   /// Soft-delete marker. Archived flats keep every bed and historical
@@ -34,6 +36,15 @@ class Flat {
 
   /// When the flat was archived.
   final DateTime? archivedAt;
+
+  /// Onboarding field: lease is paid up through this date. If set, the auto-
+  /// created LeaseChequeSetting.nextDueDate starts from this date instead of
+  /// registeredDate + frequencyMonths. Optional — leave blank for a genuinely
+  /// new lease.
+  final DateTime? leasePaidThroughDate;
+
+  /// How many months between lease payments. Defaults to 2 (bi-monthly).
+  final int frequencyMonths;
 
   Flat copyWith({
     String? id,
@@ -46,6 +57,9 @@ class Flat {
     bool? archived,
     DateTime? archivedAt,
     bool clearRegisteredDate = false,
+    DateTime? leasePaidThroughDate,
+    bool clearLeasePaidThroughDate = false,
+    int? frequencyMonths,
   }) {
     return Flat(
       id: id ?? this.id,
@@ -58,6 +72,9 @@ class Flat {
       yearlyRent: yearlyRent ?? this.yearlyRent,
       archived: archived ?? this.archived,
       archivedAt: archivedAt ?? this.archivedAt,
+      leasePaidThroughDate:
+          clearLeasePaidThroughDate ? null : leasePaidThroughDate ?? this.leasePaidThroughDate,
+      frequencyMonths: frequencyMonths ?? this.frequencyMonths,
     );
   }
 
@@ -80,6 +97,10 @@ class Flat {
       archivedAt: json['archivedAt'] == null
           ? null
           : DateTime.parse(json['archivedAt'] as String),
+      leasePaidThroughDate: json['leasePaidThroughDate'] == null
+          ? null
+          : DateTime.parse(json['leasePaidThroughDate'] as String),
+      frequencyMonths: (json['frequencyMonths'] as num?)?.toInt() ?? 2,
     );
   }
 
@@ -94,6 +115,8 @@ class Flat {
       'yearlyRent': yearlyRent,
       'archived': archived,
       'archivedAt': archivedAt?.toIso8601String(),
+      'leasePaidThroughDate': leasePaidThroughDate?.toIso8601String(),
+      'frequencyMonths': frequencyMonths,
     };
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../config.dart';
 import '../models/bed.dart';
 import '../models/flat.dart';
+import '../models/lease_cheque_record.dart';
 import '../navigation/routes.dart';
 import '../services/bed_capacity_service.dart';
 import '../services/flat_creation_service.dart';
@@ -68,7 +69,37 @@ class _FlatsScreenState extends State<FlatsScreen> {
       expenses: store.expenses,
       leaseChequeRecords: store.leaseChequeRecords,
       payments: store.payments,
+      leaseChequeSettings: store.leaseChequeSettings,
     );
+
+    // If there's an outstanding due, show pay-or-leave dialog first
+    if (decision.hasOutstandingDue) {
+      final payOrLeave = await _showPayOrLeaveDialog(flat, decision.outstandingDue!);
+      if (payOrLeave == null || !mounted) return;
+      
+      if (payOrLeave) {
+        // Pay now: create a final LeaseChequeRecord
+        final amount = await _showPayAmountDialog(decision.outstandingDue!);
+        if (amount == null || !mounted) return;
+        
+        final setting = store.leaseChequeSettings
+            .where((s) => s.flatId == flat.id)
+            .firstOrNull;
+        if (setting != null) {
+          final record = LeaseChequeRecord(
+            id: newId(),
+            flatId: flat.id,
+            ownerName: setting.ownerName,
+            amount: amount,
+            dueDate: setting.nextDueDate,
+            paidDate: DateTime.now(),
+            month: monthKey(setting.nextDueDate),
+          );
+          store.upsertChequeRecord(record);
+        }
+      }
+      // "Leave it" - proceed without creating a record
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -108,6 +139,77 @@ class _FlatsScreenState extends State<FlatsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text('${flat.name} ${decision.isHardDelete ? 'deleted' : 'archived'}')));
     _refresh();
+  }
+
+  Future<bool?> _showPayOrLeaveDialog(Flat flat, double outstandingAmount) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Outstanding Lease Due for ${flat.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This flat has an unpaid lease cheque of ${formatMoneyShort(outstandingAmount)}.',
+            ),
+            const SizedBox(height: 12),
+            const Text('What would you like to do?'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Leave it'),
+          ),
+          FilledButton(
+            key: const Key('pay_now_button'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Pay now'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<double?> _showPayAmountDialog(double defaultAmount) async {
+    final controller = TextEditingController(text: formatMoney(defaultAmount));
+    return showDialog<double>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Pay Outstanding Due'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Amount (AED)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
+              ],
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final amount = double.tryParse(controller.text.trim().replaceAll(',', ''));
+              Navigator.pop(dialogContext, amount);
+            },
+            child: const Text('Pay'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -326,12 +428,20 @@ mixin _FlatFormMixin<T extends StatefulWidget> on State<T> {
   final TextEditingController contractPersonController =
       TextEditingController();
   final TextEditingController yearlyRentController = TextEditingController();
+  final TextEditingController frequencyController = TextEditingController(text: '2');
 
   DateTime? registeredDate;
+  DateTime? leasePaidThroughDate;
+  int frequencyMonths = 2;
 
   double? parseMoney(String raw) {
     final value = double.tryParse(raw.trim().replaceAll(',', ''));
     return (value == null || value < 0) ? null : value;
+  }
+
+  int? parseInt(String raw) {
+    final value = int.tryParse(raw.trim());
+    return (value == null || value < 1) ? null : value;
   }
 
   String dateText(DateTime date) =>
@@ -350,12 +460,24 @@ mixin _FlatFormMixin<T extends StatefulWidget> on State<T> {
     if (picked != null) setState(() => registeredDate = picked);
   }
 
+  Future<void> pickLeasePaidThroughDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: leasePaidThroughDate ?? now,
+      firstDate: DateTime(now.year - 20),
+      lastDate: now,
+    );
+    if (picked != null) setState(() => leasePaidThroughDate = picked);
+  }
+
   @override
   void dispose() {
     nameController.dispose();
     addressController.dispose();
     contractPersonController.dispose();
     yearlyRentController.dispose();
+    frequencyController.dispose();
     super.dispose();
   }
 }
@@ -389,6 +511,14 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
     final service = _service;
     if (service == null) return;
 
+    final frequency = parseInt(frequencyController.text);
+    if (frequency == null || frequency < 1 || frequency > 12) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Frequency must be 1–12 months')));
+      return;
+    }
+
     try {
       service.createFlat(
         name: nameController.text,
@@ -398,6 +528,8 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
         yearlyRent: parseMoney(yearlyRentController.text)!,
         bedCount: _parseBedCount(_bedCountController.text)!,
         defaultRentPerBed: parseMoney(_defaultRentController.text)!,
+        leasePaidThroughDate: leasePaidThroughDate,
+        frequencyMonths: frequency,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -444,13 +576,30 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: pickRegisteredDate,
+              onPressed: pickLeasePaidThroughDate,
               icon: const Icon(Icons.event_outlined),
               label: Text(
-                registeredDate == null
-                    ? 'Flat registered on'
-                    : 'Flat registered on ${dateText(registeredDate!)}',
+                leasePaidThroughDate == null
+                    ? 'Lease paid through (onboarding)'
+                    : 'Lease paid through ${dateText(leasePaidThroughDate!)}',
               ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: frequencyController,
+              decoration: const InputDecoration(
+                labelText: 'Payment frequency (months)',
+                helperText: 'Months between lease payments (1–12)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              textInputAction: TextInputAction.next,
+              validator: (value) {
+                final v = parseInt(value ?? '');
+                if (v == null || v < 1 || v > 12) return 'Enter 1–12';
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -468,8 +617,7 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
                 labelText: 'Yearly rent (${AppConfig.currencySymbol})',
                 border: const OutlineInputBorder(),
                 helperText:
-                    'Lease cheque auto-calculated as yearly rent ÷ '
-                    '${FlatCreationService.chequesPerYear}',
+                    'Lease cheque auto-calculated as yearly rent ÷ (12 ÷ frequency)',
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -562,6 +710,9 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
     contractPersonController.text = flat.contractPerson ?? '';
     yearlyRentController.text = formatMoney(flat.yearlyRent ?? 0);
     registeredDate = flat.registeredDate;
+    leasePaidThroughDate = flat.leasePaidThroughDate;
+    frequencyMonths = flat.frequencyMonths;
+    frequencyController.text = flat.frequencyMonths.toString();
   }
 
   bool get _canAddBed => _beds.length < BedCapacityService.maxBeds;
@@ -597,6 +748,15 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
                 '${BedCapacityService.maxBeds} beds.')));
       return;
     }
+    
+    final frequency = parseInt(frequencyController.text);
+    if (frequency == null || frequency < 1 || frequency > 12) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Frequency must be 1–12 months')));
+      return;
+    }
+
     final store = StoreScope.of(context);
     final yearlyRent = parseMoney(yearlyRentController.text);
 
@@ -608,6 +768,9 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
         clearRegisteredDate: registeredDate == null,
         contractPerson: contractPersonController.text.trim(),
         yearlyRent: yearlyRent,
+        leasePaidThroughDate: leasePaidThroughDate,
+        clearLeasePaidThroughDate: leasePaidThroughDate == null,
+        frequencyMonths: frequency,
       ));
       final keptIds = <String>{};
       for (final draft in _beds) {
@@ -685,6 +848,43 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
                   icon: const Icon(Icons.clear),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: pickLeasePaidThroughDate,
+                    icon: const Icon(Icons.event_outlined),
+                    label: Text(
+                      leasePaidThroughDate == null
+                          ? 'Lease paid through (onboarding)'
+                          : 'Lease paid through ${dateText(leasePaidThroughDate!)}',
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Clear lease paid through date',
+                  onPressed: () => setState(() => leasePaidThroughDate = null),
+                  icon: const Icon(Icons.clear),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: frequencyController,
+              decoration: const InputDecoration(
+                labelText: 'Payment frequency (months)',
+                helperText: 'Months between lease payments (1–12)',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              validator: (value) {
+                final v = parseInt(value ?? '');
+                if (v == null || v < 1 || v > 12) return 'Enter 1–12';
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             TextFormField(

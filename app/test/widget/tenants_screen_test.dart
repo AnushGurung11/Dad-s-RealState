@@ -90,25 +90,44 @@ void main() {
     store.upsertPerson(person(
         id: 'p4', name: 'Dan', bedId: 'b8', flatId: 'f2',
         status: PersonStatus.absconded));
-    // Unassigned people are not on the Tenants page either.
+    // Unassigned active people now appear in their own section.
     store.upsertPerson(person(id: 'p5', name: 'Eve'));
   });
 
-  testWidgets('shows only ACTIVE assigned tenants, grouped by flat with '
-      'colored dots', (tester) async {
+  testWidgets('shows assigned and unassigned ACTIVE tenants', (tester) async {
     await pumpTenants(tester);
 
+    // Assigned tenants appear
     expect(find.text('Alice'), findsOneWidget);
     expect(find.text('Bob'), findsOneWidget);
 
-    expect(find.text('Carol'), findsNothing); // archived
-    expect(find.textContaining('Absconded'), findsNothing); // Dan hidden
-    expect(find.text('Eve'), findsNothing); // unassigned
+    // Unassigned active tenant appears in Unassigned section
+    expect(find.text('Eve'), findsOneWidget);
+    // Section header "Unassigned" - we just verify Eve is there and flat groups exist
 
+    // Archived/absconded still hidden
+    expect(find.text('Carol'), findsNothing);
+    expect(find.textContaining('Absconded'), findsNothing);
+
+    // Flat groups still present for assigned
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.text('Beta'), findsOneWidget);
     expect(find.byKey(const Key('group-dot-f1')), findsOneWidget);
     expect(find.byKey(const Key('group-dot-f2')), findsOneWidget);
+  });
+
+  testWidgets('unassigned tenants have Unassigned badge and Assign shortcut', (tester) async {
+    await pumpTenants(tester);
+
+    // Find Eve's row
+    final eveRow = find.ancestor(
+      of: find.text('Eve'),
+      matching: find.byType(Card),
+    );
+    expect(eveRow, findsOneWidget);
+
+    // Should have Assign shortcut button
+    expect(find.byKey(const Key('assign-shortcut-p5')), findsOneWidget);
   });
 
   testWidgets('rows show the bed label and this month\u0027s payment status',
@@ -148,15 +167,16 @@ void main() {
     expect(find.text('Unpaid'), findsOneWidget);
   });
 
-  testWidgets('search filters by name across flats', (tester) async {
+  testWidgets('search filters by name across flats and unassigned', (tester) async {
     await pumpTenants(tester);
 
     await tester.enterText(
-        find.byKey(const Key('tenants_search_field')), 'bob');
+        find.byKey(const Key('tenants_search_field')), 'eve');
     await tester.pumpAndSettle();
 
-    expect(find.text('Bob'), findsOneWidget);
+    expect(find.text('Eve'), findsOneWidget);
     expect(find.text('Alice'), findsNothing);
+    expect(find.text('Bob'), findsNothing);
   });
 
   testWidgets('Add tenant button lives ON the page and navigates',
@@ -184,5 +204,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('detail_route')), findsOneWidget);
+  });
+
+  testWidgets('archived/absconded people never appear regardless of section', (tester) async {
+    await pumpTenants(tester);
+
+    expect(find.text('Carol'), findsNothing);
+    expect(find.text('Dan'), findsNothing);
+    // Even if we search for them
+    await tester.enterText(
+        find.byKey(const Key('tenants_search_field')), 'carol');
+    await tester.pumpAndSettle();
+    expect(find.text('Carol'), findsNothing);
   });
 }

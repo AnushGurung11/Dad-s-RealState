@@ -65,6 +65,11 @@ void main() {
 
   testWidgets('selecting "Other" reveals the note field and blocks submit '
       'until it is filled', (tester) async {
+    // Tall viewport so the entire form fits without scrolling.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    
     await pumpFlow(tester);
 
     // Note field hidden for the default reason.

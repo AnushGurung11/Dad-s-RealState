@@ -77,7 +77,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.descendant(
       of: find.byType(Drawer),
-      matching: find.text('Flat Lease Payment'),
+      matching: find.text('Cheque Payment (Flat)'),
     ));
     await tester.pumpAndSettle();
 

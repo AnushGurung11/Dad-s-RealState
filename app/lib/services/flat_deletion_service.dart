@@ -1,7 +1,10 @@
 import '../models/expense.dart';
 import '../models/flat.dart';
 import '../models/lease_cheque_record.dart';
+import '../models/lease_cheque_setting.dart';
 import '../models/payment.dart';
+import '../config.dart';
+import '../utils/format.dart';
 
 /// Outcome of a delete request on a flat.
 enum FlatDeleteOutcome { hardDelete, archive }
@@ -9,20 +12,28 @@ enum FlatDeleteOutcome { hardDelete, archive }
 /// What will happen to a flat if it is deleted right now, plus the data the
 /// caller needs to act on it. Pure logic — no I/O.
 class FlatDeleteDecision {
-  const FlatDeleteDecision._(this.outcome);
+  const FlatDeleteDecision._(this.outcome, {this.outstandingDue});
 
   const FlatDeleteDecision.hardDelete() : this._(FlatDeleteOutcome.hardDelete);
   const FlatDeleteDecision.archive() : this._(FlatDeleteOutcome.archive);
+  const FlatDeleteDecision.hardDeleteWithOutstandingDue(double amount) : this._(FlatDeleteOutcome.hardDelete, outstandingDue: amount);
+  const FlatDeleteDecision.archiveWithOutstandingDue(double amount) : this._(FlatDeleteOutcome.archive, outstandingDue: amount);
 
   final FlatDeleteOutcome outcome;
+  final double? outstandingDue;
 
   bool get isHardDelete => outcome == FlatDeleteOutcome.hardDelete;
   bool get isArchive => outcome == FlatDeleteOutcome.archive;
+  bool get hasOutstandingDue => outstandingDue != null;
 
   /// Plain-language copy for the confirm dialog.
   String get confirmMessage => isHardDelete
       ? 'This flat has no financial history and will be permanently deleted.'
       : 'This flat has payment history and will be archived, not deleted.';
+
+  String get outstandingDueMessage => outstandingDue != null
+      ? 'This flat has an outstanding lease cheque due of ${formatMoneyShort(outstandingDue!)}.'
+      : '';
 }
 
 /// Decides whether a flat can be hard-deleted or must only be archived.
@@ -45,12 +56,36 @@ abstract final class FlatDeletionService {
     return payments.any((p) => p.flatId == flatId);
   }
 
+  /// Checks if the flat has an outstanding (unpaid) lease cheque due.
+  static double? getOutstandingLeaseDue({
+    required String flatId,
+    required List<LeaseChequeSetting> leaseChequeSettings,
+    required List<LeaseChequeRecord> leaseChequeRecords,
+  }) {
+    final setting = leaseChequeSettings
+        .where((s) => s.flatId == flatId)
+        .firstOrNull;
+    if (setting == null) return null;
+
+    // Check if there's a record for the current due date
+    final currentDue = setting.nextDueDate;
+    final hasPaidCurrentDue = leaseChequeRecords.any((r) =>
+        r.flatId == flatId &&
+        r.dueDate.year == currentDue.year &&
+        r.dueDate.month == currentDue.month &&
+        r.dueDate.day == currentDue.day);
+
+    if (hasPaidCurrentDue) return null;
+    return setting.amount;
+  }
+
   /// Resolves what "delete" means for [flat] given the financial data.
   static FlatDeleteDecision resolveDelete({
     required Flat flat,
     required List<Expense> expenses,
     required List<LeaseChequeRecord> leaseChequeRecords,
     required List<Payment> payments,
+    required List<LeaseChequeSetting> leaseChequeSettings,
   }) {
     final hasHistory = hasFinancialHistory(
       flatId: flat.id,
@@ -58,8 +93,22 @@ abstract final class FlatDeletionService {
       leaseChequeRecords: leaseChequeRecords,
       payments: payments,
     );
-    return hasHistory
-        ? const FlatDeleteDecision.archive()
-        : const FlatDeleteDecision.hardDelete();
+    final outstandingDue = getOutstandingLeaseDue(
+      flatId: flat.id,
+      leaseChequeSettings: leaseChequeSettings,
+      leaseChequeRecords: leaseChequeRecords,
+    );
+
+    if (hasHistory) {
+      if (outstandingDue != null) {
+        return FlatDeleteDecision.archiveWithOutstandingDue(outstandingDue);
+      }
+      return const FlatDeleteDecision.archive();
+    } else {
+      if (outstandingDue != null) {
+        return FlatDeleteDecision.hardDeleteWithOutstandingDue(outstandingDue);
+      }
+      return const FlatDeleteDecision.hardDelete();
+    }
   }
 }

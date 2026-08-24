@@ -243,4 +243,52 @@ void main() {
     expect(summary.monthExpense, 0);
     expect(summary.paidThisMonthCount, 0);
   });
+
+  test('archived flats are excluded from every Dashboard figure', () {
+    final archivedFlat = Flat(
+      id: 'f3',
+      name: 'Gamma',
+      address: '3 C Road',
+      createdAt: DateTime(2026, 1, 1),
+      archived: true,
+      archivedAt: DateTime(2026, 2, 1),
+    );
+    final archivedBed = Bed(id: 'b4', flatId: 'f3', label: 'Bed 1', defaultMonthlyRent: 5000, tenantId: 'p4');
+    final archivedPerson = Person(
+      id: 'p4',
+      name: 'Dave',
+      contact: '9000000004',
+      bedId: 'b4',
+      flatId: 'f3',
+      joinDate: DateTime(2026, 1, 1),
+      plannedStayMonths: 12,
+      depositAmount: 5000,
+      monthlyRent: 5000,
+    );
+    final archivedSetting = LeaseChequeSetting(
+      id: 's3',
+      flatId: 'f3',
+      ownerName: 'Owner C',
+      amount: 10000,
+      nextDueDate: DateTime(2026, 2, 15),
+      notifyEnabled: true,
+    );
+
+    final summary = DashboardService().build(
+      flats: [flatA, flatB, archivedFlat],
+      beds: [bed1, bed2, bed3, archivedBed],
+      people: [p1, p2, p3, archivedPerson],
+      payments: [],
+      expenses: [],
+      leaseSettings: [setting1, setting2, archivedSetting],
+      month: '2026-02',
+    );
+
+    // Only active flats counted
+    expect(summary.flatsCount, 2);
+    expect(summary.bedsOccupied, 2); // archived bed excluded
+    expect(summary.bedsVacant, 1); // archived bed excluded
+    expect(summary.activePeopleCount, 2); // archived person excluded
+    expect(summary.nextLeasePayment?.id, 's2'); // setting1 (Mar 15) vs setting2 (Feb 28) -> setting2 wins, archivedSetting excluded
+  });
 }

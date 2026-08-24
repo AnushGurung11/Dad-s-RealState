@@ -190,6 +190,11 @@ void main() {
 
   testWidgets('"Months paying for" > 1 shows an editable per-month preview '
       'before save', (tester) async {
+    // Tall viewport so the entire form fits without scrolling.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    
     await pumpScreen(tester);
 
     await tester.tap(find.text('Alice')); // rent 4000
