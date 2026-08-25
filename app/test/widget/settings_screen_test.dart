@@ -71,6 +71,9 @@ void main() {
   testWidgets('About block renders the LUCKY wordmark', (tester) async {
     await pumpSettings(tester);
 
+    // Scroll to find the About section
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
     expect(find.byType(LuckyWordmark), findsOneWidget);
   });
 }
