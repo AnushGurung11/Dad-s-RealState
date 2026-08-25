@@ -18,6 +18,9 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // Set APK name to LUCK-version
+    setProperty("archivesBaseName", "LUCK-${flutter.versionName}")
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
