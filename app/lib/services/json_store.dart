@@ -368,6 +368,16 @@ class LocalJsonStore extends InMemoryJsonStore {
       await migrate(fromVersion: storedVersion, toVersion: AppConfig.schemaVersion);
     }
 
+    // Clear all collections before loading new data to ensure clean replace
+    _flats.clear();
+    _beds.clear();
+    _people.clear();
+    _payments.clear();
+    _expenses.clear();
+    _chequeSettings.clear();
+    _chequeRecords.clear();
+    _terminations.clear();
+
     final rawFlats = await _readFile(AppConfig.flatsFileName);
     final rawBeds = await _readFile(AppConfig.bedsFileName);
     final rawPeople = await _readFile(AppConfig.peopleFileName);
