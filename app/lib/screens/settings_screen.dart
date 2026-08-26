@@ -172,15 +172,15 @@ class _DataSectionState extends State<_DataSection> {
     setState(() => _isBusy = true);
     try {
       // Pick backup file
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
         dialogTitle: 'Select backup zip to restore',
       );
-      if (result == null || result.files.isEmpty) {
+      if (result.isEmpty) {
         return;
       }
-      final file = File(result.files.single.path!);
+      final file = File(result.single.path!);
 
       // Validate first
       final store = StoreScope.of(context);

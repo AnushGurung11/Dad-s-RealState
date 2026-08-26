@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import com.android.build.gradle.tasks.PackageApplication
 
 plugins {
     id("com.android.application")
@@ -17,9 +18,6 @@ android {
     namespace = "com.renttrack.renttrack"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
-
-    // Set APK name to LUCK-version
-    setProperty("archivesBaseName", "LUCK-${flutter.versionName}")
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -56,6 +54,11 @@ android {
             }
         }
     }
+
+    // TODO: Configure APK output name with AGP 9.0+ API
+// tasks.withType<PackageApplication>().configureEach { task ->
+//     task.outputFileName.set("LUCK-${flutter.versionName}-${task.name}.apk")
+// }
 }
 
 kotlin {
