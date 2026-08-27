@@ -125,7 +125,9 @@ void main() {
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, isNull);
 
     // ── 5. Archive shows her with the red badge + note ──────────────
-    await drawerGo('Settings', 'Archive');
+    await openDrawer();
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
     // The Archive section links out to the tenant archive list.
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
     await tester.pumpAndSettle();

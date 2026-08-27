@@ -41,6 +41,27 @@ class ExcelExportService {
   /// Optional override for getting the documents directory (used in tests).
   final Future<Directory> Function()? getDocumentsDirectory;
 
+  /// Creates the header cell style used across all sheets.
+  CellStyle get _headerStyle => CellStyle(
+        bold: true,
+        fontSize: 12,
+        backgroundColorHex: '#E3F2FD', // Light blue (accent color at low opacity)
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+  /// Applies header style to row 0 and sets column widths for the given sheet.
+  void _styleHeaderRow(Sheet sheet, int columnCount) {
+    for (var col = 0; col < columnCount; col++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      cell.cellStyle = _headerStyle;
+    }
+    // Set reasonable column widths
+    for (var col = 0; col < columnCount; col++) {
+      sheet.setColWidth(col, 18.0);
+    }
+  }
+
   /// Exports all data to an .xlsx file with 7 sheets.
   /// Returns the file; the caller should show a share sheet.
   Future<File> exportToExcel() async {
@@ -92,6 +113,9 @@ class ExcelExportService {
       'This file is a point-in-time export for viewing/record-keeping only '
       'and is never re-imported into the app — edits here have no effect.',
     ]);
+    // Style the title row
+    final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0));
+    cell.cellStyle = _headerStyle;
   }
 
   void _addTenantsSheet(Excel excel) {
@@ -110,6 +134,7 @@ class ExcelExportService {
       'Monthly Rent',
       'Deposit',
     ]);
+    _styleHeaderRow(sheet, 10);
 
     // Build lookup maps
     final flatMap = {for (var f in flats) f.id: f};
@@ -150,6 +175,7 @@ class ExcelExportService {
       'Default Monthly Rent',
       'Status',
     ]);
+    _styleHeaderRow(sheet, 7);
 
     final personMap = {for (var p in people) p.id: p};
 
@@ -196,6 +222,7 @@ class ExcelExportService {
       'Expenses',
       'Net',
     ]);
+    _styleHeaderRow(sheet, 5);
 
     // Get all months present in payments or expenses
     final months = <String>{};
@@ -238,6 +265,7 @@ class ExcelExportService {
       'Date',
       'Amount',
     ]);
+    _styleHeaderRow(sheet, 3);
 
     final flatMap = {for (var f in flats) f.id: f};
 
@@ -265,6 +293,7 @@ class ExcelExportService {
       'Amount',
       'Type',
     ]);
+    _styleHeaderRow(sheet, 5);
 
     final personMap = {for (var p in people) p.id: p};
     final flatMap = {for (var f in flats) f.id: f};
@@ -296,6 +325,7 @@ class ExcelExportService {
       'Date',
       'Note',
     ]);
+    _styleHeaderRow(sheet, 6);
 
     final flatMap = {for (var f in flats) f.id: f};
 

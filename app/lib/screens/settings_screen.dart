@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config.dart';
@@ -84,8 +85,20 @@ class _DataSection extends StatefulWidget {
   State<_DataSection> createState() => _DataSectionState();
 }
 
+enum _DataAction { createBackup, restoreBackup, exportExcel }
+
 class _DataSectionState extends State<_DataSection> {
-  bool _isBusy = false;
+  final Map<_DataAction, bool> _isBusy = {
+    _DataAction.createBackup: false,
+    _DataAction.restoreBackup: false,
+    _DataAction.exportExcel: false,
+  };
+
+  bool _isBusyFor(_DataAction action) => _isBusy[action] ?? false;
+
+  void _setBusy(_DataAction action, bool busy) {
+    if (mounted) setState(() => _isBusy[action] = busy);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,31 +111,47 @@ class _DataSectionState extends State<_DataSection> {
             leading: const Icon(Icons.backup_outlined),
             title: const Text('Create backup'),
             subtitle: const Text('Export all data and photos as a zip file'),
-            trailing: _isBusy
+            trailing: _isBusyFor(_DataAction.createBackup)
                 ? const SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.chevron_right),
-            onTap: _isBusy ? null : _createBackup,
+            onTap: _isBusyFor(_DataAction.createBackup) ? null : _createBackup,
           ),
         ),
         Card(
           margin: const EdgeInsets.symmetric(vertical: 4),
-          child: ListTile(
-            key: const Key('settings_restore_backup'),
-            leading: const Icon(Icons.restore_outlined),
-            title: const Text('Restore from backup'),
-            subtitle: const Text('Replace all data with a backup zip (destructive)'),
-            trailing: _isBusy
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.chevron_right),
-            onTap: _isBusy ? null : _restoreBackup,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Select the backup file (.zip) — no need to extract it, the app reads it directly.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+              ),
+              ListTile(
+                key: const Key('settings_restore_backup'),
+                leading: const Icon(Icons.restore_outlined),
+                title: const Text('Restore from backup'),
+                subtitle: const Text('Replace all data with a backup zip (destructive)'),
+                trailing: _isBusyFor(_DataAction.restoreBackup)
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: _isBusyFor(_DataAction.restoreBackup) ? null : _restoreBackup,
+              ),
+            ],
           ),
         ),
         Card(
@@ -132,14 +161,14 @@ class _DataSectionState extends State<_DataSection> {
             leading: const Icon(Icons.table_chart_outlined),
             title: const Text('Export to Excel'),
             subtitle: const Text('One-way export for viewing (7 sheets, never re-imported)'),
-            trailing: _isBusy
+            trailing: _isBusyFor(_DataAction.exportExcel)
                 ? const SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.chevron_right),
-            onTap: _isBusy ? null : _exportExcel,
+            onTap: _isBusyFor(_DataAction.exportExcel) ? null : _exportExcel,
           ),
         ),
       ],
@@ -147,29 +176,100 @@ class _DataSectionState extends State<_DataSection> {
   }
 
   Future<void> _createBackup() async {
-    setState(() => _isBusy = true);
+    _setBusy(_DataAction.createBackup, true);
     try {
       final store = StoreScope.of(context);
       final backupService = BackupService(store);
       final file = await backupService.createBackup();
       if (!mounted) return;
-      await Share.shareXFiles([XFile(file.path)], text: 'LUCKY backup');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup created and shared')),
-      );
+      await _showBackupOptions(file);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to create backup: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isBusy = false);
+      _setBusy(_DataAction.createBackup, false);
+    }
+  }
+
+  Future<void> _showBackupOptions(File file) async {
+    if (!mounted) return;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.save),
+              title: const Text('Save to device'),
+              onTap: () => Navigator.pop(ctx, 'save'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share'),
+              onTap: () => Navigator.pop(ctx, 'share'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'save') {
+      await _saveFileToDevice(file);
+    } else if (choice == 'share') {
+      await Share.shareXFiles([XFile(file.path)], text: 'LUCKY backup');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Backup created and shared')),
+      );
+    }
+  }
+
+  Future<void> _saveFileToDevice(File file) async {
+    try {
+      Directory? targetDir;
+      if (Platform.isAndroid) {
+        // Try to get the Downloads directory on Android
+        targetDir = await getExternalStorageDirectory();
+        if (targetDir != null) {
+          // Navigate to Downloads from the app-specific external storage
+          final downloadsDir = Directory('/storage/emulated/0/Download');
+          if (await downloadsDir.exists()) {
+            targetDir = downloadsDir;
+          }
+        }
+      } else if (Platform.isIOS) {
+        // On iOS, use the Documents directory
+        targetDir = await getApplicationDocumentsDirectory();
+      } else {
+        // Fallback to app documents directory
+        targetDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (targetDir == null) {
+        targetDir = await getApplicationDocumentsDirectory();
+      }
+
+      final fileName = file.path.split('/').last;
+      final targetFile = File('${targetDir.path}/$fileName');
+      await targetFile.writeAsBytes(await file.readAsBytes(), flush: true);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Backup saved to ${targetFile.path}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save backup: $e')),
+      );
     }
   }
 
   Future<void> _restoreBackup() async {
-    setState(() => _isBusy = true);
+    _setBusy(_DataAction.restoreBackup, true);
     try {
       // Pick backup file
       final result = await FilePicker.pickFiles(
@@ -278,12 +378,12 @@ class _DataSectionState extends State<_DataSection> {
         SnackBar(content: Text('Failed to restore backup: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isBusy = false);
+      _setBusy(_DataAction.restoreBackup, false);
     }
   }
 
   Future<void> _exportExcel() async {
-    setState(() => _isBusy = true);
+    _setBusy(_DataAction.exportExcel, true);
     try {
       final store = StoreScope.of(context);
       final excelService = ExcelExportService(
@@ -298,18 +398,48 @@ class _DataSectionState extends State<_DataSection> {
       );
       final file = await excelService.exportToExcel();
       if (!mounted) return;
-      await Share.shareXFiles([XFile(file.path)], text: 'LUCKY Excel export');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Excel export created and shared')),
-      );
+      await _showExcelOptions(file);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to export Excel: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isBusy = false);
+      _setBusy(_DataAction.exportExcel, false);
+    }
+  }
+
+  Future<void> _showExcelOptions(File file) async {
+    if (!mounted) return;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.save),
+              title: const Text('Save to device'),
+              onTap: () => Navigator.pop(ctx, 'save'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share'),
+              onTap: () => Navigator.pop(ctx, 'share'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'save') {
+      await _saveFileToDevice(file);
+    } else if (choice == 'share') {
+      await Share.shareXFiles([XFile(file.path)], text: 'LUCKY Excel export');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Excel export created and shared')),
+      );
     }
   }
 

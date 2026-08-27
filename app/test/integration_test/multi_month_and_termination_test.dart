@@ -164,7 +164,9 @@ void main() {
         hasLength(3));
 
     // ── 4. Archive shows Nina with the neutral "Left" badge ─────────
-    await drawerGo('Settings', 'Archive');
+    await openDrawer();
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
     await tester.pumpAndSettle();
 

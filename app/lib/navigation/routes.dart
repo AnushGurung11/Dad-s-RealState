@@ -40,6 +40,7 @@ abstract final class Routes {
   static const String historyFlatLease = '/history/flat-lease';
   static const String historyTenantRent = '/history/tenant-rent';
   static const String expenses = '/expenses';
+  static const String settings = '/settings';
   static const String settingsArchive = '/settings/archive';
   static const String archiveTenants = '/archive/tenants';
   static const String archiveFlats = '/archive/flats';
@@ -64,6 +65,7 @@ const Map<String, String> routeTitles = {
   Routes.historyFlatLease: 'Flat Lease History',
   Routes.historyTenantRent: 'Tenant Rent History',
   Routes.expenses: 'Expenses',
+  Routes.settings: 'Settings',
   Routes.settingsArchive: 'Settings',
   Routes.archiveTenants: 'Archived Tenants',
   Routes.archiveFlats: 'Archive Flats',
@@ -124,6 +126,8 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(PaymentHistoryScreen.new);
     case Routes.expenses:
       return material(ExpensesScreen.new);
+    case Routes.settings:
+      return material(SettingsScreen.new);
     case Routes.settingsArchive:
       return material(
         () => const SettingsScreen(initialSection: SettingsSection.archive),

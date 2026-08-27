@@ -20,7 +20,7 @@ Finder inDrawer(Finder matching) =>
     find.descendant(of: find.byType(Drawer), matching: matching);
 
 void main() {
-  testWidgets('drawer renders all 8 top-level entries', (tester) async {
+  testWidgets('drawer renders all 7 top-level entries', (tester) async {
     await openDrawer(tester);
 
     const labels = [
@@ -31,14 +31,15 @@ void main() {
       'Payment History',
       'Expenses',
       'Settings',
-      'Financial Report',
     ];
     for (final label in labels) {
       expect(inDrawer(find.text(label)), findsOneWidget);
     }
+    // Financial Report is a disabled ListTile, not a top-level entry
+    expect(inDrawer(find.text('Financial Report')), findsOneWidget);
   });
 
-  testWidgets('Tenants, Payments, Payment History and Settings expand to show '
+  testWidgets('Tenants, Payments, and Payment History expand to show '
       'their sub-items when tapped', (tester) async {
     await openDrawer(tester);
 
@@ -60,11 +61,8 @@ void main() {
     expect(inDrawer(find.text('Flat Lease History')), findsOneWidget);
     expect(inDrawer(find.text('Tenant Rent History')), findsOneWidget);
 
-    await tester.tap(inDrawer(find.text('Settings')));
-    await tester.pumpAndSettle();
-    // Notifications were removed entirely — only Archive remains.
-    expect(inDrawer(find.text('Notifications')), findsNothing);
-    expect(inDrawer(find.text('Archive')), findsOneWidget);
+    // Settings is now a direct tile, not expandable — no Archive sub-item
+    expect(inDrawer(find.text('Archive')), findsNothing);
   });
 
   testWidgets('Financial Report is present but disabled and does not navigate',

@@ -140,19 +140,12 @@ class AppDrawer extends StatelessWidget {
             currentRoute: currentRoute,
             onTap: () => _go(context, Routes.expenses),
           ),
-          _Expandable(
+          _Tile(
             icon: Icons.settings_outlined,
             label: 'Settings',
+            route: Routes.settings,
             currentRoute: currentRoute,
-            children: [
-              _Tile(
-                icon: Icons.archive_outlined,
-                label: 'Archive',
-                route: Routes.settingsArchive,
-                currentRoute: currentRoute,
-                onTap: () => _go(context, Routes.settingsArchive),
-              ),
-            ],
+            onTap: () => _go(context, Routes.settings),
           ),
           const Divider(),
           ListTile(

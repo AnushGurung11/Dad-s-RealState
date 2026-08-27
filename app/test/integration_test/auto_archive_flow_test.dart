@@ -125,11 +125,6 @@ void main() {
     await openDrawer();
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Archive'),
-    ));
-    await tester.pumpAndSettle();
 
     // Settings → "Archived Tenants" opens the tenant archive list.
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
