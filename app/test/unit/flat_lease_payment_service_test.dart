@@ -49,30 +49,31 @@ void main() {
     expect(record.paidDate, DateTime(2026, 9, 20));
     expect(record.month, monthKey(DateTime(2026, 10, 25)));
 
-    expect(updated.nextDueDate, DateTime(2026, 12, 25));
+    expect(updated.nextDueDate, DateTime(2026, 12, 1));
   });
 
   test('paying EARLY advances by exactly intervalMonths from the ORIGINAL '
       'due date', () {
     // Due Oct 25, paid Sep 20 — the schedule must not drift backwards.
+    // New rule snaps to 1st of month: Oct 1 + 2 months = Dec 1
     FlatLeasePaymentService(store).pay(
       setting: setting(nextDueDate: DateTime(2026, 10, 25)),
       amount: 4000,
       paidDate: DateTime(2026, 9, 20),
     );
     expect(store.leaseChequeSettings.single.nextDueDate,
-        DateTime(2026, 12, 25));
+        DateTime(2026, 12, 1));
   });
 
   test('paying LATE does not drift the schedule either', () {
-    // Due Oct 25, paid Nov 30 — next due is still Dec 25, not Dec 30.
+    // Due Oct 25, paid Nov 30 — next due is still Dec 1 (snapped), not Dec 30.
     FlatLeasePaymentService(store).pay(
       setting: setting(nextDueDate: DateTime(2026, 10, 25)),
       amount: 4000,
       paidDate: DateTime(2026, 11, 30),
     );
     expect(store.leaseChequeSettings.single.nextDueDate,
-        DateTime(2026, 12, 25));
+        DateTime(2026, 12, 1));
   });
 
   test('due list keeps past-due settings and sorts ascending', () {
@@ -104,6 +105,6 @@ void main() {
     );
     expect(store.leaseChequeRecords, hasLength(1));
     expect(store.leaseChequeSettings.single.nextDueDate,
-        DateTime(2026, 12, 25));
+        DateTime(2026, 12, 1));
   });
 }

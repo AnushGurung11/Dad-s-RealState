@@ -34,8 +34,9 @@ class FlatLeasePaymentService {
 
   /// Marks [setting]'s current cheque as paid:
   ///  1. creates a [LeaseChequeRecord] with the entered amount/date,
-  ///  2. advances `nextDueDate` by [monthsCovered] from the original due date.
-  ///     If [monthsCovered] is null, uses the setting's intervalMonths.
+  ///  2. advances `nextDueDate`:
+  ///     - if [explicitNextDueDate] is provided, use it directly,
+  ///     - else default to 1st day of month (current cycle month + monthsCovered) months later.
   /// Both writes happen as one batched store write. Returns the updated
   /// setting so callers can reflect the advanced due date.
   LeaseChequeSetting pay({
@@ -43,6 +44,8 @@ class FlatLeasePaymentService {
     required double amount,
     DateTime? paidDate,
     int? monthsCovered,
+    DateTime? explicitNextDueDate,
+    String? description,
   }) {
     if (amount <= 0) {
       throw const LeasePaymentException('Enter an amount greater than 0.');
@@ -56,19 +59,43 @@ class FlatLeasePaymentService {
       dueDate: setting.nextDueDate,
       paidDate: date,
       month: monthKey(setting.nextDueDate),
+      description: description,
     );
 
-    // Advance from the ORIGINAL due date by the specified months (or interval).
-    final monthsToAdvance = monthsCovered ?? setting.intervalMonths;
-    final interval = monthsToAdvance < 1 ? 2 : monthsToAdvance;
-    final original = setting.nextDueDate;
-    final nextDue = _addMonths(original, interval);
+    final DateTime nextDue;
+    if (explicitNextDueDate != null) {
+      nextDue = explicitNextDueDate;
+    } else {
+      final monthsToAdvance = monthsCovered ?? setting.intervalMonths;
+      final interval = monthsToAdvance < 1 ? 2 : monthsToAdvance;
+      // New rule: snap to 1st of month (cycle month + interval)
+      final cycleMonth = DateTime(setting.nextDueDate.year, setting.nextDueDate.month, 1);
+      final targetMonth = _addMonths(cycleMonth, interval);
+      nextDue = DateTime(targetMonth.year, targetMonth.month, 1);
+    }
     final updated = setting.copyWith(nextDueDate: nextDue);
 
     store.runBatched(() {
       store.upsertChequeRecord(record);
       store.upsertChequeSetting(updated);
     });
+    return updated;
+  }
+
+  /// Directly edits a LeaseChequeSetting without creating a payment record.
+  /// Used for correcting amount / nextDueDate / frequency after renegotiation.
+  LeaseChequeSetting updateSetting(
+    LeaseChequeSetting setting, {
+    double? amount,
+    DateTime? nextDueDate,
+    int? intervalMonths,
+  }) {
+    final updated = setting.copyWith(
+      amount: amount ?? setting.amount,
+      nextDueDate: nextDueDate ?? setting.nextDueDate,
+      intervalMonths: intervalMonths ?? setting.intervalMonths,
+    );
+    store.upsertChequeSetting(updated);
     return updated;
   }
 }

@@ -161,15 +161,14 @@ void main() {
     await tester.tap(find.byKey(const Key('record_lease_payment')));
     await tester.pumpAndSettle();
 
-    // Old due date gone from the list; advanced one present.
-    // With 3 months from 2026-10-25 -> 2027-01-25
-    expect(find.textContaining('2026-10-25'), findsNothing);
-    expect(find.textContaining('2027-01-25'), findsOneWidget);
+    // Advanced one present (snaps to 1st: 2027-01-01). Old due date remains in past record.
+    expect(find.textContaining('2027-01-01'), findsOneWidget);
+    expect(find.textContaining('2026-10-25'), findsOneWidget); // in past record
 
     final record = store.leaseChequeRecords.single;
     expect(record.amount, 3900);
     expect(record.dueDate, due);
-    expect(store.leaseChequeSettings.single.nextDueDate, DateTime(2027, 1, 25));
+    expect(store.leaseChequeSettings.single.nextDueDate, DateTime(2027, 1, 1));
   });
 
   testWidgets('formatRemaining utility works correctly', (tester) async {

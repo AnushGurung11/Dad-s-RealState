@@ -100,12 +100,13 @@ void main() {
     // Wait for the snackbar (async payment processing + setState).
     await tester.pumpAndSettle();
 
-    final expectedNext = DateTime(due.year, due.month + 2, due.day);
+    // New logic snaps to 1st of month
+    final expectedNext = DateTime(due.year, due.month + 2, 1);
     expect(store.leaseChequeRecords.single.amount, 11500);
     expect(store.leaseChequeSettings.single.nextDueDate, expectedNext);
-    // Row refreshed with the advanced due date.
+    // Row refreshed with the advanced due date (upcoming); old due remains in past record
     expect(find.textContaining(dateText(expectedNext)), findsOneWidget);
-    expect(find.textContaining(dateText(due)), findsNothing);
+    expect(find.textContaining(dateText(due)), findsOneWidget);
 
     // ── Tenant Rent Payment ───────────────────────────────────────────
     await goToFinanceTenantRent();
