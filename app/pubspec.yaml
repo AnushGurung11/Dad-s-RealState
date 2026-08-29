@@ -13,6 +13,7 @@ dependencies:
   archive: ^3.6.1
   country_picker: ^2.0.27
   excel: ^2.1.0
+  fl_chart: ^0.70.1
   file_picker: ^12.1.0
   image_picker: ^1.2.1
   path_provider: ^2.1.5

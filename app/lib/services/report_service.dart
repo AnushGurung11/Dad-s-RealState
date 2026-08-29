@@ -98,4 +98,64 @@ abstract final class ReportService {
     }
     return rollup;
   }
+
+  /// Trailing 12 months including current, per flat or all flats.
+  static List<({String month, double income, double expense, double net})> trailing12Months({
+    String? flatId,
+    required List<Payment> payments,
+    required List<Expense> expenses,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
+    DateTime? now,
+  }) {
+    final base = now ?? DateTime.now();
+    final result = <({String month, double income, double expense, double net})>[];
+    for (int i = 11; i >= 0; i--) {
+      final d = DateTime(base.year, base.month - i, 1);
+      final month = monthKey(d);
+      double income;
+      double expense;
+      if (flatId == null) {
+        income = payments.where((p) => p.month == month).fold(0.0, (s, p) => s + p.amountPaid);
+        expense = ExpenseAggregationService.totalExpensesForMonth(
+            month: month, expenses: expenses, leaseChequeRecords: leaseChequeRecords);
+      } else {
+        income = flatIncome(payments: payments, flatId: flatId, month: month);
+        expense = ExpenseAggregationService.totalExpensesForFlat(
+            flatId: flatId, month: month, expenses: expenses, leaseChequeRecords: leaseChequeRecords);
+      }
+      result.add((month: month, income: income, expense: expense, net: income - expense));
+    }
+    return result;
+  }
+
+  /// Yearly totals for [year], optionally filtered to one flat.
+  static ({double income, double expense, double net, List<({String month, double income, double expense, double net})> monthly}) yearlyTotals({
+    required int year,
+    String? flatId,
+    required List<Payment> payments,
+    required List<Expense> expenses,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
+  }) {
+    double totalIncome = 0;
+    double totalExpense = 0;
+    final monthly = <({String month, double income, double expense, double net})>[];
+    for (int m = 1; m <= 12; m++) {
+      final month = '${year.toString().padLeft(4, '0')}-${m.toString().padLeft(2, '0')}';
+      double income;
+      double expense;
+      if (flatId == null) {
+        income = payments.where((p) => p.month == month).fold(0.0, (s, p) => s + p.amountPaid);
+        expense = ExpenseAggregationService.totalExpensesForMonth(
+            month: month, expenses: expenses, leaseChequeRecords: leaseChequeRecords);
+      } else {
+        income = flatIncome(payments: payments, flatId: flatId, month: month);
+        expense = ExpenseAggregationService.totalExpensesForFlat(
+            flatId: flatId, month: month, expenses: expenses, leaseChequeRecords: leaseChequeRecords);
+      }
+      totalIncome += income;
+      totalExpense += expense;
+      monthly.add((month: month, income: income, expense: expense, net: income - expense));
+    }
+    return (income: totalIncome, expense: totalExpense, net: totalIncome - totalExpense, monthly: monthly);
+  }
 }
