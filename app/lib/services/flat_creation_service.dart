@@ -49,6 +49,11 @@ class FlatCreationService {
     required double defaultRentPerBed,
     DateTime? leasePaidThroughDate,
     int frequencyMonths = 2,
+    String? landlineNumber,
+    String? landlineRegisteredName,
+    String? esewaNumber,
+    String? wifiName,
+    String? wifiPassword,
   }) {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) {
@@ -75,6 +80,11 @@ class FlatCreationService {
       yearlyRent: yearlyRent,
       leasePaidThroughDate: leasePaidThroughDate,
       frequencyMonths: frequencyMonths,
+      landlineNumber: landlineNumber?.trim().isEmpty == true ? null : landlineNumber?.trim(),
+      landlineRegisteredName: landlineRegisteredName?.trim().isEmpty == true ? null : landlineRegisteredName?.trim(),
+      esewaNumber: esewaNumber?.trim().isEmpty == true ? null : esewaNumber?.trim(),
+      wifiName: wifiName?.trim().isEmpty == true ? null : wifiName?.trim(),
+      wifiPassword: wifiPassword?.trim().isEmpty == true ? null : wifiPassword?.trim(),
     );
     final beds = List<Bed>.generate(
       bedCount,

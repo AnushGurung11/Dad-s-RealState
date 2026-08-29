@@ -429,6 +429,11 @@ mixin _FlatFormMixin<T extends StatefulWidget> on State<T> {
       TextEditingController();
   final TextEditingController yearlyRentController = TextEditingController();
   final TextEditingController frequencyController = TextEditingController(text: '2');
+  final TextEditingController landlineNumberController = TextEditingController();
+  final TextEditingController landlineRegisteredNameController = TextEditingController();
+  final TextEditingController esewaNumberController = TextEditingController();
+  final TextEditingController wifiNameController = TextEditingController();
+  final TextEditingController wifiPasswordController = TextEditingController();
 
   DateTime? registeredDate;
   DateTime? leasePaidThroughDate;
@@ -478,6 +483,11 @@ mixin _FlatFormMixin<T extends StatefulWidget> on State<T> {
     contractPersonController.dispose();
     yearlyRentController.dispose();
     frequencyController.dispose();
+    landlineNumberController.dispose();
+    landlineRegisteredNameController.dispose();
+    esewaNumberController.dispose();
+    wifiNameController.dispose();
+    wifiPasswordController.dispose();
     super.dispose();
   }
 }
@@ -530,6 +540,11 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
         defaultRentPerBed: parseMoney(_defaultRentController.text)!,
         leasePaidThroughDate: leasePaidThroughDate,
         frequencyMonths: frequency,
+        landlineNumber: landlineNumberController.text,
+        landlineRegisteredName: landlineRegisteredNameController.text,
+        esewaNumber: esewaNumberController.text,
+        wifiName: wifiNameController.text,
+        wifiPassword: wifiPasswordController.text,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -661,6 +676,54 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
               validator: (value) =>
                   parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
             ),
+            const SizedBox(height: 24),
+            Text('Utilities & Contacts',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: landlineNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Landline number',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: landlineRegisteredNameController,
+              decoration: const InputDecoration(
+                labelText: 'Landline registered name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: esewaNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Esewa number',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: wifiNameController,
+              decoration: const InputDecoration(
+                labelText: 'Wifi name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: wifiPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Wifi password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: _save,
@@ -713,6 +776,11 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
     leasePaidThroughDate = flat.leasePaidThroughDate;
     frequencyMonths = flat.frequencyMonths;
     frequencyController.text = flat.frequencyMonths.toString();
+    landlineNumberController.text = flat.landlineNumber ?? '';
+    landlineRegisteredNameController.text = flat.landlineRegisteredName ?? '';
+    esewaNumberController.text = flat.esewaNumber ?? '';
+    wifiNameController.text = flat.wifiName ?? '';
+    wifiPasswordController.text = flat.wifiPassword ?? '';
   }
 
   bool get _canAddBed => _beds.length < BedCapacityService.maxBeds;
@@ -771,6 +839,16 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
         leasePaidThroughDate: leasePaidThroughDate,
         clearLeasePaidThroughDate: leasePaidThroughDate == null,
         frequencyMonths: frequency,
+        landlineNumber: landlineNumberController.text.trim().isEmpty ? null : landlineNumberController.text.trim(),
+        landlineRegisteredName: landlineRegisteredNameController.text.trim().isEmpty ? null : landlineRegisteredNameController.text.trim(),
+        esewaNumber: esewaNumberController.text.trim().isEmpty ? null : esewaNumberController.text.trim(),
+        wifiName: wifiNameController.text.trim().isEmpty ? null : wifiNameController.text.trim(),
+        wifiPassword: wifiPasswordController.text.trim().isEmpty ? null : wifiPasswordController.text.trim(),
+        clearLandlineNumber: landlineNumberController.text.trim().isEmpty,
+        clearLandlineRegisteredName: landlineRegisteredNameController.text.trim().isEmpty,
+        clearEsewaNumber: esewaNumberController.text.trim().isEmpty,
+        clearWifiName: wifiNameController.text.trim().isEmpty,
+        clearWifiPassword: wifiPasswordController.text.trim().isEmpty,
       ));
       final keptIds = <String>{};
       for (final draft in _beds) {
@@ -908,6 +986,54 @@ class _FlatEditScreenState extends State<FlatEditScreen> with _FlatFormMixin {
               ],
               validator: (value) =>
                   parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
+            ),
+            const SizedBox(height: 24),
+            Text('Utilities & Contacts',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: landlineNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Landline number',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: landlineRegisteredNameController,
+              decoration: const InputDecoration(
+                labelText: 'Landline registered name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: esewaNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Esewa number',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: wifiNameController,
+              decoration: const InputDecoration(
+                labelText: 'Wifi name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: wifiPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Wifi password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
             ),
             const SizedBox(height: 24),
             Row(

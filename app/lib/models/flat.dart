@@ -11,6 +11,11 @@ class Flat {
     this.archivedAt,
     this.leasePaidThroughDate,
     this.frequencyMonths = 2,
+    this.landlineNumber,
+    this.landlineRegisteredName,
+    this.esewaNumber,
+    this.wifiName,
+    this.wifiPassword,
   });
 
   final String id;
@@ -46,6 +51,13 @@ class Flat {
   /// How many months between lease payments. Defaults to 2 (bi-monthly).
   final int frequencyMonths;
 
+  /// Utilities & Contacts — all optional.
+  final String? landlineNumber;
+  final String? landlineRegisteredName;
+  final String? esewaNumber;
+  final String? wifiName;
+  final String? wifiPassword;
+
   Flat copyWith({
     String? id,
     String? name,
@@ -60,6 +72,16 @@ class Flat {
     DateTime? leasePaidThroughDate,
     bool clearLeasePaidThroughDate = false,
     int? frequencyMonths,
+    String? landlineNumber,
+    String? landlineRegisteredName,
+    String? esewaNumber,
+    String? wifiName,
+    String? wifiPassword,
+    bool clearLandlineNumber = false,
+    bool clearLandlineRegisteredName = false,
+    bool clearEsewaNumber = false,
+    bool clearWifiName = false,
+    bool clearWifiPassword = false,
   }) {
     return Flat(
       id: id ?? this.id,
@@ -75,6 +97,15 @@ class Flat {
       leasePaidThroughDate:
           clearLeasePaidThroughDate ? null : leasePaidThroughDate ?? this.leasePaidThroughDate,
       frequencyMonths: frequencyMonths ?? this.frequencyMonths,
+      landlineNumber:
+          clearLandlineNumber ? null : landlineNumber ?? this.landlineNumber,
+      landlineRegisteredName: clearLandlineRegisteredName
+          ? null
+          : landlineRegisteredName ?? this.landlineRegisteredName,
+      esewaNumber: clearEsewaNumber ? null : esewaNumber ?? this.esewaNumber,
+      wifiName: clearWifiName ? null : wifiName ?? this.wifiName,
+      wifiPassword:
+          clearWifiPassword ? null : wifiPassword ?? this.wifiPassword,
     );
   }
 
@@ -101,6 +132,11 @@ class Flat {
           ? null
           : DateTime.parse(json['leasePaidThroughDate'] as String),
       frequencyMonths: (json['frequencyMonths'] as num?)?.toInt() ?? 2,
+      landlineNumber: json['landlineNumber'] as String?,
+      landlineRegisteredName: json['landlineRegisteredName'] as String?,
+      esewaNumber: json['esewaNumber'] as String?,
+      wifiName: json['wifiName'] as String?,
+      wifiPassword: json['wifiPassword'] as String?,
     );
   }
 
@@ -117,6 +153,11 @@ class Flat {
       'archivedAt': archivedAt?.toIso8601String(),
       'leasePaidThroughDate': leasePaidThroughDate?.toIso8601String(),
       'frequencyMonths': frequencyMonths,
+      'landlineNumber': landlineNumber,
+      'landlineRegisteredName': landlineRegisteredName,
+      'esewaNumber': esewaNumber,
+      'wifiName': wifiName,
+      'wifiPassword': wifiPassword,
     };
   }
 }

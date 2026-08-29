@@ -86,67 +86,83 @@ class _ArchivedFlatDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(flat.name)),
-      body: ListView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            children: [
-              const StatusBadge(kind: StatusKind.neutral, label: 'Archived'),
-              const SizedBox(width: 8),
-              Text(
-                'Archived ${_dateText(flat.archivedAt)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text('Lease info', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          _Field(label: 'Address', value: flat.address),
-          _Field(
-            label: 'Flat registered on',
-            value: _dateText(flat.registeredDate),
-          ),
-          _Field(label: 'Contract person', value: flat.contractPerson),
-          _Field(
-            label: 'Yearly rent',
-            value: flat.yearlyRent == null
-                ? null
-                : formatMoneyShort(flat.yearlyRent!),
-          ),
-          const Divider(height: 32),
-          Text('Beds & tenant history',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ...beds.map((bed) {
-            final occupant = bed.tenantId == null
-                ? null
-                : store.people
-                    .where((p) => p.id == bed.tenantId)
-                    .firstOrNull;
-            return Card(
-              key: ValueKey('archive-bed-${bed.id}'),
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              child: ListTile(
-                leading: Icon(
-                  Icons.bed_outlined,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const StatusBadge(kind: StatusKind.neutral, label: 'Archived'),
+                const SizedBox(width: 8),
+                Text(
+                  'Archived ${_dateText(flat.archivedAt)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                 ),
-                title: Text(bed.label),
-                subtitle: Text(
-                  occupant?.name ?? 'No tenant assigned',
-                  style: Theme.of(context).textTheme.bodySmall,
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Lease info', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            _Field(label: 'Address', value: flat.address),
+            _Field(
+              label: 'Flat registered on',
+              value: _dateText(flat.registeredDate),
+            ),
+            _Field(label: 'Contract person', value: flat.contractPerson),
+            _Field(
+              label: 'Yearly rent',
+              value: flat.yearlyRent == null
+                  ? null
+                  : formatMoneyShort(flat.yearlyRent!),
+            ),
+            const SizedBox(height: 12),
+            Text('Utilities & Contacts',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    )),
+            const SizedBox(height: 8),
+            _Field(label: 'Landline number', value: flat.landlineNumber),
+            _Field(
+                label: 'Landline registered name',
+                value: flat.landlineRegisteredName),
+            _Field(label: 'Esewa number', value: flat.esewaNumber),
+            _Field(label: 'Wifi name', value: flat.wifiName),
+            _Field(label: 'Wifi password', value: flat.wifiPassword),
+            const Divider(height: 32),
+            Text('Beds & tenant history',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            ...beds.map((bed) {
+              final occupant = bed.tenantId == null
+                  ? null
+                  : store.people
+                      .where((p) => p.id == bed.tenantId)
+                      .firstOrNull;
+              return Card(
+                key: ValueKey('archive-bed-${bed.id}'),
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.bed_outlined,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(bed.label),
+                  subtitle: Text(
+                    occupant?.name ?? 'No tenant assigned',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  trailing: Text(
+                    formatMoneyShort(bed.defaultMonthlyRent),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
-                trailing: Text(
-                  formatMoneyShort(bed.defaultMonthlyRent),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            );
-          }),
-        ],
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

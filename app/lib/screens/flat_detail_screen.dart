@@ -29,7 +29,7 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -89,6 +89,7 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
           tabs: const [
             Tab(text: 'Beds'),
             Tab(text: 'Lease info'),
+            Tab(text: 'Utilities'),
           ],
         ),
       ),
@@ -113,6 +114,7 @@ class _FlatDetailScreenState extends State<FlatDetailScreen>
             },
           ),
           _LeaseInfoTab(flat: flat),
+          _UtilitiesTab(flat: flat),
         ],
       ),
     );
@@ -177,6 +179,33 @@ class _LeaseField extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _UtilitiesTab extends StatelessWidget {
+  const _UtilitiesTab({required this.flat});
+
+  final Flat flat;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text('Utilities & Contacts',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                )),
+        const SizedBox(height: 12),
+        _LeaseField(label: 'Landline number', value: flat.landlineNumber),
+        _LeaseField(
+            label: 'Landline registered name',
+            value: flat.landlineRegisteredName),
+        _LeaseField(label: 'Esewa number', value: flat.esewaNumber),
+        _LeaseField(label: 'Wifi name', value: flat.wifiName),
+        _LeaseField(label: 'Wifi password', value: flat.wifiPassword),
+      ],
     );
   }
 }
