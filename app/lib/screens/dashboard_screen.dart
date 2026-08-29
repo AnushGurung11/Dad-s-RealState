@@ -142,11 +142,10 @@ class _ProfitCard extends StatelessWidget {
                 child: Text(
                   formatMoneyCompact(profit),
                   key: const Key('profit_value'),
-                  style: TextStyle(
-                    color: profit >= 0 ? colors.success : colors.danger,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: profit >= 0 ? colors.success : colors.danger,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ),
             ],
@@ -235,6 +234,8 @@ class _NextLeaseDueCard extends StatelessWidget {
     if (next == null) {
       return Card(
         key: const Key('next_lease_due_card'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 1,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -242,7 +243,7 @@ class _NextLeaseDueCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.event_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.account_balance_wallet_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
                   Text('Next Lease Due', style: Theme.of(context).textTheme.labelLarge),
                 ],
@@ -269,6 +270,8 @@ class _NextLeaseDueCard extends StatelessWidget {
 
     return Card(
       key: const Key('next_lease_due_card'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 1,
       child: InkWell(
         onTap: () => Navigator.pushNamed(context, Routes.paymentsFlatLease),
         borderRadius: BorderRadius.circular(12),
@@ -279,7 +282,7 @@ class _NextLeaseDueCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.event_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
+                  Icon(Icons.account_balance_wallet_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
                   Text('Next Lease Due', style: Theme.of(context).textTheme.labelLarge),
                   const Spacer(),
