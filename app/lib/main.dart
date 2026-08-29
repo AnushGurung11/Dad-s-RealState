@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'config.dart';
-import 'navigation/app_drawer.dart';
+import 'navigation/bottom_nav.dart';
 import 'navigation/routes.dart';
 import 'services/archive_service.dart';
 import 'services/json_store.dart';
@@ -122,8 +122,8 @@ class _StoreLoaderState extends State<StoreLoader> {
   }
 }
 
-/// App shell: AppBar (hamburger + current screen title), left drawer, and a
-/// body routed via the named routes in [Routes].
+/// App shell: AppBar (current screen title) + bottom NavigationBar.
+/// Implements patch section 1 — replaces the old drawer.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -149,15 +149,11 @@ class _AppShellState extends State<AppShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Runs once per launch, after the store loads and before the first
-    // dashboard frame — pure local computation, so no async/deferred needed.
     if (_archiveSweepDone) return;
     _archiveSweepDone = true;
     _runArchiveSweep();
   }
 
-  /// Archives every tenant whose stay lapsed and frees their beds. Only
-  /// changed entries are persisted (unchanged ones keep the same instance).
   void _runArchiveSweep() {
     final store = StoreScope.of(context);
     final (people, beds) = ArchiveService.checkAndArchive(
@@ -181,9 +177,6 @@ class _AppShellState extends State<AppShell> {
 
   void _navigateTo(String route) {
     if (route == _currentRoute) return;
-    // Keep the dashboard rooted at the bottom so popping a screen (e.g. after
-    // saving a form) always lands somewhere valid instead of emptying the
-    // navigator.
     _bodyNavKey.currentState
         ?.pushNamedAndRemoveUntil(route, (r) => r.isFirst);
   }
@@ -192,21 +185,17 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            tooltip: 'Open navigation menu',
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
         title: Text(routeTitles[_currentRoute] ?? AppConfig.appName),
       ),
-      drawer: AppDrawer(currentRoute: _currentRoute, onSelect: _navigateTo),
       body: Navigator(
         key: _bodyNavKey,
         initialRoute: Routes.dashboard,
         onGenerateRoute: buildRoute,
         observers: [_observer],
+      ),
+      bottomNavigationBar: LuckyBottomNav(
+        currentRoute: _currentRoute,
+        onSelect: _navigateTo,
       ),
     );
   }

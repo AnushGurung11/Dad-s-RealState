@@ -33,21 +33,34 @@ void main() {
     await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
-    Future<void> openDrawer() async {
-      await tester.tap(find.byTooltip('Open navigation menu'));
+    Future<void> goToTenants() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Tenants')));
       await tester.pumpAndSettle();
     }
 
-    Future<void> expandTenants() async {
-      await openDrawer();
-      await tester.tap(find.text('Tenants'));
+    Future<void> openTenantsFabAdd() async {
+      await goToTenants();
+      await tester.tap(find.byKey(const Key('tenants_fab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tenants_add_button')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openTenantsFabAssign() async {
+      await goToTenants();
+      await tester.tap(find.byKey(const Key('tenants_fab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tenants_assign_button')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToFlats() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Flats')));
       await tester.pumpAndSettle();
     }
 
     // ── 1. Add an unassigned tenant ──────────────────────────────────
-    await expandTenants();
-    await tester.tap(inDrawer(find.text('Add tenant')));
-    await tester.pumpAndSettle();
+    await openTenantsFabAdd();
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Name'), 'Alice');
     await tester.enterText(
@@ -61,9 +74,7 @@ void main() {
     expect(store.people.single.bedId, isNull);
 
     // ── 2. Assign Alice via the reordered flow ───────────────────────
-    await expandTenants();
-    await tester.tap(inDrawer(find.text('Assign')));
-    await tester.pumpAndSettle();
+    await openTenantsFabAssign();
 
     // Step 1: flat (only vacancy-bearing flats are listed).
     await tester.tap(find.byKey(const Key('assign_flat_picker')));
@@ -101,9 +112,7 @@ void main() {
         store.payments.single.type, PaymentType.deposit);
 
     // ── 3. Bed shows occupied on the Beds tab ────────────────────────
-    await openDrawer();
-    await tester.tap(inDrawer(find.text('Flats')));
-    await tester.pumpAndSettle();
+    await goToFlats();
 
     await tester.tap(find.text('Alpha'));
     await tester.pumpAndSettle();
@@ -137,9 +146,6 @@ void main() {
     expect(store.people.single.renewalHistory, hasLength(1));
   });
 }
-
-Finder inDrawer(Finder matching) =>
-    find.descendant(of: find.byType(Drawer), matching: matching);
 
 Color dotColorOf(WidgetTester tester, String id) =>
     (tester.widget<Container>(find.byKey(ValueKey('bed-dot-$id')))

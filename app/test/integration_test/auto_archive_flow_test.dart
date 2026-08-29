@@ -88,18 +88,25 @@ void main() {
     expect(store.beds.singleWhere((b) => b.id == 'b1').tenantId, isNull);
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, 'p2');
 
-    Future<void> openDrawer() async {
-      await tester.tap(find.byTooltip('Open navigation menu'));
+    Future<void> goToFlats() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Flats')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToTenants() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Tenants')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToMoreSettings() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('More')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('more_settings')));
       await tester.pumpAndSettle();
     }
 
     // ── Beds tab: Bed 1 vacant again, Bob still occupied ─────────────
-    await openDrawer();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Flats'),
-    ));
-    await tester.pumpAndSettle();
+    await goToFlats();
     await tester.tap(find.text('Alpha'));
     await tester.pumpAndSettle();
 
@@ -107,14 +114,7 @@ void main() {
     expect(find.text('Vacant'), findsOneWidget); // exactly one bed free now
 
     // ── Tenants page: only ACTIVE tenants are listed ────────────────
-    await openDrawer();
-    await tester.tap(find.text('Tenants'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('All tenants'),
-    ));
-    await tester.pumpAndSettle();
+    await goToTenants();
 
     // Alice (archived at boot) is gone; Bob is still active.
     expect(find.byKey(const Key('tenants_search_field')), findsOneWidget);
@@ -122,9 +122,7 @@ void main() {
     expect(find.text('Alice'), findsNothing);
 
     // ── Archive: Alice listed and searchable ─────────────────────────
-    await openDrawer();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await goToMoreSettings();
 
     // Settings → "Archived Tenants" opens the tenant archive list.
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));

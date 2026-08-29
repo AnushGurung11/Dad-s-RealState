@@ -66,20 +66,27 @@ void main() {
     await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
-    Future<void> openDrawer() async {
-      await tester.tap(find.byTooltip('Open navigation menu'));
+    Future<void> goToFinanceCheque() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Finance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Flat Lease Payment'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToFinanceTenantRent() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Finance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tenant Rent Payment'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToTenantsAll() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Tenants')));
       await tester.pumpAndSettle();
     }
 
     // ── Flat Lease Payment ────────────────────────────────────────────
-    await openDrawer();
-    await tester.tap(find.text('Payments'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Cheque Payment (Flat)'),
-    ));
-    await tester.pumpAndSettle();
+    await goToFinanceCheque();
 
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.textContaining(dateText(due)), findsOneWidget);
@@ -101,13 +108,7 @@ void main() {
     expect(find.textContaining(dateText(due)), findsNothing);
 
     // ── Tenant Rent Payment ───────────────────────────────────────────
-    await openDrawer();
-    // The Payments group is already expanded (current route is inside it).
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('Tenant Rent Payment'),
-    ));
-    await tester.pumpAndSettle();
+    await goToFinanceTenantRent();
 
     await tester.tap(find.text('Alice'));
     await tester.pumpAndSettle();
@@ -125,16 +126,7 @@ void main() {
     expect(rentPayment.month, monthKey(DateTime.now()));
 
     // ── Balance reflects immediately on the detail page ──────────────
-    // The Assign page no longer lists tenants (patch 3 moved that to the
-    // standalone Tenants page).
-    await openDrawer();
-    await tester.tap(find.text('Tenants'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-      of: find.byType(Drawer),
-      matching: find.text('All tenants'),
-    ));
-    await tester.pumpAndSettle();
+    await goToTenantsAll();
 
     await tester.tap(find.text('Alice'));
     await tester.pumpAndSettle();

@@ -183,6 +183,9 @@ void main() {
       (tester) async {
     await pumpTenants(tester);
 
+    // FAB speed-dial: open first
+    await tester.tap(find.byKey(const Key('tenants_fab')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tenants_add_button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('add_route')), findsOneWidget);
@@ -192,9 +195,22 @@ void main() {
       (tester) async {
     await pumpTenants(tester);
 
+    await tester.tap(find.byKey(const Key('tenants_fab')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tenants_assign_button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('assign_route')), findsOneWidget);
+  });
+
+  testWidgets('Tenants FAB speed-dial toggles Add/Assign options', (tester) async {
+    await pumpTenants(tester);
+    expect(find.byKey(const Key('tenants_fab')), findsOneWidget);
+    // Initially collapsed
+    expect(find.byKey(const Key('tenants_add_button')), findsNothing);
+    await tester.tap(find.byKey(const Key('tenants_fab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('tenants_add_button')), findsOneWidget);
+    expect(find.byKey(const Key('tenants_assign_button')), findsOneWidget);
   });
 
   testWidgets('tapping a tenant opens their detail', (tester) async {

@@ -58,28 +58,27 @@ void main() {
     await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
-    Future<void> openDrawer() async {
-      await tester.tap(find.byTooltip('Open navigation menu'));
+    Future<void> goToFinanceTenantRent() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Finance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tenant Rent Payment'));
       await tester.pumpAndSettle();
     }
 
-    /// Opens the drawer and navigates to [item], expanding its [group]
-    /// first when the section starts collapsed.
-    Future<void> drawerGo(String group, String item) async {
-      await openDrawer();
-      Finder itemFinder() => find.descendant(
-          of: find.byType(Drawer), matching: find.text(item));
-      if (!tester.any(itemFinder())) {
-        await tester.tap(find.descendant(
-            of: find.byType(Drawer), matching: find.text(group)));
-        await tester.pumpAndSettle();
-      }
-      await tester.tap(itemFinder());
+    Future<void> goToTenants() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Tenants')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToMoreSettingsArchive() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('More')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('more_settings')));
       await tester.pumpAndSettle();
     }
 
     // ── 1. Pay 3 months upfront via Tenant Rent Payment ─────────────
-    await drawerGo('Payments', 'Tenant Rent Payment');
+    await goToFinanceTenantRent();
 
     await tester.tap(find.text('Nina'));
     await tester.pumpAndSettle();
@@ -107,7 +106,7 @@ void main() {
     );
 
     // ── 2. Terminate mid-way through "month 2" (i.e. day ~15 of next month) ───────
-    await drawerGo('Tenants', 'All tenants');
+    await goToTenants();
 
     await tester.tap(find.text('Nina'));
     await tester.pumpAndSettle();
@@ -164,9 +163,7 @@ void main() {
         hasLength(3));
 
     // ── 4. Archive shows Nina with the neutral "Left" badge ─────────
-    await openDrawer();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await goToMoreSettingsArchive();
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
     await tester.pumpAndSettle();
 

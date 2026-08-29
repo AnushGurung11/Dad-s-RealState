@@ -46,15 +46,18 @@ TenantPaymentStatus paymentStatusFor(
 
 class _TenantsScreenState extends State<TenantsScreen> {
   String _query = '';
+  bool _fabExpanded = false;
 
   void _refresh() => setState(() {});
 
   Future<void> _openAdd() async {
+    setState(() => _fabExpanded = false);
     await Navigator.pushNamed(context, Routes.tenantsAdd);
     if (mounted) _refresh();
   }
 
   Future<void> _openAssign() async {
+    setState(() => _fabExpanded = false);
     await Navigator.pushNamed(context, Routes.tenantsAssign);
     if (mounted) _refresh();
   }
@@ -102,29 +105,6 @@ class _TenantsScreenState extends State<TenantsScreen> {
         : unassignedPeople.where((p) => p.name.toLowerCase().contains(needle)).toList();
 
     final children = <Widget>[
-      Row(
-        key: const Key('tenants_actions'),
-        children: [
-          Expanded(
-            child: FilledButton.icon(
-              key: const Key('tenants_add_button'),
-              onPressed: _openAdd,
-              icon: const Icon(Icons.person_add_outlined),
-              label: const Text('Add tenant'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: OutlinedButton.icon(
-              key: const Key('tenants_assign_button'),
-              onPressed: _openAssign,
-              icon: const Icon(Icons.link),
-              label: const Text('Assign'),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
       TextField(
         key: const Key('tenants_search_field'),
         decoration: const InputDecoration(
@@ -152,8 +132,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
           ),
         ),
       ));
-      return Scaffold(
-          body: ListView(padding: const EdgeInsets.all(16), children: children));
+      return _buildWithFab(ListView(padding: const EdgeInsets.all(16), children: children));
     }
 
     final hasFiltered = filteredAssigned.isNotEmpty || filteredUnassigned.isNotEmpty;
@@ -167,8 +146,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
               ),
         ),
       ));
-      return Scaffold(
-          body: ListView(padding: const EdgeInsets.all(16), children: children));
+      return _buildWithFab(ListView(padding: const EdgeInsets.all(16), children: children));
     }
 
     // Assigned tenants grouped by flat
@@ -292,8 +270,54 @@ class _TenantsScreenState extends State<TenantsScreen> {
       }
     }
 
+    return _buildWithFab(ListView(padding: const EdgeInsets.all(16), children: children));
+  }
+
+  Widget _buildWithFab(Widget body) {
     return Scaffold(
-      body: ListView(padding: const EdgeInsets.all(16), children: children),
+      body: Stack(
+        children: [
+          body,
+          Positioned(
+            right: 16,
+            bottom: 80,
+            child: _buildFab(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFab() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (_fabExpanded) ...[
+          FloatingActionButton.small(
+            key: const Key('tenants_add_button'),
+            heroTag: 'tenants_add_fab',
+            onPressed: _openAdd,
+            tooltip: 'Add tenant',
+            child: const Icon(Icons.person_add_outlined),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton.small(
+            key: const Key('tenants_assign_button'),
+            heroTag: 'tenants_assign_fab',
+            onPressed: _openAssign,
+            tooltip: 'Assign',
+            child: const Icon(Icons.link),
+          ),
+          const SizedBox(height: 8),
+        ],
+        FloatingActionButton(
+          key: const Key('tenants_fab'),
+          heroTag: 'tenants_main_fab',
+          onPressed: () => setState(() => _fabExpanded = !_fabExpanded),
+          child: Icon(_fabExpanded ? Icons.close : Icons.add),
+        ),
+      ],
     );
   }
 

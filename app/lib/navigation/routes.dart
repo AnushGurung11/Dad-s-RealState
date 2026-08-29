@@ -45,6 +45,7 @@ abstract final class Routes {
   static const String archiveTenants = '/archive/tenants';
   static const String archiveFlats = '/archive/flats';
   static const String financialReport = '/report';
+  static const String finance = '/finance';
 }
 
 /// Display title for each route (used by the AppBar).
@@ -70,6 +71,7 @@ const Map<String, String> routeTitles = {
   Routes.archiveTenants: 'Archived Tenants',
   Routes.archiveFlats: 'Archive Flats',
   Routes.financialReport: 'Financial Report',
+  Routes.finance: 'Finance',
 };
 
 /// Builds the route for [settings], resolving the screen title from
@@ -136,6 +138,9 @@ Route<dynamic> buildRoute(RouteSettings settings) {
       return material(ArchiveTenantsScreen.new);
     case Routes.archiveFlats:
       return material(ArchiveFlatsScreen.new);
+    case Routes.finance:
+      // Interim: show payments hub until full Finance tab group lands in section 10.
+      return material(PaymentsScreen.new);
     default:
       final title = routeTitles[settings.name] ?? settings.name ?? '';
       return material(() => PlaceholderScreen(title: title));

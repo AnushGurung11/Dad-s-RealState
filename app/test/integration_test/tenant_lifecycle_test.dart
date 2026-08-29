@@ -37,28 +37,36 @@ void main() {
     await tester.pumpWidget(LuckyApp(createStore: () => store));
     await tester.pumpAndSettle();
 
-    Future<void> openDrawer() async {
-      await tester.tap(find.byTooltip('Open navigation menu'));
+    Future<void> goToTenants() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Tenants')));
       await tester.pumpAndSettle();
     }
 
-    /// Opens the drawer and navigates to [item], expanding its [group]
-    /// first when the section starts collapsed.
-    Future<void> drawerGo(String group, String item) async {
-      await openDrawer();
-      Finder itemFinder() => find.descendant(
-          of: find.byType(Drawer), matching: find.text(item));
-      if (!tester.any(itemFinder())) {
-        await tester.tap(find.descendant(
-            of: find.byType(Drawer), matching: find.text(group)));
-        await tester.pumpAndSettle();
-      }
-      await tester.tap(itemFinder());
+    Future<void> openTenantsFabAdd() async {
+      await goToTenants();
+      await tester.tap(find.byKey(const Key('tenants_fab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tenants_add_button')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openTenantsFabAssign() async {
+      await goToTenants();
+      await tester.tap(find.byKey(const Key('tenants_fab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('tenants_assign_button')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> goToMoreSettings() async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('More')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('more_settings')));
       await tester.pumpAndSettle();
     }
 
     // ── 1. Add an unassigned tenant ─────────────────────────────────
-    await drawerGo('Tenants', 'Add tenant');
+    await openTenantsFabAdd();
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Name'), 'Zara');
     await tester.enterText(
@@ -71,7 +79,7 @@ void main() {
     expect(store.people.singleWhere((p) => p.id == zaraId).bedId, isNull);
 
     // ── 2. Assign via the reordered flow: flat → bed → person ──────
-    await drawerGo('Tenants', 'Assign');
+    await openTenantsFabAssign();
 
     await tester.tap(find.byKey(const Key('assign_flat_picker')));
     await tester.pumpAndSettle();
@@ -98,7 +106,7 @@ void main() {
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, zaraId);
 
     // ── 3. Zara shows up on the Tenants page under Alpha ────────────
-    await drawerGo('Tenants', 'All tenants');
+    await goToTenants();
 
     expect(find.text('Zara'), findsOneWidget);
     expect(find.text('Alpha'), findsOneWidget);
@@ -125,9 +133,7 @@ void main() {
     expect(store.beds.singleWhere((b) => b.id == 'b2').tenantId, isNull);
 
     // ── 5. Archive shows her with the red badge + note ──────────────
-    await openDrawer();
-    await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await goToMoreSettings();
     // The Archive section links out to the tenant archive list.
     await tester.tap(find.byKey(const Key('settings_archived_tenants')));
     await tester.pumpAndSettle();
