@@ -128,25 +128,27 @@ void main() {
     // ── Verify Dashboard shows ONLY current month figures ─────────────
     // Flats: 1
     expect(find.text('1'), findsWidgets);
-    // Beds: 2/2 (both occupied)
+    // Occupancy: 2/2 (both occupied)
     expect(find.text('2/2'), findsOneWidget);
-    // Active tenants: 2
-    expect(find.text('Active Tenants'), findsOneWidget);
+    // Active tenants card removed
+    expect(find.text('Active Tenants'), findsNothing);
 
     // Profit: current month rent (4000) + deposit (5000) - expense (2000) = 7000
-    // NOT including previous month's 4000 rent. Compact formatting keeps
-    // sub-10K values verbatim with the suffix currency style.
+    // NOT including previous month's 4000 rent.
     expect(find.textContaining('7000 AED'), findsOneWidget);
-    // The old "who paid" summary and next-lease teaser are gone (patch 6):
-    // the dashboard is summary cards + two payment buttons only.
-    expect(find.text('Who paid this month'), findsNothing);
-    expect(find.text('Unpaid'), findsNothing);
-    expect(find.text('Next lease payment'), findsNothing);
+    // New dashboard has Next Lease Due card and Recent Transactions
+    expect(find.text('Next Lease Due'), findsOneWidget);
+    expect(find.text('Recent Transactions'), findsOneWidget);
+    // Old payment buttons removed
     expect(
         find.byKey(const Key('dashboard_lease_payment_button')),
-        findsOneWidget);
+        findsNothing);
     expect(
         find.byKey(const Key('dashboard_rent_payment_button')),
-        findsOneWidget);
+        findsNothing);
+    // Occupancy and Expenses cards should be present - check via keys to avoid bottom nav duplicate
+    expect(find.byKey(const Key('dashboard_flats_card')), findsOneWidget);
+    expect(find.byKey(const Key('dashboard_occupancy_card')), findsOneWidget);
+    expect(find.byKey(const Key('dashboard_expenses_card')), findsOneWidget);
   });
 }

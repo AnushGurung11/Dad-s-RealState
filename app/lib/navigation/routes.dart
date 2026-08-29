@@ -8,6 +8,7 @@ import '../screens/cheque_payment_flat_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/edit_tenant_screen.dart';
 import '../screens/expenses_screen.dart';
+import '../screens/financial_activity_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
 import '../screens/flats_screen.dart';
@@ -20,6 +21,7 @@ import '../screens/tenants_screen.dart';
 import '../screens/termination_flow_screen.dart';
 import '../screens/tenant_rent_history_screen.dart';
 import '../screens/tenant_rent_payment_screen.dart';
+import '../screens/vacant_beds_screen.dart';
 
 /// Named routes for the whole app. Screens swap bodies while these names
 /// stay stable.
@@ -46,6 +48,8 @@ abstract final class Routes {
   static const String archiveFlats = '/archive/flats';
   static const String financialReport = '/report';
   static const String finance = '/finance';
+  static const String financialActivity = '/financial-activity';
+  static const String vacantBeds = '/vacant-beds';
 }
 
 /// Display title for each route (used by the AppBar).
@@ -72,6 +76,8 @@ const Map<String, String> routeTitles = {
   Routes.archiveFlats: 'Archive Flats',
   Routes.financialReport: 'Financial Report',
   Routes.finance: 'Finance',
+  Routes.financialActivity: 'Financial Activity',
+  Routes.vacantBeds: 'Vacant Beds',
 };
 
 /// Builds the route for [settings], resolving the screen title from
@@ -141,6 +147,10 @@ Route<dynamic> buildRoute(RouteSettings settings) {
     case Routes.finance:
       // Interim: show payments hub until full Finance tab group lands in section 10.
       return material(PaymentsScreen.new);
+    case Routes.financialActivity:
+      return material(FinancialActivityScreen.new);
+    case Routes.vacantBeds:
+      return material(VacantBedsScreen.new);
     default:
       final title = routeTitles[settings.name] ?? settings.name ?? '';
       return material(() => PlaceholderScreen(title: title));

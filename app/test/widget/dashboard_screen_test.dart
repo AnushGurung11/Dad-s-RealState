@@ -4,10 +4,15 @@ import 'package:lucky/config.dart';
 import 'package:lucky/models/bed.dart';
 import 'package:lucky/models/expense.dart';
 import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_record.dart';
+import 'package:lucky/models/lease_cheque_setting.dart';
 import 'package:lucky/models/payment.dart';
 import 'package:lucky/models/person.dart';
 import 'package:lucky/navigation/routes.dart';
 import 'package:lucky/screens/dashboard_screen.dart';
+import 'package:lucky/screens/financial_activity_screen.dart';
+import 'package:lucky/screens/flats_screen.dart';
+import 'package:lucky/screens/vacant_beds_screen.dart';
 import 'package:lucky/services/json_store.dart';
 import 'package:lucky/services/store_scope.dart';
 import 'package:lucky/theme/app_theme.dart';
@@ -96,53 +101,99 @@ void main() {
         type: PaymentType.rent,
       );
 
-  testWidgets('summary cards render values from dashboard_service and the '
-      'two payment buttons navigate', (tester) async {
-    // Profit: 9000 rent + deposit 5000 − expense 2000.
-    store.upsertPayment(rent(9000));
-    store.upsertPayment(Payment(
-      id: 'dep1',
-      personId: 'p1',
-      bedId: 'b1',
+  testWidgets('Flats card navigates to Flats screen', (tester) async {
+    await pumpDashboard(tester);
+    await tester.tap(find.byKey(const Key('dashboard_flats_card')));
+    await tester.pumpAndSettle();
+    expect(find.byType(FlatsScreen), findsOneWidget);
+  });
+
+  testWidgets('Occupancy card navigates to Vacant Beds screen listing only vacant beds, grouped by flat', (tester) async {
+    await pumpDashboard(tester);
+    await tester.tap(find.byKey(const Key('dashboard_occupancy_card')));
+    await tester.pumpAndSettle();
+    expect(find.byType(VacantBedsScreen), findsOneWidget);
+    // Only vacant beds: b2 is vacant
+    expect(find.text('Bed 2'), findsOneWidget);
+    // Occupied beds not listed
+    expect(find.text('Bed 1'), findsNothing);
+  });
+
+  testWidgets('Active Tenants card no longer renders anywhere', (tester) async {
+    await pumpDashboard(tester);
+    expect(find.text('Active Tenants'), findsNothing);
+  });
+
+  testWidgets('Profit and Expenses cards both navigate to Financial Activity screen', (tester) async {
+    await pumpDashboard(tester);
+    await tester.tap(find.byKey(const Key('profit_card')));
+    await tester.pumpAndSettle();
+    expect(find.byType(FinancialActivityScreen), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dashboard_expenses_card')));
+    await tester.pumpAndSettle();
+    expect(find.byType(FinancialActivityScreen), findsOneWidget);
+  });
+
+  testWidgets('Next Lease Due card shows soonest-due flat and navigates to Cheque Payment on tap; shows empty state with zero flats', (tester) async {
+    // With flats, add a cheque setting
+    final due = DateTime.now().add(const Duration(days: 5));
+    store.upsertChequeSetting(LeaseChequeSetting(
+      id: 's1',
       flatId: 'f1',
-      month: currentMonth,
-      amountDue: 5000,
-      amountPaid: 5000,
-      type: PaymentType.deposit,
+      ownerName: 'Owner A',
+      amount: 10000,
+      nextDueDate: due,
     ));
+    await pumpDashboard(tester);
+    expect(find.byKey(const Key('next_lease_due_card')), findsOneWidget);
+    expect(find.text('Alpha'), findsWidgets);
+    await tester.tap(find.byKey(const Key('next_lease_due_card')));
+    await tester.pumpAndSettle();
+    // Should navigate to Cheque Payment (Flat) screen - which shows list of cheques
+    expect(find.text('Alpha'), findsWidgets);
+
+    // Empty state: clear flats - need to reset navigator to avoid preserving previous route
+    await tester.pumpWidget(Container());
+    await tester.pumpAndSettle();
+    store = InMemoryJsonStore();
+    await pumpDashboard(tester);
+    expect(find.text('No upcoming lease payments'), findsOneWidget);
+  });
+
+  testWidgets('Rent Payment button no longer renders on Dashboard', (tester) async {
+    await pumpDashboard(tester);
+    expect(find.byKey(const Key('dashboard_rent_payment_button')), findsNothing);
+    expect(find.text('Rent Payment'), findsNothing);
+  });
+
+  testWidgets('Recent Transactions section shows mixed-type rows with working inline edit/delete', (tester) async {
+    store.upsertPayment(rent(5000));
     store.upsertExpense(Expense(
       id: 'e1',
       flatId: 'f1',
       category: ExpenseCategory.electricity,
-      amount: 2000,
-      date: DateTime(DateTime.now().year, DateTime.now().month, 10),
+      amount: 200,
+      date: DateTime.now(),
     ));
-
+    store.upsertChequeRecord(LeaseChequeRecord(
+      id: 'r1',
+      flatId: 'f1',
+      ownerName: 'Owner',
+      amount: 1000,
+      dueDate: DateTime.now(),
+      paidDate: DateTime.now(),
+      month: currentMonth,
+    ));
     await pumpDashboard(tester);
-
-    expect(find.text('Flats'), findsOneWidget);
-    expect(find.text('Beds'), findsOneWidget);
-    expect(find.text('Active Tenants'), findsOneWidget);
-    expect(find.textContaining('12K'), findsOneWidget);
-
-    // Lease Payment button → flat lease payment screen.
-    await tester.tap(find.byKey(const Key('dashboard_lease_payment_button')));
-    await tester.pumpAndSettle();
-    expect(find.text('No flats with lease cheques yet.'), findsOneWidget);
+    expect(find.text('Recent Transactions'), findsOneWidget);
+    // Should have 3 rows, each with edit/delete
+    expect(find.byIcon(Icons.edit_outlined), findsWidgets);
+    expect(find.byIcon(Icons.delete_outline), findsWidgets);
   });
 
-  testWidgets('Rent Payment button navigates to tenant rent payment',
-      (tester) async {
-    await pumpDashboard(tester);
-
-    await tester.tap(find.byKey(const Key('dashboard_rent_payment_button')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('tenant_payment_search_field')),
-        findsOneWidget);
-  });
-
-  testWidgets('profit card renders a huge positive value without overflow',
-      (tester) async {
+  testWidgets('profit card renders a huge positive value without overflow', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1.0;
 
@@ -161,12 +212,10 @@ void main() {
     await pumpDashboard(tester);
 
     expect(tester.takeException(), isNull);
-    // RenderFlex overflows would surface via takeException / error widgets.
     expect(find.text('2M AED'), findsOneWidget);
   });
 
-  testWidgets('profit card renders a large NEGATIVE value without overflow '
-      '(sign included)', (tester) async {
+  testWidgets('profit card renders a large NEGATIVE value without overflow (sign included)', (tester) async {
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1.0;
 
@@ -182,20 +231,5 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('-1.2M AED'), findsOneWidget);
-  });
-
-  testWidgets('"Lease coming up next" section and the who-paid summary no '
-      'longer exist — just cards + two buttons', (tester) async {
-    await pumpDashboard(tester);
-
-    expect(find.text('Next lease payment'), findsNothing);
-    expect(find.text('Who paid this month'), findsNothing);
-    expect(find.text('Unpaid'), findsNothing);
-    expect(find.textContaining("who\u2019s paid"), findsNothing);
-    expect(find.text('Collect rent'), findsNothing);
-    expect(find.byKey(const Key('dashboard_lease_payment_button')),
-        findsOneWidget);
-    expect(find.byKey(const Key('dashboard_rent_payment_button')),
-        findsOneWidget);
   });
 }
