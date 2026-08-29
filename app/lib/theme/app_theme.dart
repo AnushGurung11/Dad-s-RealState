@@ -98,9 +98,16 @@ ThemeData buildAppTheme(Brightness brightness) {
     brightness: brightness,
   );
   final base = ThemeData(colorScheme: colorScheme, useMaterial3: true);
+  final textTheme = AppTextScale.apply(base.textTheme);
   return base.copyWith(
     extensions: [appStatusColors],
-    textTheme: AppTextScale.apply(base.textTheme),
+    textTheme: textTheme,
+    appBarTheme: AppBarTheme(
+      titleTextStyle: textTheme.titleMedium?.copyWith(
+        fontSize: AppTextScale.subtitle,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
   );
 }
 
