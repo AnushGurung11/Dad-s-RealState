@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../config.dart';
 import '../models/expense.dart';
+import '../models/lease_cheque_record.dart';
 import '../services/expense_service.dart';
 import '../services/store_scope.dart';
 import '../theme/flat_color.dart';
@@ -22,50 +24,91 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final flats = [...store.flats];
-    flats.sort((a, b) => a.name.compareTo(b.name));
+    final allFlats = [...store.flats];
+    allFlats.sort((a, b) => a.name.compareTo(b.name));
+    final activeFlats = allFlats.where((f) => !f.archived).toList();
+    final archivedFlats = allFlats.where((f) => f.archived).toList();
 
-    if (flats.isEmpty) {
+    if (allFlats.isEmpty) {
       return const Center(child: Text('No flats yet. Add a flat first.'));
     }
 
-    _selectedFlatId ??= flats.first.id;
+    _selectedFlatId ??= allFlats.first.id;
 
-    final selectedFlat = flats.firstWhere(
+    final selectedFlat = allFlats.firstWhere(
       (f) => f.id == _selectedFlatId,
-      orElse: () => flats.first,
+      orElse: () => allFlats.first,
     );
 
-    final service = ExpenseService(store);
-    final grouped = service.groupedByMonth(selectedFlat.id);
+    // Combined grouping: expenses + lease cheque records for this flat
+    final grouped = _groupedCombined(selectedFlat.id, store);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expenses'),
         actions: [
-          if (flats.length > 1)
+          if (allFlats.length > 1)
             PopupMenuButton<String>(
               initialValue: selectedFlat.id,
               onSelected: (id) => setState(() => _selectedFlatId = id),
-              itemBuilder: (_) => flats
-                  .map((f) => PopupMenuItem(
-                        value: f.id,
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: flatColorFor(f.id),
-                                shape: BoxShape.circle,
-                              ),
+              itemBuilder: (_) {
+                final items = <PopupMenuEntry<String>>[];
+                if (activeFlats.isNotEmpty) {
+                  items.add(const PopupMenuItem<String>(
+                    enabled: false,
+                    child: Text('Active',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                  ));
+                  for (final f in activeFlats) {
+                    items.add(PopupMenuItem(
+                      value: f.id,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: flatColorFor(f.id),
+                              shape: BoxShape.circle,
                             ),
-                            const SizedBox(width: 8),
-                            Text(f.name),
-                          ],
-                        ),
-                      ))
-                  .toList(),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(f.name),
+                        ],
+                      ),
+                    ));
+                  }
+                }
+                if (archivedFlats.isNotEmpty) {
+                  items.add(const PopupMenuItem<String>(
+                    enabled: false,
+                    child: Text('Archived',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                  ));
+                  for (final f in archivedFlats) {
+                    items.add(PopupMenuItem(
+                      value: f.id,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: flatColorFor(f.id).withValues(alpha: 0.4),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(f.name,
+                              style:
+                                  const TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ));
+                  }
+                }
+                return items;
+              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -93,9 +136,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 for (final entry in grouped.entries)
-                  _MonthSection(
+                  _CombinedMonthSection(
                     month: entry.key,
-                    expenses: entry.value,
+                    items: entry.value,
                     onChanged: () => setState(() {}),
                   ),
               ],
@@ -105,6 +148,31 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Map<String, List<dynamic>> _groupedCombined(String flatId, dynamic store) {
+    // store is JsonStore, but we use dynamic to avoid import cycle? Use StoreScope.of(context) already has it
+    // We'll fetch from StoreScope in build, but for method we need to access store param
+    final expenses = (store.expenses as List<Expense>).where((e) => e.flatId == flatId).toList();
+    final leases = (store.leaseChequeRecords as List<LeaseChequeRecord>).where((r) => r.flatId == flatId).toList();
+    final combined = <dynamic>[];
+    combined.addAll(expenses);
+    combined.addAll(leases);
+    // Sort by date descending: expense.date vs lease.paidDate
+    combined.sort((a, b) {
+      final da = a is Expense ? a.date : (a as LeaseChequeRecord).paidDate;
+      final db = b is Expense ? b.date : (b as LeaseChequeRecord).paidDate;
+      return db.compareTo(da);
+    });
+    final map = <String, List<dynamic>>{};
+    for (final item in combined) {
+      final month = item is Expense ? monthKey(item.date) : (item as LeaseChequeRecord).month;
+      map.putIfAbsent(month, () => []).add(item);
+    }
+    // Sort months descending
+    final sortedKeys = map.keys.toList()..sort((a, b) => b.compareTo(a));
+    // Ensure each month's items already sorted descending
+    return Map.fromEntries(sortedKeys.map((k) => MapEntry(k, map[k]!)));
   }
 
   Future<void> _showExpenseDialog(
@@ -275,6 +343,96 @@ class _MonthSection extends StatelessWidget {
     final idx = int.tryParse(parts[1]) ?? 1;
     return '${names[idx - 1]} ${parts[0]}';
   }
+}
+
+/// Combined month section showing both expenses and lease cheques interleaved.
+class _CombinedMonthSection extends StatelessWidget {
+  const _CombinedMonthSection({
+    required this.month,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final String month;
+  final List<dynamic> items;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          child: Text(
+            _monthLabel(month),
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        for (final item in items)
+          if (item is Expense)
+            _ExpenseTile(expense: item, onChanged: onChanged)
+          else if (item is LeaseChequeRecord)
+            _LeaseExpenseTile(record: item, onChanged: onChanged),
+      ],
+    );
+  }
+
+  String _monthLabel(String m) {
+    final parts = m.split('-');
+    if (parts.length != 2) return m;
+    const names = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final idx = int.tryParse(parts[1]) ?? 1;
+    return '${names[idx - 1]} ${parts[0]}';
+  }
+}
+
+class _LeaseExpenseTile extends StatelessWidget {
+  const _LeaseExpenseTile({required this.record, required this.onChanged});
+
+  final LeaseChequeRecord record;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: Theme.of(context).colorScheme.surface,
+      child: ListTile(
+        leading: const Icon(Icons.receipt_long_outlined),
+        title: Row(
+          children: [
+            Text(formatMoneyShort(record.amount)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text('Lease',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w700,
+                      )),
+            ),
+          ],
+        ),
+        subtitle: Text('Paid ${_dateText(record.paidDate)} · Due ${_dateText(record.dueDate)}'),
+        trailing: const Icon(Icons.chevron_right, size: 16),
+        isThreeLine: false,
+      ),
+    );
+  }
+
+  String _dateText(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }
 
 /// Single expense row.

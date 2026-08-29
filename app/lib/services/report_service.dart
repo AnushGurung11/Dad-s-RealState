@@ -1,6 +1,8 @@
 import '../config.dart';
 import '../models/expense.dart';
+import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
+import 'expense_aggregation_service.dart';
 
 /// A flat's financial summary for a period (month, YYYY-MM).
 typedef FlatSummary = ({double income, double expenses, double net});
@@ -19,15 +21,19 @@ abstract final class ReportService {
   }
 
   /// Expenses for [flatId] in [month]: sum of expense records whose date falls
-  /// inside the month.
+  /// inside the month PLUS lease cheque records (shared aggregation).
   static double flatExpenses({
     required List<Expense> expenses,
     required String flatId,
     required String month,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
   }) {
-    return expenses
-        .where((e) => e.flatId == flatId && monthKey(e.date) == month)
-        .fold(0.0, (sum, e) => sum + e.amount);
+    return ExpenseAggregationService.totalExpensesForFlat(
+      flatId: flatId,
+      month: month,
+      expenses: expenses,
+      leaseChequeRecords: leaseChequeRecords,
+    );
   }
 
   /// Net for [flatId] in [month]. May be negative.
@@ -36,9 +42,14 @@ abstract final class ReportService {
     required List<Expense> expenses,
     required String flatId,
     required String month,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
   }) {
     return flatIncome(payments: payments, flatId: flatId, month: month) -
-        flatExpenses(expenses: expenses, flatId: flatId, month: month);
+        flatExpenses(
+            expenses: expenses,
+            flatId: flatId,
+            month: month,
+            leaseChequeRecords: leaseChequeRecords);
   }
 
   /// Full summary for one flat in one month.
@@ -47,9 +58,14 @@ abstract final class ReportService {
     required List<Expense> expenses,
     required String flatId,
     required String month,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
   }) {
     final income = flatIncome(payments: payments, flatId: flatId, month: month);
-    final out = flatExpenses(expenses: expenses, flatId: flatId, month: month);
+    final out = flatExpenses(
+        expenses: expenses,
+        flatId: flatId,
+        month: month,
+        leaseChequeRecords: leaseChequeRecords);
     return (income: income, expenses: out, net: income - out);
   }
 
@@ -58,13 +74,16 @@ abstract final class ReportService {
     required List<Payment> payments,
     required List<Expense> expenses,
     required String month,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
   }) {
     final income = payments
         .where((p) => p.month == month)
         .fold(0.0, (sum, p) => sum + p.amountPaid);
-    final out = expenses
-        .where((e) => monthKey(e.date) == month)
-        .fold(0.0, (sum, e) => sum + e.amount);
+    final out = ExpenseAggregationService.totalExpensesForMonth(
+      month: month,
+      expenses: expenses,
+      leaseChequeRecords: leaseChequeRecords,
+    );
     return (income: income, expenses: out, net: income - out);
   }
 

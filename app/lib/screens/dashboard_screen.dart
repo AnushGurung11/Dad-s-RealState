@@ -23,6 +23,7 @@ class DashboardScreen extends StatelessWidget {
       payments: store.payments,
       expenses: store.expenses,
       leaseSettings: store.leaseChequeSettings,
+      leaseChequeRecords: store.leaseChequeRecords,
       month: monthKey(DateTime.now()),
     );
 

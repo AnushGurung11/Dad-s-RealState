@@ -1,10 +1,12 @@
 import '../models/bed.dart';
 import '../models/flat.dart';
+import '../models/lease_cheque_record.dart';
 import '../models/lease_cheque_setting.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
 import '../models/expense.dart';
 import '../config.dart';
+import 'expense_aggregation_service.dart';
 
 /// Aggregated dashboard data for a given month (YYYY-MM).
 class DashboardSummary {
@@ -43,6 +45,7 @@ class DashboardService {
     required List<Payment> payments,
     required List<Expense> expenses,
     required List<LeaseChequeSetting> leaseSettings,
+    List<LeaseChequeRecord> leaseChequeRecords = const [],
     String? month,
   }) {
     final m = month ?? monthKey(DateTime.now());
@@ -62,15 +65,16 @@ class DashboardService {
         .where((p) => p.isActiveTenant && p.status == PersonStatus.active && activeFlatIds.contains(p.flatId))
         .toList();
 
-    // Expenses in month (only for active flats)
-    final activeExpenseFlatIds = expenses
-        .where((e) => monthKey(e.date) == m && activeFlatIds.contains(e.flatId))
-        .map((e) => e.flatId)
-        .toSet();
-    final monthExpenses = expenses
-        .where((e) => monthKey(e.date) == m && activeFlatIds.contains(e.flatId))
-        .toList();
-    final monthExpenseTotal = monthExpenses.fold(0.0, (sum, e) => sum + e.amount);
+    // Expenses in month (only for active flats) — includes lease cheque records via shared aggregation
+    double monthExpenseTotal = 0;
+    for (final flatId in activeFlatIds) {
+      monthExpenseTotal += ExpenseAggregationService.totalExpensesForFlat(
+        flatId: flatId,
+        month: m,
+        expenses: expenses,
+        leaseChequeRecords: leaseChequeRecords,
+      );
+    }
 
     // Payments in month: rent + deposit (only for active flats)
     final monthPayments = payments
