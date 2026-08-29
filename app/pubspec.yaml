@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   archive: ^3.6.1
+  country_picker: ^2.0.27
   excel: ^2.1.0
   file_picker: ^12.1.0
   image_picker: ^1.2.1

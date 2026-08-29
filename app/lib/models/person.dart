@@ -17,6 +17,7 @@ class Person {
     required this.name,
     required this.contact,
     this.workplaceOrInfo,
+    this.country,
     this.bedId,
     this.flatId,
     this.joinDate,
@@ -36,6 +37,7 @@ class Person {
   final String name;
   final String contact;
   final String? workplaceOrInfo;
+  final String? country;
   final String? bedId;
 
   /// Denormalized from the assigned bed so screens can group tenants by flat
@@ -90,6 +92,7 @@ class Person {
     String? name,
     String? contact,
     String? workplaceOrInfo,
+    String? country,
     String? bedId,
     String? flatId,
     DateTime? joinDate,
@@ -108,12 +111,14 @@ class Person {
     bool clearPhotoPath = false,
     bool clearStatusNote = false,
     bool clearVacatedDate = false,
+    bool clearCountry = false,
   }) {
     return Person(
       id: id ?? this.id,
       name: name ?? this.name,
       contact: contact ?? this.contact,
       workplaceOrInfo: workplaceOrInfo ?? this.workplaceOrInfo,
+      country: clearCountry ? null : country ?? this.country,
       bedId: clearBedId ? null : bedId ?? this.bedId,
       flatId: clearFlatId ? null : flatId ?? this.flatId,
       joinDate: joinDate ?? this.joinDate,
@@ -153,6 +158,7 @@ class Person {
       name: json['name'] as String,
       contact: json['contact'] as String,
       workplaceOrInfo: json['workplaceOrInfo'] as String?,
+      country: json['country'] as String?,
       bedId: json['bedId'] as String?,
       flatId: json['flatId'] as String?,
       joinDate: json['joinDate'] == null
@@ -186,6 +192,7 @@ class Person {
       'name': name,
       'contact': contact,
       'workplaceOrInfo': workplaceOrInfo,
+      'country': country,
       'bedId': bedId,
       'flatId': flatId,
       'joinDate': joinDate?.toIso8601String(),

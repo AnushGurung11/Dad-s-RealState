@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../models/person.dart';
@@ -29,6 +30,7 @@ class _AddTenantScreenState extends State<AddTenantScreen> {
 
   TenantPhotoPicker? _photoPicker;
   String? _pendingPhotoPath;
+  String? _country;
 
   @override
   void didChangeDependencies() {
@@ -59,7 +61,28 @@ class _AddTenantScreenState extends State<AddTenantScreen> {
         ..showSnackBar(
             const SnackBar(content: Text('Could not load that photo.')));
     }
-  }  void _save() {
+  }
+
+  void _pickCountry() {
+    showCountryPicker(
+      context: context,
+      showPhoneCode: false,
+      countryListTheme: CountryListThemeData(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        inputDecoration: const InputDecoration(
+          labelText: 'Search',
+          hintText: 'Start typing to search',
+          prefixIcon: Icon(Icons.search),
+        ),
+      ),
+      onSelect: (Country country) => setState(() => _country = country.name),
+    );
+  }
+
+  void _save() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     StoreScope.of(context).upsertPerson(
       Person(
@@ -67,6 +90,7 @@ class _AddTenantScreenState extends State<AddTenantScreen> {
         name: _nameController.text.trim(),
         contact: _contactController.text.trim(),
         workplaceOrInfo: _workplaceController.text.trim(),
+        country: _country,
         others: _othersController.text.trim(),
         photoPath: _pendingPhotoPath,
       ),
@@ -140,6 +164,25 @@ class _AddTenantScreenState extends State<AddTenantScreen> {
                 border: OutlineInputBorder(),
               ),
               textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              key: const Key('country_field'),
+              onTap: _pickCountry,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Country',
+                  hintText: 'Select country',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(_country ?? 'Select country',
+                    style: TextStyle(
+                      color: _country == null
+                          ? Theme.of(context).hintColor
+                          : Theme.of(context).textTheme.bodyMedium?.color,
+                    )),
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(

@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../services/store_scope.dart';
@@ -33,6 +34,7 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
 
   TenantPhotoPicker? _photoPicker;
   late String? _photoPath;
+  String? _country;
   bool _loaded = false;
 
   @override
@@ -54,6 +56,7 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
     _depositController.text =
         person.depositAmount == null ? '' : '${person.depositAmount}';
     _photoPath = person.photoPath;
+    _country = person.country;
     _photoPicker ??=
         widget.photoPicker ?? const GalleryTenantPhotoPicker();
   }
@@ -83,6 +86,25 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
     }
   }
 
+  void _pickCountry() {
+    showCountryPicker(
+      context: context,
+      showPhoneCode: false,
+      countryListTheme: CountryListThemeData(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        inputDecoration: const InputDecoration(
+          labelText: 'Search',
+          hintText: 'Start typing to search',
+          prefixIcon: Icon(Icons.search),
+        ),
+      ),
+      onSelect: (Country country) => setState(() => _country = country.name),
+    );
+  }
+
   double? _parseMoney(String raw) {
     final value = double.tryParse(raw.trim().replaceAll(',', ''));
     return (value == null || value < 0) ? null : value;
@@ -100,6 +122,8 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
       name: _nameController.text.trim(),
       contact: _contactController.text.trim(),
       workplaceOrInfo: _workplaceController.text.trim(),
+      country: _country,
+      clearCountry: _country == null,
       others: _othersController.text.trim(),
       photoPath: _photoPath,
       // Only meaningful while assigned; unassigned people keep theirs blank.
@@ -177,6 +201,25 @@ class _EditTenantScreenState extends State<EditTenantScreen> {
               decoration: const InputDecoration(
                 labelText: 'Workplace / info',
                 border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              key: const Key('country_field'),
+              onTap: _pickCountry,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Country',
+                  hintText: 'Select country',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.arrow_drop_down),
+                ),
+                child: Text(_country ?? 'Select country',
+                    style: TextStyle(
+                      color: _country == null
+                          ? Theme.of(context).hintColor
+                          : Theme.of(context).textTheme.bodyMedium?.color,
+                    )),
               ),
             ),
             const SizedBox(height: 12),

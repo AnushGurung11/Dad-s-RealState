@@ -53,6 +53,8 @@ void main() {
         find.widgetWithText(TextFormField, 'Name'), 'Alice');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Contact'), '9000000001');
+    await tester.ensureVisible(find.byKey(const Key('save_tenant_button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('save_tenant_button')));
     await tester.pumpAndSettle();
 
@@ -81,6 +83,8 @@ void main() {
         find.widgetWithText(TextFormField, 'Name'), 'Bob');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Contact'), '9000000002');
+    await tester.ensureVisible(find.byKey(const Key('save_tenant_button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('save_tenant_button')));
     await tester.pumpAndSettle();
 
@@ -100,6 +104,8 @@ void main() {
         find.widgetWithText(TextFormField, 'Name'), 'Cara');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Contact'), '9000000003');
+    await tester.ensureVisible(find.byKey(const Key('save_tenant_button')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('save_tenant_button')));
     await tester.pumpAndSettle();
 
