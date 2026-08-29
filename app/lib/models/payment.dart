@@ -33,6 +33,8 @@ class Payment {
     required this.amountDue,
     required this.amountPaid,
     this.type = PaymentType.rent,
+    this.description,
+    this.paymentMethod,
   });
 
   final String id;
@@ -49,6 +51,9 @@ class Payment {
   /// income, but only rent reduces the tenure balance.
   final PaymentType type;
 
+  final String? description;
+  final String? paymentMethod;
+
   PaymentStatus get status {
     if (amountPaid <= 0) return PaymentStatus.unpaid;
     if (amountPaid >= amountDue) return PaymentStatus.paid;
@@ -64,6 +69,10 @@ class Payment {
     double? amountDue,
     double? amountPaid,
     PaymentType? type,
+    String? description,
+    String? paymentMethod,
+    bool clearDescription = false,
+    bool clearPaymentMethod = false,
   }) {
     return Payment(
       id: id ?? this.id,
@@ -74,6 +83,9 @@ class Payment {
       amountDue: amountDue ?? this.amountDue,
       amountPaid: amountPaid ?? this.amountPaid,
       type: type ?? this.type,
+      description: clearDescription ? null : description ?? this.description,
+      paymentMethod:
+          clearPaymentMethod ? null : paymentMethod ?? this.paymentMethod,
     );
   }
 
@@ -87,6 +99,8 @@ class Payment {
       amountDue: (json['amountDue'] as num).toDouble(),
       amountPaid: (json['amountPaid'] as num).toDouble(),
       type: PaymentType.fromString(json['type'] as String? ?? 'rent'),
+      description: json['description'] as String?,
+      paymentMethod: json['paymentMethod'] as String?,
     );
   }
 
@@ -100,6 +114,8 @@ class Payment {
       'amountDue': amountDue,
       'amountPaid': amountPaid,
       'type': type.name,
+      'description': description,
+      'paymentMethod': paymentMethod,
     };
   }
 }

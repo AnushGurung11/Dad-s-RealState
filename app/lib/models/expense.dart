@@ -39,6 +39,8 @@ class Expense {
     required this.amount,
     required this.date,
     this.note,
+    this.description,
+    this.paymentMethod,
   });
 
   final String id;
@@ -48,6 +50,12 @@ class Expense {
   final DateTime date;
   final String? note;
 
+  /// Renamed from note for consistency — both backed the same value.
+  final String? description;
+  final String? paymentMethod;
+
+  String? get effectiveDescription => description ?? note;
+
   Expense copyWith({
     String? id,
     String? flatId,
@@ -55,6 +63,11 @@ class Expense {
     double? amount,
     DateTime? date,
     String? note,
+    String? description,
+    String? paymentMethod,
+    bool clearNote = false,
+    bool clearDescription = false,
+    bool clearPaymentMethod = false,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -62,7 +75,13 @@ class Expense {
       category: category ?? this.category,
       amount: amount ?? this.amount,
       date: date ?? this.date,
-      note: note ?? this.note,
+      note: clearNote ? null : note ?? this.note,
+      description: clearDescription
+          ? null
+          : description ?? this.description,
+      paymentMethod: clearPaymentMethod
+          ? null
+          : paymentMethod ?? this.paymentMethod,
     );
   }
 
@@ -74,6 +93,8 @@ class Expense {
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),
       note: json['note'] as String?,
+      description: (json['description'] ?? json['note']) as String?,
+      paymentMethod: json['paymentMethod'] as String?,
     );
   }
 
@@ -84,7 +105,9 @@ class Expense {
       'category': category.name,
       'amount': amount,
       'date': date.toIso8601String(),
-      'note': note,
+      'note': effectiveDescription,
+      'description': effectiveDescription,
+      'paymentMethod': paymentMethod,
     };
   }
 }

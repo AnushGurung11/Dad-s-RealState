@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../config.dart';
+import '../models/audit_log_entry.dart';
 import '../models/bed.dart';
 import '../models/expense.dart';
 import '../models/flat.dart';
@@ -23,6 +24,7 @@ abstract class JsonStore {
   List<LeaseChequeSetting> get leaseChequeSettings;
   List<LeaseChequeRecord> get leaseChequeRecords;
   List<LeaseTerminationRecord> get terminations;
+  List<AuditLogEntry> get auditLogs;
 
   /// Invoked whenever a background disk write fails, so the app can surface a
   /// plain error to the user instead of crashing silently. Ignored by
@@ -73,6 +75,12 @@ abstract class JsonStore {
   /// debounced write.
   void upsertTermination(LeaseTerminationRecord record);
 
+  /// Appends an audit log entry (append-only). Schedules a debounced write.
+  void upsertAuditLog(AuditLogEntry entry);
+
+  /// Removes a lease cheque record (used via transaction_edit_service, audited).
+  void deleteChequeRecord(String recordId);
+
   /// Runs [action] as one atomic batch: every mutation performed inside is
   /// persisted with a single store write instead of one write per mutation.
   void runBatched(void Function() action);
@@ -95,6 +103,7 @@ class InMemoryJsonStore implements JsonStore {
   final List<LeaseChequeSetting> _chequeSettings = [];
   final List<LeaseChequeRecord> _chequeRecords = [];
   final List<LeaseTerminationRecord> _terminations = [];
+  final List<AuditLogEntry> _auditLogs = [];
 
   @override
   void Function(Object error, StackTrace stackTrace)? onWriteError;
@@ -125,6 +134,9 @@ class InMemoryJsonStore implements JsonStore {
   @override
   List<LeaseTerminationRecord> get terminations =>
       List.unmodifiable(_terminations);
+
+  @override
+  List<AuditLogEntry> get auditLogs => List.unmodifiable(_auditLogs);
 
   @override
   Future<void> load() async {}
@@ -245,6 +257,17 @@ class InMemoryJsonStore implements JsonStore {
   }
 
   @override
+  void upsertAuditLog(AuditLogEntry entry) {
+    // Append-only: never overwrite, just add (id is unique)
+    _auditLogs.add(entry);
+  }
+
+  @override
+  void deleteChequeRecord(String recordId) {
+    _chequeRecords.removeWhere((r) => r.id == recordId);
+  }
+
+  @override
   void runBatched(void Function() action) => action();
 
   @override
@@ -346,6 +369,10 @@ class LocalJsonStore extends InMemoryJsonStore {
           AppConfig.terminationsFileName,
           _encode(terminations, (t) => t.toJson()),
         ),
+        _writeFile(
+          AppConfig.auditLogFileName,
+          _encode(auditLogs, (a) => a.toJson()),
+        ),
       ]);
     } catch (error, stackTrace) {
       onWriteError?.call(error, stackTrace);
@@ -377,6 +404,7 @@ class LocalJsonStore extends InMemoryJsonStore {
     _chequeSettings.clear();
     _chequeRecords.clear();
     _terminations.clear();
+    _auditLogs.clear();
 
     final rawFlats = await _readFile(AppConfig.flatsFileName);
     final rawBeds = await _readFile(AppConfig.bedsFileName);
@@ -386,6 +414,7 @@ class LocalJsonStore extends InMemoryJsonStore {
     final rawChequeSettings = await _readFile(AppConfig.leaseChequeSettingsFileName);
     final rawChequeRecords = await _readFile(AppConfig.leaseChequeRecordsFileName);
     final rawTerminations = await _readFile(AppConfig.terminationsFileName);
+    final rawAuditLogs = await _readFile(AppConfig.auditLogFileName);
 
     for (final item in rawFlats?['items'] as List? ?? const <Object?>[]) {
       super.upsertFlat(Flat.fromJson(item as Map<String, dynamic>));
@@ -418,6 +447,11 @@ class LocalJsonStore extends InMemoryJsonStore {
         const <Object?>[]) {
       super.upsertTermination(
         LeaseTerminationRecord.fromJson(item as Map<String, dynamic>),
+      );
+    }
+    for (final item in rawAuditLogs?['items'] as List? ?? const <Object?>[]) {
+      super.upsertAuditLog(
+        AuditLogEntry.fromJson(item as Map<String, dynamic>),
       );
     }
 
@@ -504,6 +538,18 @@ class LocalJsonStore extends InMemoryJsonStore {
   @override
   void upsertTermination(LeaseTerminationRecord record) {
     super.upsertTermination(record);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertAuditLog(AuditLogEntry entry) {
+    super.upsertAuditLog(entry);
+    _scheduleSave();
+  }
+
+  @override
+  void deleteChequeRecord(String recordId) {
+    super.deleteChequeRecord(recordId);
     _scheduleSave();
   }
 

@@ -16,6 +16,7 @@ abstract final class AppConfig {
   static const String leaseChequeSettingsFileName = 'lease_check_settings.json';
   static const String leaseChequeRecordsFileName = 'lease_check_records.json';
   static const String terminationsFileName = 'terminations.json';
+  static const String auditLogFileName = 'audit_log.json';
 
   static const String prefKeyCurrentMonth = 'currentMonth';
 }
