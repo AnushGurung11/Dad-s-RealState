@@ -61,7 +61,7 @@ void main() {
     Future<void> goToFinanceTenantRent() async {
       await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Finance')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Tenant Rent Payment'));
+      await tester.tap(find.text('Rent'));
       await tester.pumpAndSettle();
     }
 

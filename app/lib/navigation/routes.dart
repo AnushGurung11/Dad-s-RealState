@@ -8,7 +8,9 @@ import '../screens/cheque_payment_flat_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/edit_tenant_screen.dart';
 import '../screens/expenses_screen.dart';
+import '../screens/finance_screen.dart';
 import '../screens/financial_activity_screen.dart';
+import '../screens/financial_report_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
 import '../screens/flats_screen.dart';
@@ -145,8 +147,7 @@ Route<dynamic> buildRoute(RouteSettings settings) {
     case Routes.archiveFlats:
       return material(ArchiveFlatsScreen.new);
     case Routes.finance:
-      // Interim: show payments hub until full Finance tab group lands in section 10.
-      return material(PaymentsScreen.new);
+      return material(FinanceScreen.new);
     case Routes.financialActivity:
       return material(FinancialActivityScreen.new);
     case Routes.vacantBeds:
