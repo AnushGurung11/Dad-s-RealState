@@ -11,15 +11,19 @@ import '../services/transaction_edit_service.dart';
 import '../utils/format.dart';
 
 /// Financial Activity screen: per-flat grouped summary at top + full ledger below.
-/// For section 7, this is a placeholder that dashboard navigates to; section 8 will flesh it out.
 class FinancialActivityScreen extends StatelessWidget {
-  const FinancialActivityScreen({super.key});
+  const FinancialActivityScreen({super.key, this.initialFlatId});
+
+  final String? initialFlatId;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final month = monthKey(DateTime.now());
-    final flats = store.flats.where((f) => !f.archived).toList();
+    final allFlats = store.flats.where((f) => !f.archived).toList();
+    final flats = initialFlatId == null
+        ? allFlats
+        : allFlats.where((f) => f.id == initialFlatId).toList();
 
     // Grouped summary per flat
     final summaries = <String, ({double income, double expenses, double net})>{};
@@ -48,23 +52,30 @@ class FinancialActivityScreen extends StatelessWidget {
           for (final flat in flats)
             Card(
               margin: const EdgeInsets.only(bottom: 8),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: ExpansionTile(
+                key: Key('flat-summary-${flat.id}'),
+                title: Text(flat.name, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                subtitle: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(flat.name, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Income: ${formatMoneyShort(summaries[flat.id]!.income)}', style: const TextStyle(color: Colors.green)),
-                        Text('Expenses: ${formatMoneyShort(summaries[flat.id]!.expenses)}', style: const TextStyle(color: Colors.red)),
-                        Text('Net: ${formatMoneyShort(summaries[flat.id]!.net)}', style: TextStyle(fontWeight: FontWeight.w700, color: summaries[flat.id]!.net >= 0 ? Colors.green : Colors.red)),
-                      ],
-                    ),
+                    Text('Income: ${formatMoneyShort(summaries[flat.id]!.income)}', style: const TextStyle(color: Colors.green, fontSize: 12)),
+                    Text('Expenses: ${formatMoneyShort(summaries[flat.id]!.expenses)}', style: const TextStyle(color: Colors.red, fontSize: 12)),
+                    Text('Net: ${formatMoneyShort(summaries[flat.id]!.net)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: summaries[flat.id]!.net >= 0 ? Colors.green : Colors.red)),
                   ],
                 ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Income: ${formatMoneyShort(summaries[flat.id]!.income)}', style: Theme.of(context).textTheme.bodySmall),
+                        Text('Expenses: ${formatMoneyShort(summaries[flat.id]!.expenses)}', style: Theme.of(context).textTheme.bodySmall),
+                        Text('Net: ${formatMoneyShort(summaries[flat.id]!.net)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           const Divider(height: 32),
@@ -86,12 +97,22 @@ class FinancialActivityScreen extends StatelessWidget {
     final leases = store.leaseChequeRecords as List<LeaseChequeRecord>;
     final list = <_Tx>[];
     for (final p in payments) {
-      list.add(_Tx(id: p.id, type: 'Rent', amount: p.amountPaid, isIncome: true, date: DateTime.tryParse('${p.month}-01') ?? DateTime.now(), kind: 'payment', raw: p));
+      if (initialFlatId != null && p.flatId != initialFlatId) continue;
+      list.add(_Tx(
+          id: p.id,
+          type: p.type == PaymentType.deposit ? 'Deposit' : 'Rent',
+          amount: p.amountPaid,
+          isIncome: true,
+          date: DateTime.tryParse('${p.month}-01') ?? DateTime.now(),
+          kind: 'payment',
+          raw: p));
     }
     for (final e in expenses) {
+      if (initialFlatId != null && e.flatId != initialFlatId) continue;
       list.add(_Tx(id: e.id, type: e.category.label, amount: e.amount, isIncome: false, date: e.date, kind: 'expense', raw: e));
     }
     for (final l in leases) {
+      if (initialFlatId != null && l.flatId != initialFlatId) continue;
       list.add(_Tx(id: l.id, type: 'Lease', amount: l.amount, isIncome: false, date: l.paidDate, kind: 'lease', raw: l));
     }
     list.sort((a, b) => b.date.compareTo(a.date));
