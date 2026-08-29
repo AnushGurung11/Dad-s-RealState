@@ -298,12 +298,12 @@ class _NextLeaseDueCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 remaining,
-                style: TextStyle(color: dueColor, fontWeight: FontWeight.w700, fontSize: 13),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: dueColor, fontWeight: FontWeight.w700),
                 key: const Key('next_lease_remaining'),
               ),
               if (isOverdue)
                 Text('Overdue',
-                    style: TextStyle(color: statusColors.danger, fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: statusColors.danger, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -429,22 +429,20 @@ class _TransactionRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(item.type,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: item.isIncome ? colors.success : colors.danger,
-              )),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: item.isIncome ? colors.success : colors.danger,
+                  )),
         ),
         title: Row(
           children: [
             Expanded(child: Text(item.context, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall)),
             Text(
               '${item.isIncome ? '+' : '-'}${formatMoneyShort(item.amount)}',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: item.isIncome ? colors.success : colors.danger,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: item.isIncome ? colors.success : colors.danger,
+                  ),
             ),
           ],
         ),

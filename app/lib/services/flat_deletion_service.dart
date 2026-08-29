@@ -3,7 +3,6 @@ import '../models/flat.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/lease_cheque_setting.dart';
 import '../models/payment.dart';
-import '../config.dart';
 import '../utils/format.dart';
 
 /// Outcome of a delete request on a flat.

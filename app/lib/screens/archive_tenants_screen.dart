@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/person.dart';
 import '../navigation/routes.dart';
+import '../screens/edit_tenant_screen.dart';
 import '../services/store_scope.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_badge.dart';
@@ -94,7 +95,7 @@ class _ArchiveTenantsScreenState extends State<ArchiveTenantsScreen> {
         ),
         title: Row(
           children: [
-            Expanded(child: Text(person.name)),
+            Expanded(child: Text(person.name, style: Theme.of(context).textTheme.titleSmall)),
             StatusBadge(
               kind: absconded ? StatusKind.danger : StatusKind.neutral,
               label: absconded ? 'Absconded' : 'Left',
@@ -104,7 +105,7 @@ class _ArchiveTenantsScreenState extends State<ArchiveTenantsScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (former.isNotEmpty) Text(former),
+            if (former.isNotEmpty) Text(former, style: Theme.of(context).textTheme.bodySmall),
             Text(
               '${absconded ? 'Flagged' : 'Left'} '
               '${_dateText(person.statusDate) ?? '—'} · '
@@ -113,7 +114,6 @@ class _ArchiveTenantsScreenState extends State<ArchiveTenantsScreen> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
-            // The "why" behind an absconding is part of the permanent record.
             if (absconded && (person.statusNote?.isNotEmpty ?? false))
               Text(
                 person.statusNote!,
@@ -128,6 +128,38 @@ class _ArchiveTenantsScreenState extends State<ArchiveTenantsScreen> {
           ],
         ),
         isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'edit') {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => EditTenantScreen(personId: person.id)),
+              );
+              if (context.mounted) (context as Element).markNeedsBuild();
+            } else if (value == 'delete') {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete archived tenant?'),
+                  content: const Text('This will permanently delete the tenant and all their history. This cannot be undone.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                  ],
+                ),
+              );
+              if (confirmed == true && context.mounted) {
+                StoreScope.of(context).deletePerson(person.id);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${person.name} deleted')));
+                (context as Element).markNeedsBuild();
+              }
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'edit', child: Text('Edit')),
+            PopupMenuItem(value: 'delete', child: Text('Delete')),
+          ],
+        ),
         onTap: () => Navigator.pushNamed(
           context,
           Routes.tenantsDetail,

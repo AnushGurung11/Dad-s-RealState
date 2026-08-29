@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/flat.dart';
+import '../screens/flats_screen.dart';
 import '../services/store_scope.dart';
 import '../utils/format.dart';
 import '../widgets/status_badge.dart';
@@ -48,8 +49,51 @@ class ArchiveFlatsScreen extends StatelessWidget {
                 'Archived ${_dateText(flat.archivedAt)}',
               ),
               isThreeLine: true,
-              trailing:
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   const StatusBadge(kind: StatusKind.neutral, label: 'Archived'),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == 'edit') {
+                        final updated = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute<bool>(builder: (_) => FlatEditScreen(flat: flat)),
+                        );
+                        if (updated == true && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${flat.name} updated')));
+                        }
+                      } else if (value == 'delete') {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: Text('Delete ${flat.name}?'),
+                            content: const Text('This will permanently delete the flat and all its beds. This cannot be undone.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true && context.mounted) {
+                          final store = StoreScope.of(context);
+                          store.runBatched(() {
+                            for (final bed in store.beds.where((b) => b.flatId == flat.id).toList()) {
+                              store.deleteBed(bed.id);
+                            }
+                            store.deleteFlat(flat.id);
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${flat.name} deleted')));
+                        }
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
+                ],
+              ),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute<void>(
@@ -85,7 +129,52 @@ class _ArchivedFlatDetailScreen extends StatelessWidget {
       ..sort((a, b) => a.label.compareTo(b.label));
 
     return Scaffold(
-      appBar: AppBar(title: Text(flat.name)),
+      appBar: AppBar(
+        title: Text(flat.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit',
+            onPressed: () async {
+              final updated = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute<bool>(builder: (_) => FlatEditScreen(flat: flat)),
+              );
+              if (updated == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${flat.name} updated')));
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete',
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text('Delete ${flat.name}?'),
+                  content: const Text('This will permanently delete the flat and all its beds. This cannot be undone.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                  ],
+                ),
+              );
+              if (confirmed == true && context.mounted) {
+                final store = StoreScope.of(context);
+                store.runBatched(() {
+                  for (final bed in store.beds.where((b) => b.flatId == flat.id).toList()) {
+                    store.deleteBed(bed.id);
+                  }
+                  store.deleteFlat(flat.id);
+                });
+                if (context.mounted) Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${flat.name} deleted')));
+              }
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

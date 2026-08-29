@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/bed.dart';
-import '../models/flat.dart';
 import '../navigation/routes.dart';
 import '../services/store_scope.dart';
 import '../theme/flat_color.dart';

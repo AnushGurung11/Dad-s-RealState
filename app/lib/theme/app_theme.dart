@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 /// App-wide accent color — a deep teal distinct from generic Material blue.
 const Color appAccent = Color(0xFF0F766E);
 
-/// Golden ratio constant (~1.618)
-const double _phi = 1.618;
-
 /// Base body size in sp
 const double _baseBodySize = 14.0;
 

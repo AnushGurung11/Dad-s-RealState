@@ -12,14 +12,22 @@ class LuckyBottomNav extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   int _indexFor(String route) {
-    if (route == '/' || route == '/dashboard') return 0;
-    if (route.startsWith('/flats')) return 1;
-    if (route.startsWith('/tenants')) return 2;
+    if (route == '/' || route == '/dashboard') {
+      return 0;
+    }
+    if (route.startsWith('/flats')) {
+      return 1;
+    }
+    if (route.startsWith('/tenants')) {
+      return 2;
+    }
     if (route.startsWith('/finance') ||
         route.startsWith('/payments') ||
         route.startsWith('/history') ||
         route.startsWith('/expenses') ||
-        route.startsWith('/report')) return 3;
+        route.startsWith('/report')) {
+      return 3;
+    }
     return 0;
   }
 

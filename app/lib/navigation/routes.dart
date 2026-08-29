@@ -10,7 +10,6 @@ import '../screens/edit_tenant_screen.dart';
 import '../screens/expenses_screen.dart';
 import '../screens/finance_screen.dart';
 import '../screens/financial_activity_screen.dart';
-import '../screens/financial_report_screen.dart';
 import '../screens/flat_detail_screen.dart';
 import '../screens/flat_lease_history_screen.dart';
 import '../screens/flats_screen.dart';

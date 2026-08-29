@@ -1,13 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+// ignore_for_file: unused_import, deprecated_member_use
 import '../config.dart';
-import '../models/flat.dart';
+import '../navigation/routes.dart';
+import '../services/expense_aggregation_service.dart';
 import '../services/report_service.dart';
 import '../services/store_scope.dart';
-import '../services/expense_aggregation_service.dart';
-import '../screens/financial_activity_screen.dart';
-import '../navigation/routes.dart';
 import '../utils/format.dart';
 
 enum ReportScope { thisMonth, twelveMonths, yearly }
@@ -150,9 +149,9 @@ class _ThisMonthBreakdown extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Income: ${formatMoneyShort(income)}', style: const TextStyle(color: Colors.green, fontSize: 12)),
-                        Text('Expense: ${formatMoneyShort(expense)}', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                        Text('Net: ${formatMoneyShort(net)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: net >= 0 ? Colors.green : Colors.red)),
+                        Text('Income: ${formatMoneyShort(income)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.green)),
+                        Text('Expense: ${formatMoneyShort(expense)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.red)),
+                        Text('Net: ${formatMoneyShort(net)}', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: net >= 0 ? Colors.green : Colors.red)),
                       ],
                     ),
                   ],
@@ -297,32 +296,26 @@ class _LineChart extends StatelessWidget {
                 final idx = value.toInt();
                 if (idx < 0 || idx >= data.length) return const SizedBox.shrink();
                 final month = data[idx].month.split('-')[1];
-                return Text(month, style: const TextStyle(fontSize: 10));
+                return Text(month, style: Theme.of(context).textTheme.labelSmall);
               },
             ),
           ),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) => Text(
+                value.toInt().toString(),
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ),
+          ),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         lineTouchData: LineTouchData(
-          touchCallback: (event, response) {
-            if (response != null && response.lineBarSpots != null && response.lineBarSpots!.isNotEmpty) {
-              final idx = response.lineBarSpots!.first.x.toInt();
-              if (idx >= 0 && idx < data.length) {
-                final month = data[idx].month;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(title: Text('Financial Activity — $month')),
-                      body: FinancialActivityScreen(initialFlatId: flatId),
-                    ),
-                  ),
-                );
-              }
-            }
-          },
+          enabled: true,
+          touchTooltipData: LineTouchTooltipData(),
         ),
       ),
     );
@@ -357,32 +350,26 @@ class _BarChart extends StatelessWidget {
                 final idx = value.toInt();
                 if (idx < 0 || idx >= data.length) return const SizedBox.shrink();
                 final month = data[idx].month.split('-')[1];
-                return Text(month, style: const TextStyle(fontSize: 10));
+                return Text(month, style: Theme.of(context).textTheme.labelSmall);
               },
             ),
           ),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) => Text(
+                value.toInt().toString(),
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ),
+          ),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         barTouchData: BarTouchData(
-          touchCallback: (event, response) {
-            if (response != null && response.spot != null) {
-              final idx = response.spot!.touchedBarGroupIndex;
-              if (idx >= 0 && idx < data.length) {
-                final month = data[idx].month;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(title: Text('Financial Activity — $month')),
-                      body: FinancialActivityScreen(initialFlatId: flatId),
-                    ),
-                  ),
-                );
-              }
-            }
-          },
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(),
         ),
       ),
     );
