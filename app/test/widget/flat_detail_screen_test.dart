@@ -142,4 +142,44 @@ void main() {
     expect(row.isOverdue, isTrue);
     expect(colors.danger, isNot(colors.neutral));
   });
+
+  testWidgets('Utilities & Contacts fields (landline, esewa, wifi) render and persist on save, all optional', (tester) async {
+    final flatWithUtilities = Flat(
+      id: 'f1',
+      name: 'Alpha',
+      address: '1 A Road',
+      createdAt: DateTime(2026, 1, 1),
+      landlineNumber: '044123456',
+      landlineRegisteredName: 'Mr. Khan',
+      esewaNumber: '9861234567',
+      wifiName: 'LuckyWifi',
+      wifiPassword: 'pass123',
+    );
+    store = InMemoryJsonStore();
+    store.upsertFlat(flatWithUtilities);
+    store.upsertBed(bed1);
+    store.upsertBed(bed2);
+    await pumpDetail(tester);
+    await tester.tap(find.text('Utilities'));
+    await tester.pumpAndSettle();
+    expect(find.text('044123456'), findsOneWidget);
+    expect(find.text('Mr. Khan'), findsOneWidget);
+    expect(find.text('9861234567'), findsOneWidget);
+    expect(find.text('LuckyWifi'), findsOneWidget);
+    expect(find.text('pass123'), findsOneWidget);
+    // All optional - test with empty utilities still shows dashes
+    final flatEmpty = Flat(id: 'f2', name: 'Beta', address: 'B', createdAt: DateTime(2026, 1, 1));
+    store.upsertFlat(flatEmpty);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appLightTheme,
+        builder: (context, child) => StoreScope(store: store, child: child ?? const SizedBox.shrink()),
+        home: const FlatDetailScreen(flatId: 'f2'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Utilities'));
+    await tester.pumpAndSettle();
+    expect(find.text('—'), findsWidgets);
+  });
 }

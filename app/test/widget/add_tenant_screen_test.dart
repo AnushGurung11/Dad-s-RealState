@@ -111,4 +111,28 @@ void main() {
 
     expect(store.people.single.photoPath, isNull);
   });
+
+  testWidgets('country field renders as a searchable dropdown and persists on save', (tester) async {
+    await pumpScreen(tester);
+    expect(find.byKey(const Key('country_field')), findsOneWidget);
+    // Initially shows placeholder
+    expect(find.text('Select country'), findsWidgets);
+    await tester.tap(find.byKey(const Key('country_field')));
+    await tester.pumpAndSettle();
+    // Country picker should be visible with search
+    expect(find.text('Search'), findsOneWidget);
+    // Select Nepal
+    await tester.enterText(find.byType(TextField).last, 'Nepal');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nepal').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Nepal'), findsWidgets);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Name'), 'Deepak');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Contact'), '9800000001');
+    await tester.ensureVisible(find.byKey(const Key('save_tenant_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save_tenant_button')));
+    await tester.pumpAndSettle();
+    expect(store.people.singleWhere((p) => p.name == 'Deepak').country, 'Nepal');
+  });
 }

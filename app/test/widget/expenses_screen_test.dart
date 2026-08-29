@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky/models/expense.dart';
 import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_record.dart';
 import 'package:lucky/screens/expenses_screen.dart';
 import 'package:lucky/services/json_store.dart';
 import 'package:lucky/services/store_scope.dart';
@@ -138,5 +139,27 @@ void main() {
 
     expect(find.text('No expenses for Alpha yet.'), findsOneWidget);
     expect(store.expenses, isEmpty);
+  });
+
+  testWidgets('flat picker shows Active/Archived as visually separate sections', (tester) async {
+    final archivedFlat = Flat(id: 'f3', name: 'Gamma', address: 'C', createdAt: DateTime(2026, 1, 1), archived: true, archivedAt: DateTime(2026, 2, 1));
+    store.upsertFlat(archivedFlat);
+    await pumpExpenses(tester);
+    await tester.tap(find.byIcon(Icons.arrow_drop_down));
+    await tester.pumpAndSettle();
+    expect(find.text('Active'), findsOneWidget);
+    expect(find.text('Archived'), findsOneWidget);
+    expect(find.text('Alpha'), findsWidgets);
+    expect(find.text('Gamma'), findsOneWidget);
+  });
+
+  testWidgets('lease/cheque payments appear inline in a flat expense list, tagged distinctly from categorized expenses', (tester) async {
+    store.upsertExpense(Expense(id: 'e1', flatId: 'f1', category: ExpenseCategory.electricity, amount: 100, date: DateTime(2026, 5, 10)));
+    store.upsertChequeRecord(LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 500, dueDate: DateTime(2026, 5, 1), paidDate: DateTime(2026, 5, 15), month: '2026-05'));
+    await pumpExpenses(tester);
+    // Both should be visible, lease tagged with "Lease" badge
+    expect(find.text('AED 100'), findsOneWidget);
+    expect(find.text('Lease'), findsOneWidget);
+    expect(find.textContaining('500'), findsOneWidget);
   });
 }

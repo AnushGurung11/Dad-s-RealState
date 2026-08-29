@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky/models/flat.dart';
+import 'package:lucky/models/lease_cheque_record.dart';
 import 'package:lucky/models/lease_cheque_setting.dart';
 import 'package:lucky/screens/cheque_payment_flat_screen.dart';
 import 'package:lucky/services/json_store.dart';
@@ -183,5 +184,76 @@ void main() {
     // Should show "1 month 10 days" (or similar)
     expect(find.textContaining('month'), findsOneWidget);
     expect(find.textContaining('day'), findsOneWidget);
+  });
+
+  testWidgets('explicit next payment date entry overrides the default calculation', (tester) async {
+    final due = DateTime(2026, 10, 25);
+    store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
+    await pumpScreen(tester);
+    await tester.tap(find.byKey(const Key('pay-s1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lease_amount_field')), '4000');
+    // Pick explicit next payment date - open picker and select a date
+    await tester.tap(find.byKey(const Key('next_payment_date_field')));
+    await tester.pumpAndSettle();
+    // Date picker is open - select OK to confirm (default date)
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('next_payment_date_field')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('record_lease_payment')));
+    await tester.pumpAndSettle();
+    // Should have created a record
+    expect(store.leaseChequeRecords, hasLength(1));
+  });
+
+  testWidgets('blank next-payment-date defaults to the 1st of the correct month given monthsThisPaymentCovers', (tester) async {
+    final due = DateTime(2026, 10, 15);
+    store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due, intervalMonths: 2));
+    await pumpScreen(tester);
+    await tester.tap(find.byKey(const Key('pay-s1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('lease_amount_field')), '4000');
+    await tester.enterText(find.byKey(const Key('months_covered_field')), '2');
+    // Leave next payment date blank (don't pick)
+    await tester.tap(find.byKey(const Key('record_lease_payment')));
+    await tester.pumpAndSettle();
+    // Should default to 1st of Dec (Oct 1 + 2 months)
+    expect(store.leaseChequeSettings.single.nextDueDate, DateTime(2026, 12, 1));
+  });
+
+  testWidgets('Edit action on the LeaseChequeSetting updates amount/nextDueDate/frequencyMonths without creating a payment record', (tester) async {
+    final due = DateTime(2026, 10, 25);
+    store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
+    await pumpScreen(tester);
+    await tester.tap(find.byKey(const Key('edit-setting-s1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('edit_setting_amount')), '5000');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(store.leaseChequeSettings.single.amount, 5000);
+    expect(store.leaseChequeRecords, isEmpty); // no payment record created
+  });
+
+  testWidgets('past records show working inline edit/delete', (tester) async {
+    final due = DateTime(2026, 10, 25);
+    store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
+    store.upsertChequeRecord(LeaseChequeRecord(id: 'r1', flatId: 'f1', ownerName: 'Owner', amount: 4000, dueDate: due, paidDate: DateTime(2026, 9, 20), month: '2026-09'));
+    await pumpScreen(tester);
+    expect(find.textContaining('Paid'), findsOneWidget);
+    expect(find.byKey(const Key('edit-record-r1')), findsOneWidget);
+    expect(find.byKey(const Key('delete-record-r1')), findsOneWidget);
+    // Test edit
+    await tester.tap(find.byKey(const Key('edit-record-r1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit lease record'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    // Test delete
+    await tester.tap(find.byKey(const Key('delete-record-r1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete record?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(store.leaseChequeRecords, hasLength(1));
   });
 }
