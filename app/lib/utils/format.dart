@@ -1,4 +1,7 @@
+import 'package:flutter/material.dart';
+
 import '../config.dart';
+import '../theme/app_theme.dart';
 
 String formatMoney(double amount) {
   final rounded = amount.toStringAsFixed(2);
@@ -39,4 +42,25 @@ String _trimZero(double value, {required String suffix}) {
   var text = value < 10 ? value.toStringAsFixed(1) : value.toStringAsFixed(0);
   if (text.endsWith('.0')) text = text.substring(0, text.length - 2);
   return '$text$suffix';
+}
+
+/// Mono text style for currency amounts, dates and IDs — SF Mono tabular.
+const TextStyle monoTextStyle = TextStyle(
+  fontFamily: 'SF Mono',
+  fontFamilyFallback: ['ui-monospace', 'Cascadia Code', 'monospace'],
+  fontFeatures: [FontFeature.tabularFigures()],
+  letterSpacing: -0.3,
+);
+
+TextStyle monoStyle(BuildContext context, {Color? color, double? fontSize, FontWeight? fontWeight}) {
+  final base = Theme.of(context).textTheme.bodyMedium ?? const TextStyle(fontSize: 15);
+  return base.copyWith(
+    fontFamily: 'SF Mono',
+    fontFamilyFallback: const ['ui-monospace', 'Cascadia Code', 'monospace'],
+    fontFeatures: const [FontFeature.tabularFigures()],
+    color: color,
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    letterSpacing: -0.3,
+  );
 }

@@ -4,21 +4,21 @@ import 'package:lucky/theme/app_theme.dart';
 import 'package:lucky/widgets/lucky_wordmark.dart';
 
 void main() {
-  testWidgets('LUCKY wordmark renders symbol + wordmark using the theme accent',
+  testWidgets('LUCKY wordmark renders symbol + wordmark using spec neutral color',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: appLightTheme,
+        theme: appDarkTheme,
         home: const Scaffold(body: Center(child: LuckyWordmark())),
       ),
     );
 
     expect(find.byKey(const Key('lucky_wordmark')), findsOneWidget);
-    expect(find.text('LUCKY'), findsOneWidget);
+    expect(find.text('Lucky'), findsOneWidget);
 
-    // The wordmark text must use the theme accent color, not a hardcoded hue.
-    final text = tester.widget<Text>(find.text('LUCKY'));
-    expect(text.style?.color, appAccent);
+    // Spec: header wordmark is neutral appText1, not accent
+    final text = tester.widget<Text>(find.text('Lucky'));
+    expect(text.style?.color, appText1);
   });
 
   testWidgets('wordmark renders under the dark theme too', (tester) async {
@@ -28,6 +28,6 @@ void main() {
         home: const Scaffold(body: Center(child: LuckyWordmark(size: 48))),
       ),
     );
-    expect(find.text('LUCKY'), findsOneWidget);
+    expect(find.text('Lucky'), findsOneWidget);
   });
 }

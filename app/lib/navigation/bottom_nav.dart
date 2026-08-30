@@ -1,4 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
+import '../icons/app_icons.dart';
+import '../theme/app_theme.dart';
 
 /// Bottom navigation for LUCKY — 5 destinations per patch section 1.
 class LuckyBottomNav extends StatelessWidget {
@@ -34,70 +39,107 @@ class LuckyBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final index = _indexFor(currentRoute);
-    // More is always index 4 but not a real route — it's a sheet.
-    return NavigationBar(
-      selectedIndex: index > 4 ? 0 : index,
-      onDestinationSelected: (i) {
-        if (i == 4) {
-          _showMoreSheet(context);
-          return;
-        }
-        switch (i) {
-          case 0:
-            onSelect('/');
-            break;
-          case 1:
-            onSelect('/flats');
-            break;
-          case 2:
-            onSelect('/tenants');
-            break;
-          case 3:
-            onSelect('/finance');
-            break;
-        }
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'Dashboard',
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xF509090B), // rgba(9,9,11,0.96)
+            border: Border(top: BorderSide(color: appBorder, width: 1)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NavigationBar(
+                  backgroundColor: Colors.transparent,
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  height: 64,
+                  selectedIndex: index > 4 ? 0 : index,
+                  onDestinationSelected: (i) {
+                    if (i == 4) {
+                      _showMoreSheet(context);
+                      return;
+                    }
+                    switch (i) {
+                      case 0:
+                        onSelect('/');
+                        break;
+                      case 1:
+                        onSelect('/flats');
+                        break;
+                      case 2:
+                        onSelect('/tenants');
+                        break;
+                      case 3:
+                        onSelect('/finance');
+                        break;
+                    }
+                  },
+                  destinations: [
+                    NavigationDestination(
+                      icon: const AppIconWidget(AppIcon.grid, size: 22, color: appText3),
+                      selectedIcon: const AppIconWidget(AppIcon.grid, size: 22, color: appAccent),
+                      label: 'Overview',
+                    ),
+                    NavigationDestination(
+                      icon: const AppIconWidget(AppIcon.building, size: 22, color: appText3),
+                      selectedIcon: const AppIconWidget(AppIcon.building, size: 22, color: appAccent),
+                      label: 'Flats',
+                    ),
+                    NavigationDestination(
+                      icon: const AppIconWidget(AppIcon.people, size: 22, color: appText3),
+                      selectedIcon: const AppIconWidget(AppIcon.people, size: 22, color: appAccent),
+                      label: 'Tenants',
+                    ),
+                    NavigationDestination(
+                      icon: const AppIconWidget(AppIcon.wallet, size: 22, color: appText3),
+                      selectedIcon: const AppIconWidget(AppIcon.wallet, size: 22, color: appAccent),
+                      label: 'Finance',
+                    ),
+                    NavigationDestination(
+                      icon: const AppIconWidget(AppIcon.dots, size: 22, color: appText3),
+                      selectedIcon: const AppIconWidget(AppIcon.dots, size: 22, color: appAccent),
+                      label: 'More',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 24,
+                  height: 4,
+                  decoration: BoxDecoration(color: appBorder, borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
         ),
-        NavigationDestination(
-          icon: Icon(Icons.apartment_outlined),
-          selectedIcon: Icon(Icons.apartment),
-          label: 'Flats',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.group_outlined),
-          selectedIcon: Icon(Icons.group),
-          label: 'Tenants',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.account_balance_wallet_outlined),
-          selectedIcon: Icon(Icons.account_balance_wallet),
-          label: 'Finance',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.more_horiz),
-          selectedIcon: Icon(Icons.more_horiz),
-          label: 'More',
-        ),
-      ],
+      ),
     );
   }
 
   void _showMoreSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: appSurface1,
+      barrierColor: const Color(0xA6000000), // rgba(0,0,0,0.65)
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        side: BorderSide(color: appBorderMd),
+      ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: 8),
+            Container(width: 36, height: 3, decoration: BoxDecoration(color: appBorderMd, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 12),
             ListTile(
               key: const Key('more_settings'),
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Settings'),
+              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.settings_outlined, size: 18, color: appAccent)),
+              title: const Text('Settings', style: TextStyle(fontSize: 15, color: appText1)),
               onTap: () {
                 Navigator.pop(ctx);
                 onSelect('/settings');
@@ -105,8 +147,8 @@ class LuckyBottomNav extends StatelessWidget {
             ),
             ListTile(
               key: const Key('more_archived_tenants'),
-              leading: const Icon(Icons.person_off_outlined),
-              title: const Text('Archived Tenants'),
+              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.person_off_outlined, size: 18, color: appAccent)),
+              title: const Text('Archived Tenants', style: TextStyle(fontSize: 15, color: appText1)),
               onTap: () {
                 Navigator.pop(ctx);
                 onSelect('/archive/tenants');
@@ -114,13 +156,14 @@ class LuckyBottomNav extends StatelessWidget {
             ),
             ListTile(
               key: const Key('more_archive_flats'),
-              leading: const Icon(Icons.apartment_outlined),
-              title: const Text('Archive Flats'),
+              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.apartment_outlined, size: 18, color: appAccent)),
+              title: const Text('Archive Flats', style: TextStyle(fontSize: 15, color: appText1)),
               onTap: () {
                 Navigator.pop(ctx);
                 onSelect('/archive/flats');
               },
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

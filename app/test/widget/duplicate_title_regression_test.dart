@@ -42,7 +42,7 @@ void main() {
 
   testWidgets('Dashboard has single subtitle-scale title', (tester) async {
     await pumpApp(tester);
-    await checkSingleTitle(tester, 'Dashboard');
+    await checkSingleTitle(tester, 'Overview');
   });
 
   testWidgets('Flats has single subtitle-scale title', (tester) async {

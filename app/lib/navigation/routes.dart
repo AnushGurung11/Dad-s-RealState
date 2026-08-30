@@ -55,7 +55,7 @@ abstract final class Routes {
 
 /// Display title for each route (used by the AppBar).
 const Map<String, String> routeTitles = {
-  Routes.dashboard: 'Dashboard',
+  Routes.dashboard: 'Overview',
   Routes.flats: 'Flats',
   Routes.flatDetail: 'Flat',
   Routes.tenants: 'Tenants',

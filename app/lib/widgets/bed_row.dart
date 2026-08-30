@@ -29,71 +29,64 @@ class BedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColors = Theme.of(context).extension<AppStatusColors>()!;
     final occupied = bed.isOccupied;
-
-    final Color accent = switch ((occupied, isOverdue)) {
-      (true, true) => statusColors.danger,
-      (true, false) => statusColors.neutral,
-      (false, _) => statusColors.neutral.withValues(alpha: 0.4),
-    };
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: appSurface1,
+          border: Border.all(color: appBorder, width: 1),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: CustomPaint(
-            foregroundPainter: DashedBorderPainter(
-              color: occupied ? Colors.transparent : accent,
-              radius: 12,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: accent, width: 4)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  if (occupied && occupantName != null) ...[
-                    PersonAvatar(
-                      photoPath: occupantPhotoPath,
-                      name: occupantName!,
-                      radius: 18,
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bed.label,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        if (occupied && occupantName != null)
-                          Text(
-                            occupantName!,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                      ],
-                    ),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                if (occupied && occupantName != null) ...[
+                  PersonAvatar(
+                    photoPath: occupantPhotoPath,
+                    name: occupantName!,
+                    radius: 18,
                   ),
-                  if (occupied)
-                    Text(
-                      formatMoneyShort(bed.defaultMonthlyRent),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    )
-                  else
-                    const StatusBadge(kind: StatusKind.neutral, label: 'Vacant'),
+                  const SizedBox(width: 12),
                 ],
-              ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bed.label,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appText1),
+                      ),
+                      if (occupied && occupantName != null)
+                        Text(
+                          occupantName!,
+                          style: const TextStyle(fontSize: 15, color: appText1),
+                        )
+                      else
+                        const Text('Assign →', style: TextStyle(fontSize: 12, color: appAccent, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                if (occupied) ...[
+                  Text(
+                    formatMoneyShort(bed.defaultMonthlyRent),
+                    style: const TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: ['ui-monospace', 'monospace'], fontSize: 12, fontWeight: FontWeight.w600, color: appText1, fontFeatures: [FontFeature.tabularFigures()]),
+                  ),
+                  if (isOverdue) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: appDanger.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: appDanger.withValues(alpha: 0.18))),
+                      child: const Text('Overdue', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: appDanger)),
+                    ),
+                  ],
+                ] else
+                  const StatusBadge(kind: StatusKind.neutral, label: 'Vacant'),
+              ],
             ),
           ),
         ),

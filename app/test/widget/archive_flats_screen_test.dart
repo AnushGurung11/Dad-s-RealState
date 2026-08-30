@@ -94,8 +94,8 @@ void main() {
     expect(find.text('Bed 1'), findsOneWidget);
     expect(find.text('Alice'), findsOneWidget);
 
-    // Read-only: no edit affordances anywhere.
-    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    // Detail now has AppBar Edit/Delete actions (per v1.13 spec), but no inline TextFormField
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     expect(find.byType(TextFormField), findsNothing);
   });
 

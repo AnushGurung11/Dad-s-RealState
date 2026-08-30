@@ -12,10 +12,7 @@ class ScreenCaption extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            fontSize: AppTextScale.caption,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+      style: const TextStyle(fontSize: 12, color: appText3, fontWeight: FontWeight.w400),
     );
   }
 }

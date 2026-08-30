@@ -147,7 +147,7 @@ void main() {
       ).first,
     );
     expect((badge.decoration as BoxDecoration).border!.top.color,
-        danger.withValues(alpha: 0.4));
+        danger.withValues(alpha: 0.18));
 
     // Alice pays → Paid badge appears for her row only. The store is not
     // reactive, so re-mount the screen like a real revisit would.

@@ -38,13 +38,13 @@ void main() {
     expect(find.text('AED 4000'), findsOneWidget);
     expect(find.text('Vacant'), findsNothing);
 
-    final colors = appLightTheme.extension<AppStatusColors>()!;
     final container = tester.widget<Container>(
       find.ancestor(of: find.text('Bed 1'), matching: find.byType(Container)),
     );
-    final border =
-        (container.decoration as BoxDecoration).border as Border;
-    expect(border.left.color, colors.neutral);
+    final decoration = container.decoration as BoxDecoration;
+    // Spec: dark surface with subtle border, no left accent
+    expect(decoration.color, appSurface1);
+    expect(decoration.border, isA<Border>());
   });
 
   testWidgets('overdue occupied row uses the danger color', (tester) async {
@@ -54,16 +54,12 @@ void main() {
       isOverdue: true,
     )));
 
-    final colors = appLightTheme.extension<AppStatusColors>()!;
-    final container = tester.widget<Container>(
-      find.ancestor(of: find.text('Bed 1'), matching: find.byType(Container)),
-    );
-    final border =
-        (container.decoration as BoxDecoration).border as Border;
-    expect(border.left.color, colors.danger);
+    // Overdue now shows a badge instead of left border
+    expect(find.text('Overdue'), findsOneWidget);
+    expect(find.text('AED 4000'), findsOneWidget);
   });
 
-  testWidgets('vacant row shows "Vacant" + dashed border, tap target present',
+  testWidgets('vacant row shows "Vacant" + Assign affordance, tap target present',
       (tester) async {
     var tapped = false;
     await tester.pumpWidget(_host(BedRow(
@@ -74,16 +70,10 @@ void main() {
     )));
 
     expect(find.text('Vacant'), findsOneWidget);
+    expect(find.text('Assign →'), findsOneWidget);
     expect(find.byType(StatusBadge), findsOneWidget);
     // No rent shown for a vacant bed.
     expect(find.textContaining('AED'), findsNothing);
-    // Dashed border painter is attached.
-    expect(
-      find.byWidgetPredicate((w) =>
-          w is CustomPaint &&
-          w.foregroundPainter is DashedBorderPainter),
-      findsOneWidget,
-    );
     // Tap target present and wired up.
     await tester.tap(find.text('Vacant'));
     expect(tapped, isTrue);

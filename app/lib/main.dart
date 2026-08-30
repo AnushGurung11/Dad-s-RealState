@@ -12,6 +12,70 @@ import 'services/store_scope.dart';
 import 'theme/app_theme.dart';
 import 'widgets/lucky_wordmark.dart';
 
+/// Simulated Android status bar — 28px, mono time, signal/WiFi/battery.
+class AppStatusBar extends StatelessWidget {
+  const AppStatusBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    return Container(
+      height: 28,
+      color: appBg,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Text(time,
+              style: const TextStyle(
+                fontFamily: 'SF Mono',
+                fontFamilyFallback: ['ui-monospace', 'monospace'],
+                fontSize: 12,
+                color: Color(0xB3F5F5F7),
+                fontFeatures: [FontFeature.tabularFigures()],
+              )),
+          const Spacer(),
+          // signal bars
+          Row(
+            children: List.generate(
+              4,
+              (i) => Container(
+                width: 3,
+                height: 4 + i * 2,
+                margin: EdgeInsets.only(left: i == 0 ? 0 : 2),
+                decoration: BoxDecoration(
+                  color: i < 3 ? const Color(0xB3F5F5F7) : const Color(0xFF2C2C32),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          const Icon(Icons.wifi, size: 14, color: Color(0xB3F5F5F7)),
+          const SizedBox(width: 6),
+          Container(
+            width: 24,
+            height: 12,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0x66F5F5F7)),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 16,
+                height: 8,
+                margin: const EdgeInsets.all(1),
+                decoration: BoxDecoration(color: const Color(0xFF34C759), borderRadius: BorderRadius.circular(1)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 void main() {
   runApp(const LuckyApp());
 }
@@ -28,14 +92,15 @@ class LuckyApp extends StatelessWidget {
     return MaterialApp(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
-      theme: appLightTheme,
+      theme: appDarkTheme,
       darkTheme: appDarkTheme,
-      themeMode: ThemeMode.system,
-      // The builder (not `home`) hosts StoreScope so every pushed route —
-      // not just the shell — can resolve the store.
+      themeMode: ThemeMode.dark,
       builder: (context, child) => StoreLoader(
         createStore: createStore,
-        child: child ?? const SizedBox.shrink(),
+        child: Container(
+          color: appBg,
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
       home: const AppShell(),
     );
@@ -100,17 +165,16 @@ class _StoreLoaderState extends State<StoreLoader> {
           );
         }
         if (!snapshot.hasData) {
-          // Login-less landing moment: the LUCKY wordmark fills the first
-          // frame while the store loads.
           return const Scaffold(
+            backgroundColor: appBg,
             body: Center(
               child: Column(
                 key: Key('splash_wordmark'),
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   LuckyWordmark(size: 48),
-                  SizedBox(height: 24),
-                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Saved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appText3)),
                 ],
               ),
             ),
@@ -183,9 +247,37 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = _bodyNavKey.currentState?.canPop() ?? false;
+    final title = routeTitles[_currentRoute] ?? AppConfig.appName;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(routeTitles[_currentRoute] ?? AppConfig.appName),
+      backgroundColor: appBg,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80), // 28 status + 52 appbar
+        child: Column(
+          children: [
+            const AppStatusBar(),
+            AppBar(
+              title: Text(title),
+              leading: canPop
+                  ? Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: InkWell(
+                        onTap: () => _bodyNavKey.currentState?.maybePop(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.chevron_left, color: appAccent, size: 20),
+                        ),
+                      ),
+                    )
+                  : null,
+              backgroundColor: const Color(0xEB09090B),
+              elevation: 0,
+            ),
+          ],
+        ),
       ),
       body: Navigator(
         key: _bodyNavKey,

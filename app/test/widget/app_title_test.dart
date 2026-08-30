@@ -9,9 +9,9 @@ void main() {
   testWidgets('AppBar title reads LUCKY on the dashboard', (tester) async {
     await tester.pumpWidget(LuckyApp(createStore: InMemoryJsonStore.new));
     await tester.pumpAndSettle();
-    // Dashboard appears both as AppBar title and bottom nav label — check AppBar specifically.
+    // Overview is the spec label for Dashboard — check AppBar specifically.
     expect(
-      find.descendant(of: find.byType(AppBar), matching: find.text('Dashboard')),
+      find.descendant(of: find.byType(AppBar), matching: find.text('Overview')),
       findsOneWidget,
     );
     // No screen may surface the old brand name.
@@ -21,6 +21,6 @@ void main() {
 
   test('app display name is LUCKY everywhere', () {
     expect(AppConfig.appName, 'LUCKY');
-    expect(routeTitles[Routes.dashboard], 'Dashboard');
+    expect(routeTitles[Routes.dashboard], 'Overview');
   });
 }

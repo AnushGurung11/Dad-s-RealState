@@ -23,7 +23,7 @@ void main() {
     final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
     expect(bar.destinations.length, 5);
     // NavigationDestination is the type of each destination
-    expect((bar.destinations[0] as NavigationDestination).label, 'Dashboard');
+    expect((bar.destinations[0] as NavigationDestination).label, 'Overview');
     expect((bar.destinations[1] as NavigationDestination).label, 'Flats');
     expect((bar.destinations[2] as NavigationDestination).label, 'Tenants');
     expect((bar.destinations[3] as NavigationDestination).label, 'Finance');
@@ -48,8 +48,8 @@ void main() {
     // Finance placeholder or future finance screen
     expect(find.text('Finance'), findsWidgets);
 
-    // Tap Dashboard again
-    await tester.tap(find.text('Dashboard').last);
+    // Tap Overview again
+    await tester.tap(find.text('Overview').last);
     await tester.pumpAndSettle();
     expect(find.byType(DashboardScreen), findsOneWidget);
   });

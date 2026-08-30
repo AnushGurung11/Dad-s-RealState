@@ -18,20 +18,25 @@ class LuckyWordmark extends StatelessWidget {
       key: const Key('lucky_wordmark'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Symbol: ascending bar chart with a coin, matching the launcher icon.
         SizedBox(
           width: size,
           height: size,
           child: CustomPaint(painter: _LuckyMarkPainter()),
         ),
-        SizedBox(width: size * 0.35),
-        Text(
-          'LUCKY',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: appAccent,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 4,
-              ),
+        SizedBox(width: size * 0.25),
+        Flexible(
+          child: Text(
+            'Lucky',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: size * 0.72,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
+              color: appText1,
+              fontFamily: null,
+            ),
+          ),
         ),
       ],
     );

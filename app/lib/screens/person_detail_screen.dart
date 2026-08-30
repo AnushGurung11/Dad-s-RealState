@@ -240,16 +240,23 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                   _Field(label: 'Notes', value: person.others),
                   const Divider(height: 24),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Remaining balance',
-                          style: Theme.of(context).textTheme.titleSmall),
-                      Text(
-                        formatMoneySigned(balance),
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                      Expanded(
+                        child: Text('Remaining balance',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall),
+                      ),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          formatMoneySigned(balance),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
                       ),
                     ],
                   ),

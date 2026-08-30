@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config.dart';
+import '../icons/app_icons.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
 import '../models/expense.dart';
@@ -11,6 +12,7 @@ import '../services/transaction_edit_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/duration_format.dart';
 import '../utils/format.dart';
+import '../widgets/lucky_wordmark.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -29,9 +31,37 @@ class DashboardScreen extends StatelessWidget {
       month: monthKey(DateTime.now()),
     );
 
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Header per spec: Lucky wordmark + date + Saved pill
+        Row(
+          children: [
+            const Flexible(child: LuckyWordmark(size: 28)),
+            const Spacer(),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(dateStr, style: const TextStyle(fontFamily: 'SF Mono', fontSize: 12, color: appText4, fontFeatures: [FontFeature.tabularFigures()]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: appSuccess.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: appSuccess.withValues(alpha: 0.18))),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: appSuccess, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      const Text('Saved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appSuccess)),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         _SummaryGrid(summary: summary),
         const SizedBox(height: 16),
         _NextLeaseDueCard(summary: summary),
@@ -118,37 +148,41 @@ class _ProfitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppStatusColors>()!;
-    return Card(
+    final isPositive = profit >= 0;
+    final bg = isPositive ? appSuccessDim : appDangerDim;
+    final border = isPositive ? appSuccessBorder : appDangerBorder;
+    final fg = isPositive ? appSuccess : appDanger;
+    return Container(
       key: const Key('profit_card'),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.trending_up_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text('Profit', style: Theme.of(context).textTheme.labelLarge),
-                ],
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  formatMoneyCompact(profit),
-                  key: const Key('profit_value'),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: profit >= 0 ? colors.success : colors.danger,
-                        fontWeight: FontWeight.w700,
-                      ),
+      decoration: BoxDecoration(color: bg, border: Border.all(color: border), borderRadius: BorderRadius.circular(16)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('Net Profit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appText3)),
+                    const Spacer(),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: fg.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.trending_up_outlined, size: 18, color: appSuccess)),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    formatMoneyCompact(profit),
+                    key: const Key('profit_value'),
+                    style: TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: const ['ui-monospace', 'monospace'], fontSize: 34, fontWeight: FontWeight.w600, letterSpacing: -1, color: fg, fontFeatures: const [FontFeature.tabularFigures()]),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -174,45 +208,69 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(label,
-                        style: Theme.of(context).textTheme.labelLarge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+    final isOccupancy = label == 'Occupancy';
+    final isExpenses = label == 'Expenses';
+    Color bg = appSurface1;
+    Color border = appBorder;
+    Color badgeBg = appAccentDim;
+    Color badgeFg = appAccent;
+    if (isOccupancy) {
+      bg = appCompDim;
+      border = appComp.withValues(alpha: 0.18);
+      badgeBg = appCompDim;
+      badgeFg = appComp;
+    } else if (isExpenses) {
+      bg = appDangerDim;
+      border = appDangerBorder;
+      badgeBg = appDangerDim;
+      badgeFg = appDanger;
+    } else if (label == 'Flats') {
+      bg = appAccentDim;
+      border = appSuccessBorder.withValues(alpha: 0.2);
+      badgeBg = appAccentDim;
+      badgeFg = appAccent;
+    } else if (label == 'Outstanding') {
+      // handled separately but keep surface
+      bg = appSurface1;
+      border = appBorder;
+    }
+    return Container(
+      decoration: BoxDecoration(color: bg, border: Border.all(color: border), borderRadius: BorderRadius.circular(16)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appText3), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(12)), child: Icon(icon, size: 18, color: badgeFg)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    value,
+                    style: const TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: ['ui-monospace', 'monospace'], fontSize: 34, fontWeight: FontWeight.w600, letterSpacing: -1, color: appText1, fontFeatures: [FontFeature.tabularFigures()]),
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(fontSize: 12, color: appText3),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  subtitle!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -436,13 +494,19 @@ class _TransactionRow extends StatelessWidget {
         ),
         title: Row(
           children: [
-            Expanded(child: Text(item.context, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall)),
-            Text(
-              '${item.isIncome ? '+' : '-'}${formatMoneyShort(item.amount)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: item.isIncome ? colors.success : colors.danger,
-                  ),
+            Flexible(child: Text(item.context, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '${item.isIncome ? '+' : '-'}${formatMoneyShort(item.amount)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: item.isIncome ? colors.success : colors.danger,
+                    ),
+              ),
             ),
           ],
         ),
@@ -455,12 +519,18 @@ class _TransactionRow extends StatelessWidget {
               key: ValueKey('edit-${item.id}'),
               icon: const Icon(Icons.edit_outlined, size: 18),
               tooltip: 'Edit',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
               onPressed: () => _onEdit(context),
             ),
             IconButton(
               key: ValueKey('delete-${item.id}'),
               icon: const Icon(Icons.delete_outline, size: 18),
               tooltip: 'Delete',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
               onPressed: () => _onDelete(context),
             ),
           ],
