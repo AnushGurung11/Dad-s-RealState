@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -243,7 +244,7 @@ class _DataSectionState extends State<_DataSection> {
     if (choice == 'save') {
       await _saveFileToDevice(file);
     } else if (choice == 'share') {
-      await Share.shareXFiles([XFile(file.path)], text: 'LUCKY backup');
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'LUCKY backup'));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Backup created and shared')),
@@ -272,9 +273,7 @@ class _DataSectionState extends State<_DataSection> {
         targetDir = await getApplicationDocumentsDirectory();
       }
 
-      if (targetDir == null) {
-        targetDir = await getApplicationDocumentsDirectory();
-      }
+      targetDir ??= await getApplicationDocumentsDirectory();
 
       final fileName = file.path.split('/').last;
       final targetFile = File('${targetDir.path}/$fileName');
@@ -459,7 +458,7 @@ class _DataSectionState extends State<_DataSection> {
     if (choice == 'save') {
       await _saveFileToDevice(file);
     } else if (choice == 'share') {
-      await Share.shareXFiles([XFile(file.path)], text: 'LUCKY Excel export');
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], text: 'LUCKY Excel export'));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Excel export created and shared')),

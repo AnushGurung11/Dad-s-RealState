@@ -119,7 +119,6 @@ void main() {
 
     final danger = appLightTheme.extension<AppStatusColors>()!.danger;
     final warning = appLightTheme.extension<AppStatusColors>()!.warning;
-    final neutral = appLightTheme.extension<AppStatusColors>()!.neutral;
 
     // Check overdue uses danger
     final overdueText = find.textContaining('Overdue');
@@ -128,7 +127,7 @@ void main() {
     expect(overdueWidget.style?.color, danger);
 
     // Check due soon uses danger
-    final dueSoonText = find.textContaining('days');
+    find.textContaining('days');
     // This is a bit fragile, but we check at least one danger and one warning
     bool foundWarning = false;
     for (final text in tester.widgetList<Text>(find.byType(Text))) {

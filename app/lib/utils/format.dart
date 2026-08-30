@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../config.dart';
-import '../theme/app_theme.dart';
 
 String formatMoney(double amount) {
   final rounded = amount.toStringAsFixed(2);

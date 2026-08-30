@@ -113,8 +113,6 @@ void main() {
     await tester.tap(find.byKey(const Key('end_tenure_action')));
     await tester.pumpAndSettle();
 
-    // Set termination date to day 15 of NEXT month (month 1 of stay = month 2 in comment).
-    final terminationDate = DateTime(now.year, now.month + 1, 15);
     await tester.tap(find.byKey(const Key('termination_reason_picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Workplace change').last);

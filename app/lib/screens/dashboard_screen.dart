@@ -1,7 +1,7 @@
+// ignore_for_file: use_build_context_synchronously, curly_braces_in_flow_control_structures
 import 'package:flutter/material.dart';
 
 import '../config.dart';
-import '../icons/app_icons.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
 import '../models/expense.dart';
@@ -343,8 +343,11 @@ class _NextLeaseDueCard extends StatelessWidget {
     final isOverdue = days < 0;
 
     Color dueColor = statusColors.neutral;
-    if (days < 0 || days <= 7) dueColor = statusColors.danger;
-    else if (days <= 30) dueColor = statusColors.warning;
+    if (days < 0 || days <= 7) {
+      dueColor = statusColors.danger;
+    } else if (days <= 30) {
+      dueColor = statusColors.warning;
+    }
 
     return Card(
       key: const Key('next_lease_due_card'),
@@ -659,6 +662,7 @@ class _TransactionRow extends StatelessWidget {
       ),
     );
     if (confirmed != true) return;
+    if (!context.mounted) return;
     final store = StoreScope.of(context);
     final service = TransactionEditService(store);
     try {

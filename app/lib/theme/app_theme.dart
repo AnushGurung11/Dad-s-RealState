@@ -183,12 +183,8 @@ ThemeData buildAppTheme(Brightness brightness) {
   final accentTxt = isDark ? appAccentTxt : appLightAccentTxt;
   final comp = isDark ? appComp : appLightComp;
   final compDim = isDark ? appCompDim : appLightCompDim;
-  final success = isDark ? appSuccess : appLightSuccess;
-  final successDim = isDark ? appSuccessDim : appLightSuccessDim;
   final danger = isDark ? appDanger : appLightDanger;
   final dangerDim = isDark ? appDangerDim : appLightDangerDim;
-  final warn = isDark ? appWarn : appLightWarn;
-  final warnDim = isDark ? appWarnDim : appLightWarnDim;
   final navBg = isDark ? const Color(0xF509090B) : appLightNavBg;
   final appBarBg = isDark ? const Color(0xEB09090B) : appLightAppBarBg;
   final status = isDark ? appStatusColors : appLightStatusColors;

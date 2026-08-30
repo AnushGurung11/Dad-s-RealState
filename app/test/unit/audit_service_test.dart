@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lucky/models/expense.dart';
 import 'package:lucky/services/audit_service.dart';
 import 'package:lucky/services/json_store.dart';
 import 'package:lucky/models/audit_log_entry.dart';

@@ -2,8 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
-import '../theme/flat_color.dart';
+
 
 /// Tenant avatar: shows the stored photo when [photoPath] is set and the
 /// file exists; otherwise falls back to colored initials.
