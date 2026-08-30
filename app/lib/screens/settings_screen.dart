@@ -10,6 +10,7 @@ import '../navigation/routes.dart';
 import '../services/backup_service.dart';
 import '../services/excel_export_service.dart';
 import '../services/store_scope.dart';
+import '../theme/theme_controller.dart';
 import '../widgets/lucky_wordmark.dart';
 
 /// Which part of the settings screen to land on.
@@ -26,6 +27,29 @@ class SettingsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Appearance section — Dark Mode toggle per patch.md light theme spec
+        Text('Appearance', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ValueListenableBuilder<ThemeMode>(
+            valueListenable: themeController,
+            builder: (context, mode, _) {
+              final isDark = mode == ThemeMode.dark;
+              return SwitchListTile(
+                key: const Key('settings_theme_toggle'),
+                title: const Text('Dark Mode'),
+                subtitle: Text(isDark ? 'Dark theme enabled' : 'Light theme enabled',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                secondary: Icon(isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                    color: Theme.of(context).colorScheme.primary),
+                value: isDark,
+                onChanged: (v) => themeController.setDark(v),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
         // Archive section
         Text('Archive', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),

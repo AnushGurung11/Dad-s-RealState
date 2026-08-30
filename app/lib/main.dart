@@ -10,9 +10,11 @@ import 'services/archive_service.dart';
 import 'services/json_store.dart';
 import 'services/store_scope.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 import 'widgets/lucky_wordmark.dart';
 
 /// Simulated Android status bar — 28px, mono time, signal/WiFi/battery.
+/// Adapts to current theme's scaffold background and text colors.
 class AppStatusBar extends StatelessWidget {
   const AppStatusBar({super.key});
 
@@ -20,22 +22,25 @@ class AppStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? const Color(0xB3F5F5F7) : const Color(0x8C0C0C12);
+    final ghost = isDark ? const Color(0xFF2C2C32) : const Color(0xFFC4C4D0);
+    final borderMuted = isDark ? const Color(0x66F5F5F7) : const Color(0x660C0C12);
     return Container(
       height: 28,
-      color: appBg,
+      color: Theme.of(context).scaffoldBackgroundColor,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Text(time,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'SF Mono',
-                fontFamilyFallback: ['ui-monospace', 'monospace'],
+                fontFamilyFallback: const ['ui-monospace', 'monospace'],
                 fontSize: 12,
-                color: Color(0xB3F5F5F7),
-                fontFeatures: [FontFeature.tabularFigures()],
+                color: muted,
+                fontFeatures: const [FontFeature.tabularFigures()],
               )),
           const Spacer(),
-          // signal bars
           Row(
             children: List.generate(
               4,
@@ -44,20 +49,20 @@ class AppStatusBar extends StatelessWidget {
                 height: 4 + i * 2,
                 margin: EdgeInsets.only(left: i == 0 ? 0 : 2),
                 decoration: BoxDecoration(
-                  color: i < 3 ? const Color(0xB3F5F5F7) : const Color(0xFF2C2C32),
+                  color: i < 3 ? muted : ghost,
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 6),
-          const Icon(Icons.wifi, size: 14, color: Color(0xB3F5F5F7)),
+          Icon(Icons.wifi, size: 14, color: muted),
           const SizedBox(width: 6),
           Container(
             width: 24,
             height: 12,
             decoration: BoxDecoration(
-              border: Border.all(color: const Color(0x66F5F5F7)),
+              border: Border.all(color: borderMuted),
               borderRadius: BorderRadius.circular(3),
             ),
             child: Align(
@@ -76,33 +81,38 @@ class AppStatusBar extends StatelessWidget {
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await themeController.load();
   runApp(const LuckyApp());
 }
 
 class LuckyApp extends StatelessWidget {
   const LuckyApp({super.key, this.createStore});
 
-  /// Optional override for where the [JsonStore] comes from. Tests inject an
-  /// in-memory store here; production uses the file-backed local store.
   final JsonStore Function()? createStore;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConfig.appName,
-      debugShowCheckedModeBanner: false,
-      theme: appDarkTheme,
-      darkTheme: appDarkTheme,
-      themeMode: ThemeMode.dark,
-      builder: (context, child) => StoreLoader(
-        createStore: createStore,
-        child: Container(
-          color: appBg,
-          child: child ?? const SizedBox.shrink(),
-        ),
-      ),
-      home: const AppShell(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeController,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: AppConfig.appName,
+          debugShowCheckedModeBanner: false,
+          theme: appLightTheme,
+          darkTheme: appDarkTheme,
+          themeMode: mode,
+          builder: (context, child) => StoreLoader(
+            createStore: createStore,
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+          home: const AppShell(),
+        );
+      },
     );
   }
 }
@@ -165,16 +175,20 @@ class _StoreLoaderState extends State<StoreLoader> {
           );
         }
         if (!snapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: appBg,
+          return Scaffold(
             body: Center(
               child: Column(
-                key: Key('splash_wordmark'),
+                key: const Key('splash_wordmark'),
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  LuckyWordmark(size: 48),
-                  SizedBox(height: 16),
-                  Text('Saved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appText3)),
+                  const LuckyWordmark(size: 48),
+                  const SizedBox(height: 16),
+                  Text('Saved',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.8,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6))),
                 ],
               ),
             ),
@@ -249,10 +263,10 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final canPop = _bodyNavKey.currentState?.canPop() ?? false;
     final title = routeTitles[_currentRoute] ?? AppConfig.appName;
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: appBg,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80), // 28 status + 52 appbar
+        preferredSize: const Size.fromHeight(80),
         child: Column(
           children: [
             const AppStatusBar(),
@@ -267,13 +281,12 @@ class _AppShellState extends State<AppShell> {
                         child: Container(
                           width: 36,
                           height: 36,
-                          decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.chevron_left, color: appAccent, size: 20),
+                          decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(12)),
+                          child: Icon(Icons.chevron_left, color: cs.primary, size: 20),
                         ),
                       ),
                     )
                   : null,
-              backgroundColor: const Color(0xEB09090B),
               elevation: 0,
             ),
           ],

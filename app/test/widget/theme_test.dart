@@ -4,8 +4,7 @@ import 'package:lucky/theme/app_theme.dart';
 
 void main() {
   test('light and dark ThemeData both build without error', () {
-    // Spec is dark-first: both themes use dark surfaces (#09090B)
-    expect(appLightTheme.brightness, Brightness.dark);
+    expect(appLightTheme.brightness, Brightness.light);
     expect(appDarkTheme.brightness, Brightness.dark);
     expect(appLightTheme.colorScheme, isA<ColorScheme>());
     expect(appDarkTheme.colorScheme, isA<ColorScheme>());

@@ -33,10 +33,11 @@ class DashboardScreen extends StatelessWidget {
 
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final status = Theme.of(context).extension<AppStatusColors>()!;
+    final ghost = Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Header per spec: Lucky wordmark + date + Saved pill
         Row(
           children: [
             const Flexible(child: LuckyWordmark(size: 28)),
@@ -45,15 +46,23 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(dateStr, style: const TextStyle(fontFamily: 'SF Mono', fontSize: 12, color: appText4, fontFeatures: [FontFeature.tabularFigures()]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(dateStr,
+                      style: TextStyle(
+                          fontFamily: 'SF Mono',
+                          fontSize: 12,
+                          color: ghost,
+                          fontFeatures: const [FontFeature.tabularFigures()]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: appSuccess.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: appSuccess.withValues(alpha: 0.18))),
+                    decoration: BoxDecoration(
+                        color: status.successDim, borderRadius: BorderRadius.circular(999), border: Border.all(color: status.successBorder)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: appSuccess, shape: BoxShape.circle)),
+                      Container(width: 6, height: 6, decoration: BoxDecoration(color: status.success, shape: BoxShape.circle)),
                       const SizedBox(width: 6),
-                      const Text('Saved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appSuccess)),
+                      Text('Saved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: status.success)),
                     ]),
                   ),
                 ],
@@ -148,10 +157,13 @@ class _ProfitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppStatusColors>()!;
     final isPositive = profit >= 0;
-    final bg = isPositive ? appSuccessDim : appDangerDim;
-    final border = isPositive ? appSuccessBorder : appDangerBorder;
-    final fg = isPositive ? appSuccess : appDanger;
+    final bg = isPositive ? colors.successDim : colors.dangerDim;
+    final border = isPositive ? colors.successBorder : colors.dangerBorder;
+    final fg = isPositive ? colors.success : colors.danger;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final muted = isDark ? appText3 : appLightText3;
     return Container(
       key: const Key('profit_card'),
       decoration: BoxDecoration(color: bg, border: Border.all(color: border), borderRadius: BorderRadius.circular(16)),
@@ -167,9 +179,9 @@ class _ProfitCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text('Net Profit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appText3)),
+                    Text('Net Profit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: muted)),
                     const Spacer(),
-                    Container(width: 32, height: 32, decoration: BoxDecoration(color: fg.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.trending_up_outlined, size: 18, color: appSuccess)),
+                    Container(width: 32, height: 32, decoration: BoxDecoration(color: fg.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.trending_up_outlined, size: 18, color: fg)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -208,31 +220,39 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final status = Theme.of(context).extension<AppStatusColors>()!;
+    final surface1 = cs.surface;
+    final borderBase = cs.outline;
+    final text1 = cs.onSurface;
+    final text3 = cs.onSurfaceVariant.withValues(alpha: 0.7);
     final isOccupancy = label == 'Occupancy';
     final isExpenses = label == 'Expenses';
-    Color bg = appSurface1;
-    Color border = appBorder;
-    Color badgeBg = appAccentDim;
-    Color badgeFg = appAccent;
+    Color bg = surface1;
+    Color border = borderBase;
+    Color badgeBg = cs.primaryContainer;
+    Color badgeFg = cs.primary;
     if (isOccupancy) {
-      bg = appCompDim;
-      border = appComp.withValues(alpha: 0.18);
-      badgeBg = appCompDim;
-      badgeFg = appComp;
+      final comp = isDark ? appComp : appLightComp;
+      final compDim = isDark ? appCompDim : appLightCompDim;
+      bg = compDim;
+      border = comp.withValues(alpha: 0.18);
+      badgeBg = compDim;
+      badgeFg = comp;
     } else if (isExpenses) {
-      bg = appDangerDim;
-      border = appDangerBorder;
-      badgeBg = appDangerDim;
-      badgeFg = appDanger;
+      bg = status.dangerDim;
+      border = status.dangerBorder;
+      badgeBg = status.dangerDim;
+      badgeFg = status.danger;
     } else if (label == 'Flats') {
-      bg = appAccentDim;
-      border = appSuccessBorder.withValues(alpha: 0.2);
-      badgeBg = appAccentDim;
-      badgeFg = appAccent;
+      bg = cs.primaryContainer;
+      border = status.successBorder.withValues(alpha: 0.2);
+      badgeBg = cs.primaryContainer;
+      badgeFg = cs.primary;
     } else if (label == 'Outstanding') {
-      // handled separately but keep surface
-      bg = appSurface1;
-      border = appBorder;
+      bg = surface1;
+      border = borderBase;
     }
     return Container(
       decoration: BoxDecoration(color: bg, border: Border.all(color: border), borderRadius: BorderRadius.circular(16)),
@@ -248,7 +268,7 @@ class _StatCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: appText3), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Expanded(child: Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: text3), maxLines: 1, overflow: TextOverflow.ellipsis)),
                     Container(width: 32, height: 32, decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(12)), child: Icon(icon, size: 18, color: badgeFg)),
                   ],
                 ),
@@ -257,14 +277,14 @@ class _StatCard extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   child: Text(
                     value,
-                    style: const TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: ['ui-monospace', 'monospace'], fontSize: 34, fontWeight: FontWeight.w600, letterSpacing: -1, color: appText1, fontFeatures: [FontFeature.tabularFigures()]),
+                    style: TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: const ['ui-monospace', 'monospace'], fontSize: 34, fontWeight: FontWeight.w600, letterSpacing: -1, color: text1, fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: const TextStyle(fontSize: 12, color: appText3),
+                    style: TextStyle(fontSize: 12, color: text3),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

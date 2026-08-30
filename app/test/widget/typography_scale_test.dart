@@ -35,11 +35,19 @@ void main() {
 
   test('AppStatusColors extension is attached to theme (iOS palette)', () {
     final lightTheme = appLightTheme;
-    final statusColors = lightTheme.extension<AppStatusColors>();
-    expect(statusColors, isNotNull);
-    expect(statusColors!.success, const Color(0xFF34C759));
-    expect(statusColors.warning, const Color(0xFFFF9F0A));
-    expect(statusColors.danger, const Color(0xFFFF453A));
-    expect(statusColors.neutral, const Color(0xFF48484F));
+    final lightStatus = lightTheme.extension<AppStatusColors>();
+    expect(lightStatus, isNotNull);
+    expect(lightStatus!.success, const Color(0xFF1B9E3E));
+    expect(lightStatus.warning, const Color(0xFFD97706));
+    expect(lightStatus.danger, const Color(0xFFD93025));
+    expect(lightStatus.neutral, const Color(0xFF9898A8));
+
+    final darkTheme = appDarkTheme;
+    final darkStatus = darkTheme.extension<AppStatusColors>();
+    expect(darkStatus, isNotNull);
+    expect(darkStatus!.success, const Color(0xFF34C759));
+    expect(darkStatus.warning, const Color(0xFFFF9F0A));
+    expect(darkStatus.danger, const Color(0xFFFF453A));
+    expect(darkStatus.neutral, const Color(0xFF48484F));
   });
 }
