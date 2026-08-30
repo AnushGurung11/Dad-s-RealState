@@ -483,6 +483,8 @@ class BackupService {
       // Now rename all .tmp files atomically
       for (final file in tmpFiles) {
         final target = File(file.path.replaceAll('.tmp', ''));
+        // Ensure parent directory exists before rename
+        await target.parent.create(recursive: true);
         if (await target.exists()) {
           await target.delete();
         }
