@@ -39,13 +39,19 @@ class LuckyBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final index = _indexFor(currentRoute);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final navBg = theme.navigationBarTheme.backgroundColor ?? (isDark ? const Color(0xF509090B) : appLightNavBg);
+    final borderColor = theme.dividerTheme.color ?? (isDark ? appBorder : appLightBorder);
+    final inactiveColor = isDark ? appText3 : appLightText3;
+    final activeColor = isDark ? appAccent : appLightAccent;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          decoration: const BoxDecoration(
-            color: Color(0xF509090B), // rgba(9,9,11,0.96)
-            border: Border(top: BorderSide(color: appBorder, width: 1)),
+          decoration: BoxDecoration(
+            color: navBg,
+            border: Border(top: BorderSide(color: borderColor, width: 1)),
           ),
           child: SafeArea(
             child: Column(
@@ -79,28 +85,28 @@ class LuckyBottomNav extends StatelessWidget {
                   },
                   destinations: [
                     NavigationDestination(
-                      icon: const AppIconWidget(AppIcon.grid, size: 22, color: appText3),
-                      selectedIcon: const AppIconWidget(AppIcon.grid, size: 22, color: appAccent),
+                      icon: AppIconWidget(AppIcon.grid, size: 22, color: inactiveColor),
+                      selectedIcon: AppIconWidget(AppIcon.grid, size: 22, color: activeColor),
                       label: 'Overview',
                     ),
                     NavigationDestination(
-                      icon: const AppIconWidget(AppIcon.building, size: 22, color: appText3),
-                      selectedIcon: const AppIconWidget(AppIcon.building, size: 22, color: appAccent),
+                      icon: AppIconWidget(AppIcon.building, size: 22, color: inactiveColor),
+                      selectedIcon: AppIconWidget(AppIcon.building, size: 22, color: activeColor),
                       label: 'Flats',
                     ),
                     NavigationDestination(
-                      icon: const AppIconWidget(AppIcon.people, size: 22, color: appText3),
-                      selectedIcon: const AppIconWidget(AppIcon.people, size: 22, color: appAccent),
+                      icon: AppIconWidget(AppIcon.people, size: 22, color: inactiveColor),
+                      selectedIcon: AppIconWidget(AppIcon.people, size: 22, color: activeColor),
                       label: 'Tenants',
                     ),
                     NavigationDestination(
-                      icon: const AppIconWidget(AppIcon.wallet, size: 22, color: appText3),
-                      selectedIcon: const AppIconWidget(AppIcon.wallet, size: 22, color: appAccent),
+                      icon: AppIconWidget(AppIcon.wallet, size: 22, color: inactiveColor),
+                      selectedIcon: AppIconWidget(AppIcon.wallet, size: 22, color: activeColor),
                       label: 'Finance',
                     ),
                     NavigationDestination(
-                      icon: const AppIconWidget(AppIcon.dots, size: 22, color: appText3),
-                      selectedIcon: const AppIconWidget(AppIcon.dots, size: 22, color: appAccent),
+                      icon: AppIconWidget(AppIcon.dots, size: 22, color: inactiveColor),
+                      selectedIcon: AppIconWidget(AppIcon.dots, size: 22, color: activeColor),
                       label: 'More',
                     ),
                   ],
@@ -109,7 +115,7 @@ class LuckyBottomNav extends StatelessWidget {
                 Container(
                   width: 24,
                   height: 4,
-                  decoration: BoxDecoration(color: appBorder, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(2)),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -121,25 +127,33 @@ class LuckyBottomNav extends StatelessWidget {
   }
 
   void _showMoreSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface1 = isDark ? appSurface1 : appLightSurface2;
+    final borderMd = isDark ? appBorderMd : appLightBorderMd;
+    final accent = isDark ? appAccent : appLightAccent;
+    final accentDim = isDark ? appAccentDim : appLightAccentDim;
+    final text1 = isDark ? appText1 : appLightText1;
+    final sheetBorder = isDark ? appBorderMd : appLightBorderMd;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: appSurface1,
-      barrierColor: const Color(0xA6000000), // rgba(0,0,0,0.65)
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        side: BorderSide(color: appBorderMd),
+      backgroundColor: surface1,
+      barrierColor: const Color(0xA6000000),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        side: BorderSide(color: sheetBorder),
       ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Container(width: 36, height: 3, decoration: BoxDecoration(color: appBorderMd, borderRadius: BorderRadius.circular(2))),
+            Container(width: 36, height: 3, decoration: BoxDecoration(color: borderMd, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 12),
             ListTile(
               key: const Key('more_settings'),
-              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.settings_outlined, size: 18, color: appAccent)),
-              title: const Text('Settings', style: TextStyle(fontSize: 15, color: appText1)),
+              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: accentDim, borderRadius: BorderRadius.circular(12)), child: Icon(Icons.settings_outlined, size: 18, color: accent)),
+              title: Text('Settings', style: TextStyle(fontSize: 15, color: text1)),
               onTap: () {
                 Navigator.pop(ctx);
                 onSelect('/settings');
@@ -147,8 +161,8 @@ class LuckyBottomNav extends StatelessWidget {
             ),
             ListTile(
               key: const Key('more_archived_tenants'),
-              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.person_off_outlined, size: 18, color: appAccent)),
-              title: const Text('Archived Tenants', style: TextStyle(fontSize: 15, color: appText1)),
+              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: accentDim, borderRadius: BorderRadius.circular(12)), child: Icon(Icons.person_off_outlined, size: 18, color: accent)),
+              title: Text('Archived Tenants', style: TextStyle(fontSize: 15, color: text1)),
               onTap: () {
                 Navigator.pop(ctx);
                 onSelect('/archive/tenants');
@@ -156,8 +170,8 @@ class LuckyBottomNav extends StatelessWidget {
             ),
             ListTile(
               key: const Key('more_archive_flats'),
-              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: appAccentDim, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.apartment_outlined, size: 18, color: appAccent)),
-              title: const Text('Archive Flats', style: TextStyle(fontSize: 15, color: appText1)),
+              leading: Container(width: 32, height: 32, decoration: BoxDecoration(color: accentDim, borderRadius: BorderRadius.circular(12)), child: Icon(Icons.apartment_outlined, size: 18, color: accent)),
+              title: Text('Archive Flats', style: TextStyle(fontSize: 15, color: text1)),
               onTap: () {
                 Navigator.pop(ctx);
                 onSelect('/archive/flats');

@@ -278,7 +278,7 @@ void main() {
     final tenantHeaders = tenantsSheet.rows.first.map((c) => c?.value?.toString()).toList();
     expect(tenantHeaders, equals([
       'Name', 'Contact', 'Workplace', 'Flat', 'Bed', 'Status',
-      'Join Date', 'Vacated Date', 'Monthly Rent', 'Deposit',
+      'Join Date', 'Vacated Date', 'Monthly Rent (AED)', 'Deposit (AED)',
     ]));
 
     final flatsBedsSheet = excel.tables['Flats & Beds']!;
@@ -291,25 +291,25 @@ void main() {
     final financialSheet = excel.tables['Financial Report']!;
     final finHeaders = financialSheet.rows.first.map((c) => c?.value?.toString()).toList();
     expect(finHeaders, equals([
-      'Flat', 'Month', 'Income', 'Expenses', 'Net',
+      'Flat', 'Month', 'Income (AED)', 'Expenses (AED)', 'Net (AED)', 'Remarks',
     ]));
 
     final chequeSheet = excel.tables['Cheque Payment History']!;
     final chHeaders = chequeSheet.rows.first.map((c) => c?.value?.toString()).toList();
     expect(chHeaders, equals([
-      'Flat', 'Date', 'Amount',
+      'Flat', 'Owner', 'Due Date', 'Paid Date', 'Amount (AED)', 'Month', 'Status',
     ]));
 
     final rentHistorySheet = excel.tables['Tenant Rent History']!;
     final rhHeaders = rentHistorySheet.rows.first.map((c) => c?.value?.toString()).toList();
     expect(rhHeaders, equals([
-      'Tenant', 'Flat', 'Date', 'Amount', 'Type',
+      'Tenant', 'Flat', 'Bed', 'Month', 'Amount Due (AED)', 'Amount Paid (AED)', 'Type', 'Status',
     ]));
 
     final expensesSheet = excel.tables['Expenses']!;
     final expHeaders = expensesSheet.rows.first.map((c) => c?.value?.toString()).toList();
     expect(expHeaders, equals([
-      'Flat', 'Category', 'Amount', 'Date', 'Note',
+      'Flat', 'Category', 'Amount (AED)', 'Date', 'Payment Method', 'Note', 'Status',
     ]));
   });
 
@@ -382,9 +382,10 @@ void main() {
     final excel = Excel.decodeBytes(bytes);
 
     final readMeSheet = excel.tables['Read me']!;
-    final content = readMeSheet.rows.first[0]?.value?.toString();
-    expect(content, contains('point-in-time export'));
-    expect(content, contains('never re-imported'));
-    expect(content, contains('edits here have no effect'));
+    // Check any cell contains the required phrases (sheet now has structured sections)
+    final allText = readMeSheet.rows.expand((r) => r).map((c) => c?.value?.toString() ?? '').join(' ');
+    expect(allText, contains('point-in-time export'));
+    expect(allText.toLowerCase(), contains('never re-imported'));
+    expect(allText, contains('edits here have no effect'));
   });
 }

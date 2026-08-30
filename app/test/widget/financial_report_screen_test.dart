@@ -37,28 +37,26 @@ void main() {
     expect(find.text('This Month'), findsOneWidget);
     await tester.tap(find.text('12 Months'));
     await tester.pumpAndSettle();
-    expect(find.text('Last 12 Months'), findsOneWidget);
+    expect(find.textContaining('Last 12 Months'), findsOneWidget);
     await tester.tap(find.text('Yearly'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Year ${DateTime.now().year}'), findsOneWidget);
   });
 
-  testWidgets('chart toggle switches between line and bar rendering', (tester) async {
+  testWidgets('table view shows reliable financial records instead of charts', (tester) async {
     await pumpScreen(tester);
     await tester.tap(find.text('12 Months'));
     await tester.pumpAndSettle();
-    // Default is Line
-    expect(find.text('Line'), findsWidgets);
-    expect(find.text('Bar'), findsWidgets);
-    // Tap Bar
-    await tester.tap(find.text('Bar').last);
-    await tester.pumpAndSettle();
-    // Should still show chart
-    expect(find.text('Bar'), findsWidgets);
-    // Tap Line again
-    await tester.tap(find.text('Line').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Line'), findsWidgets);
+    // Should show table, not charts
+    expect(find.textContaining('Last 12 Months'), findsOneWidget);
+    expect(find.textContaining('Detailed Table'), findsOneWidget);
+    // DataTable should be present with Income/Expense/Net headers
+    expect(find.text('Income'), findsWidgets);
+    expect(find.text('Expense'), findsWidgets);
+    expect(find.text('Net'), findsWidgets);
+    // No Line/Bar toggle should exist (charts removed)
+    expect(find.text('Line'), findsNothing);
+    expect(find.text('Bar'), findsNothing);
   });
 
   testWidgets('flat filter changes displayed data correctly', (tester) async {
@@ -71,14 +69,12 @@ void main() {
     expect(find.text('Alpha'), findsWidgets);
   });
 
-  testWidgets('tapping a chart point/bar drills into the correct month Financial Activity view', (tester) async {
+  testWidgets('table view renders without exception and shows transaction ledger', (tester) async {
     await pumpScreen(tester);
     await tester.tap(find.text('12 Months'));
     await tester.pumpAndSettle();
-    // Verify chart is present (LineChart or BarChart)
-    expect(find.text('Last 12 Months'), findsOneWidget);
-    // The drill-down would push FinancialActivity - we verify the chart doesn't crash on tap
-    // Tap is tested via the chart's touchCallback which would navigate; we just ensure no exception
+    expect(find.textContaining('Last 12 Months'), findsOneWidget);
+    expect(find.textContaining('Transaction Ledger'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
