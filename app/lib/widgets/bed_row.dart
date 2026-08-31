@@ -11,6 +11,7 @@ import 'status_badge.dart';
 /// encodes state: danger when the occupant is overdue, neutral when simply
 /// occupied, and vacant beds get a dashed gray outline instead.
 /// Also shows the occupant's photo avatar when available.
+/// Supports optional action buttons for delete, make vacant, and reassign.
 class BedRow extends StatelessWidget {
   const BedRow({
     super.key,
@@ -19,6 +20,9 @@ class BedRow extends StatelessWidget {
     this.occupantPhotoPath,
     required this.isOverdue,
     this.onTap,
+    this.onDelete,
+    this.onMakeVacant,
+    this.onReassign,
   });
 
   final Bed bed;
@@ -26,6 +30,9 @@ class BedRow extends StatelessWidget {
   final String? occupantPhotoPath;
   final bool isOverdue;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
+  final VoidCallback? onMakeVacant;
+  final VoidCallback? onReassign;
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +91,36 @@ class BedRow extends StatelessWidget {
                       child: const Text('Overdue', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: appDanger)),
                     ),
                   ],
-                ] else
+                  // Action buttons for occupied beds
+                  if (onMakeVacant != null || onReassign != null) ...[
+                    const SizedBox(width: 4),
+                    PopupMenuButton<String>(
+                      key: ValueKey('bed-actions-${bed.id}'),
+                      icon: const Icon(Icons.more_vert, size: 18),
+                      onSelected: (value) {
+                        if (value == 'vacant') onMakeVacant?.call();
+                        if (value == 'reassign') onReassign?.call();
+                      },
+                      itemBuilder: (context) => [
+                        if (onMakeVacant != null)
+                          const PopupMenuItem(value: 'vacant', child: Text('Make vacant')),
+                        if (onReassign != null)
+                          const PopupMenuItem(value: 'reassign', child: Text('Move to another bed')),
+                      ],
+                    ),
+                  ],
+                ] else ...[
                   const StatusBadge(kind: StatusKind.neutral, label: 'Vacant'),
+                  if (onDelete != null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      key: ValueKey('delete-bed-${bed.id}'),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: 'Delete bed',
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ],
               ],
             ),
           ),

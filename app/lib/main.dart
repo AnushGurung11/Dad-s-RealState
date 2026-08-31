@@ -13,74 +13,6 @@ import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/lucky_wordmark.dart';
 
-/// Simulated Android status bar — 28px, mono time, signal/WiFi/battery.
-/// Adapts to current theme's scaffold background and text colors.
-class AppStatusBar extends StatelessWidget {
-  const AppStatusBar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final muted = isDark ? const Color(0xB3F5F5F7) : const Color(0x8C0C0C12);
-    final ghost = isDark ? const Color(0xFF2C2C32) : const Color(0xFFC4C4D0);
-    final borderMuted = isDark ? const Color(0x66F5F5F7) : const Color(0x660C0C12);
-    return Container(
-      height: 28,
-      color: Theme.of(context).scaffoldBackgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Text(time,
-              style: TextStyle(
-                fontFamily: 'SF Mono',
-                fontFamilyFallback: const ['ui-monospace', 'monospace'],
-                fontSize: 12,
-                color: muted,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              )),
-          const Spacer(),
-          Row(
-            children: List.generate(
-              4,
-              (i) => Container(
-                width: 3,
-                height: 4 + i * 2,
-                margin: EdgeInsets.only(left: i == 0 ? 0 : 2),
-                decoration: BoxDecoration(
-                  color: i < 3 ? muted : ghost,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Icon(Icons.wifi, size: 14, color: muted),
-          const SizedBox(width: 6),
-          Container(
-            width: 24,
-            height: 12,
-            decoration: BoxDecoration(
-              border: Border.all(color: borderMuted),
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                width: 16,
-                height: 8,
-                margin: const EdgeInsets.all(1),
-                decoration: BoxDecoration(color: const Color(0xFF34C759), borderRadius: BorderRadius.circular(1)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await themeController.load();
@@ -147,11 +79,14 @@ class _StoreLoaderState extends State<StoreLoader> {
     final override = widget.createStore;
     if (override != null) return override();
     final documents = await getApplicationDocumentsDirectory();
-    final store = LocalJsonStore(
-      directory: Directory(
-        '${documents.path}${Platform.pathSeparator}${AppConfig.appName}',
-      ),
+    final storeDir = Directory(
+      '${documents.path}${Platform.pathSeparator}${AppConfig.appName}',
     );
+
+    // Migrate existing data from Downloads folder to app data folder
+    await LocalJsonStore.migrateFromDownloads(storeDir);
+
+    final store = LocalJsonStore(directory: storeDir);
     await store.load();
     return store;
   }
@@ -262,35 +197,28 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final canPop = _bodyNavKey.currentState?.canPop() ?? false;
+    final isHome = _currentRoute == Routes.dashboard;
     final title = routeTitles[_currentRoute] ?? AppConfig.appName;
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: Column(
-          children: [
-            const AppStatusBar(),
-            AppBar(
-              title: Text(title),
-              leading: canPop
-                  ? Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: InkWell(
-                        onTap: () => _bodyNavKey.currentState?.maybePop(),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(12)),
-                          child: Icon(Icons.chevron_left, color: cs.primary, size: 20),
-                        ),
-                      ),
-                    )
-                  : null,
-              elevation: 0,
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text(title),
+        leading: (canPop && !isHome)
+            ? Padding(
+                padding: const EdgeInsets.all(8),
+                child: InkWell(
+                  onTap: () => _bodyNavKey.currentState?.maybePop(),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(12)),
+                    child: Icon(Icons.chevron_left, color: cs.primary, size: 20),
+                  ),
+                ),
+              )
+            : null,
+        elevation: 0,
       ),
       body: Navigator(
         key: _bodyNavKey,

@@ -85,24 +85,16 @@ void main() {
     await tester.tap(find.text('Add flat'));
     await tester.pumpAndSettle();
 
-    // Fields are in order: Flat name, Address, Lease paid through (button),
-    // Payment frequency, Contract person, Yearly rent, Total beds, Default rent
+    // Fields: Flat name, Address, Total beds, Default rent per bed
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Flat name'), 'Beta');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Address'), '2 B Road');
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Contract person'), 'Ms. Lee');
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Yearly rent (AED)'), '60000');
-    await tester.enterText(
         find.widgetWithText(TextFormField, 'Total beds'), '5');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Default rent per bed (AED)'),
         '3500');
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Payment frequency (months)'),
-        '2');
     await tester.ensureVisible(find.text('Create flat'));
     await tester.pumpAndSettle();
 
@@ -112,8 +104,8 @@ void main() {
     expect(store.flats.map((f) => f.name), contains('Beta'));
     expect(
         store.beds.where((b) => b.flatId == store.flats.last.id), hasLength(5));
-    expect(store.leaseChequeSettings, hasLength(1));
-    expect(store.leaseChequeSettings.single.amount, closeTo(10000, 0.001));
+    // Flat creation no longer creates cheque settings
+    expect(store.leaseChequeSettings, isEmpty);
     // Back on the grid, the new card is visible.
     expect(find.text('Beta'), findsOneWidget);
   });
@@ -134,15 +126,10 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Address'), 'x');
     await tester.enterText(
-        find.widgetWithText(TextFormField, 'Yearly rent (AED)'), '60000');
-    await tester.enterText(
         find.widgetWithText(TextFormField, 'Total beds'), '21');
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Default rent per bed (AED)'),
         '3500');
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Payment frequency (months)'),
-        '2');
     await tester.ensureVisible(find.text('Create flat'));
     await tester.pumpAndSettle();
 

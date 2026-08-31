@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -110,13 +111,14 @@ class _DataSection extends StatefulWidget {
   State<_DataSection> createState() => _DataSectionState();
 }
 
-enum _DataAction { createBackup, restoreBackup, exportExcel }
+enum _DataAction { createBackup, restoreBackup, exportExcel, resetData }
 
 class _DataSectionState extends State<_DataSection> {
   final Map<_DataAction, bool> _isBusy = {
     _DataAction.createBackup: false,
     _DataAction.restoreBackup: false,
     _DataAction.exportExcel: false,
+    _DataAction.resetData: false,
   };
 
   bool _isBusyFor(_DataAction action) => _isBusy[action] ?? false;
@@ -196,6 +198,34 @@ class _DataSectionState extends State<_DataSection> {
             onTap: _isBusyFor(_DataAction.exportExcel) ? null : _exportExcel,
           ),
         ),
+        Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            key: const Key('settings_open_data_folder'),
+            leading: const Icon(Icons.folder_open_outlined),
+            title: const Text('Open data folder'),
+            subtitle: const Text('View stored data files in device file explorer'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _openDataFolder,
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            key: const Key('settings_reset_data'),
+            leading: Icon(Icons.delete_forever_outlined, color: Theme.of(context).colorScheme.error),
+            title: Text('Reset all data', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            subtitle: const Text('Permanently delete all data from this device'),
+            trailing: _isBusyFor(_DataAction.resetData)
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.chevron_right),
+            onTap: _isBusyFor(_DataAction.resetData) ? null : _resetData,
+          ),
+        ),
       ],
     );
   }
@@ -254,39 +284,25 @@ class _DataSectionState extends State<_DataSection> {
 
   Future<void> _saveFileToDevice(File file) async {
     try {
-      Directory? targetDir;
-      if (Platform.isAndroid) {
-        // Try to get the Downloads directory on Android
-        targetDir = await getExternalStorageDirectory();
-        if (targetDir != null) {
-          // Navigate to Downloads from the app-specific external storage
-          final downloadsDir = Directory('/storage/emulated/0/Download');
-          if (await downloadsDir.exists()) {
-            targetDir = downloadsDir;
-          }
-        }
-      } else if (Platform.isIOS) {
-        // On iOS, use the Documents directory
-        targetDir = await getApplicationDocumentsDirectory();
-      } else {
-        // Fallback to app documents directory
-        targetDir = await getApplicationDocumentsDirectory();
-      }
+      // Always save to the app's LUCKY data folder for safety
+      final documents = await getApplicationDocumentsDirectory();
+      final targetDir = Directory(
+        '${documents.path}${Platform.pathSeparator}${AppConfig.appName}',
+      );
+      await targetDir.create(recursive: true);
 
-      targetDir ??= await getApplicationDocumentsDirectory();
-
-      final fileName = file.path.split('/').last;
-      final targetFile = File('${targetDir.path}/$fileName');
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      final targetFile = File('${targetDir.path}${Platform.pathSeparator}$fileName');
       await targetFile.writeAsBytes(await file.readAsBytes(), flush: true);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup saved to ${targetFile.path}')),
+        SnackBar(content: Text('Saved to ${targetFile.path}')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save backup: $e')),
+        SnackBar(content: Text('Failed to save: $e')),
       );
     }
   }
@@ -472,6 +488,111 @@ class _DataSectionState extends State<_DataSection> {
         '${dt.day.toString().padLeft(2, '0')} '
         '${dt.hour.toString().padLeft(2, '0')}:'
         '${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _openDataFolder() async {
+    try {
+      final documents = await getApplicationDocumentsDirectory();
+      final dataDir = Directory(
+        '${documents.path}${Platform.pathSeparator}${AppConfig.appName}',
+      );
+      if (!await dataDir.exists()) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data folder does not exist yet')),
+        );
+        return;
+      }
+      if (Platform.isAndroid) {
+        const channel = MethodChannel('com.renttrack.renttrack/files');
+        final success = await channel.invokeMethod<bool>('openFolder', {'path': dataDir.path});
+        if (success != true) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Data folder: ${dataDir.path}')),
+          );
+        }
+      } else {
+        // On iOS/desktop, show the path
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Data folder: ${dataDir.path}')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to open folder: $e')),
+      );
+    }
+  }
+
+  Future<void> _resetData() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset all data?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This will permanently DELETE ALL data on this device, including:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text('• All flats and beds\n'
+                '• All tenants and people\n'
+                '• All payments and expenses\n'
+                '• All lease records\n'
+                '• All audit logs'),
+            const SizedBox(height: 16),
+            const Text('This action CANNOT be undone.'),
+            const SizedBox(height: 16),
+            const Text('Type "RESET" to confirm:'),
+            const SizedBox(height: 8),
+            _ConfirmationTextField(onConfirmed: (confirmed) {
+              Navigator.pop(ctx, confirmed);
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    _setBusy(_DataAction.resetData, true);
+    try {
+      final documents = await getApplicationDocumentsDirectory();
+      final dataDir = Directory(
+        '${documents.path}${Platform.pathSeparator}${AppConfig.appName}',
+      );
+      if (await dataDir.exists()) {
+        await dataDir.delete(recursive: true);
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All data has been reset. App will reload.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to reset data: $e')),
+      );
+    } finally {
+      _setBusy(_DataAction.resetData, false);
+    }
   }
 }
 

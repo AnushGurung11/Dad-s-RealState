@@ -521,25 +521,14 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
     final service = _service;
     if (service == null) return;
 
-    final frequency = parseInt(frequencyController.text);
-    if (frequency == null || frequency < 1 || frequency > 12) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Frequency must be 1–12 months')));
-      return;
-    }
-
     try {
       service.createFlat(
         name: nameController.text,
         address: addressController.text,
         registeredDate: registeredDate,
         contractPerson: contractPersonController.text,
-        yearlyRent: parseMoney(yearlyRentController.text)!,
         bedCount: _parseBedCount(_bedCountController.text)!,
         defaultRentPerBed: parseMoney(_defaultRentController.text)!,
-        leasePaidThroughDate: leasePaidThroughDate,
-        frequencyMonths: frequency,
         landlineNumber: landlineNumberController.text,
         landlineRegisteredName: landlineRegisteredNameController.text,
         esewaNumber: esewaNumberController.text,
@@ -591,57 +580,23 @@ class _FlatCreateScreenState extends State<FlatCreateScreen>
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: pickLeasePaidThroughDate,
+              onPressed: pickRegisteredDate,
               icon: const Icon(Icons.event_outlined),
               label: Text(
-                leasePaidThroughDate == null
-                    ? 'Lease paid through (onboarding)'
-                    : 'Lease paid through ${dateText(leasePaidThroughDate!)}',
+                registeredDate == null
+                    ? 'Flat registered on (optional)'
+                    : 'Flat registered on ${dateText(registeredDate!)}',
               ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: frequencyController,
-              decoration: const InputDecoration(
-                labelText: 'Payment frequency (months)',
-                helperText: 'Months between lease payments (1–12)',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              textInputAction: TextInputAction.next,
-              validator: (value) {
-                final v = parseInt(value ?? '');
-                if (v == null || v < 1 || v > 12) return 'Enter 1–12';
-                return null;
-              },
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: contractPersonController,
               decoration: const InputDecoration(
-                labelText: 'Contract person',
+                labelText: 'Registration name (optional)',
+                helperText: 'On whose name the flat is registered',
                 border: OutlineInputBorder(),
               ),
               textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: yearlyRentController,
-              decoration: InputDecoration(
-                labelText: 'Yearly rent (${AppConfig.currencySymbol})',
-                border: const OutlineInputBorder(),
-                helperText:
-                    'Lease cheque auto-calculated as yearly rent ÷ (12 ÷ frequency)',
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
-              ],
-              textInputAction: TextInputAction.next,
-              validator: (value) =>
-                  parseMoney(value ?? '') == null ? 'Enter a valid amount' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(

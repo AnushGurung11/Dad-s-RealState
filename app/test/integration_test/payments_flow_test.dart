@@ -104,9 +104,8 @@ void main() {
     final expectedNext = DateTime(due.year, due.month + 2, 1);
     expect(store.leaseChequeRecords.single.amount, 11500);
     expect(store.leaseChequeSettings.single.nextDueDate, expectedNext);
-    // Row refreshed with the advanced due date (upcoming); old due remains in past record
+    // Row refreshed with the advanced due date (upcoming)
     expect(find.textContaining(dateText(expectedNext)), findsOneWidget);
-    expect(find.textContaining(dateText(due)), findsOneWidget);
 
     // ── Tenant Rent Payment ───────────────────────────────────────────
     await goToFinanceTenantRent();

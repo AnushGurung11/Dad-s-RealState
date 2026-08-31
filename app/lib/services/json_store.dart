@@ -294,6 +294,57 @@ class LocalJsonStore extends InMemoryJsonStore {
   bool _disposed = false;
   int _batchDepth = 0;
 
+  /// Migrates data from the old Downloads folder location to the current
+  /// app data directory. Safe to call multiple times — only runs once.
+  static Future<void> migrateFromDownloads(Directory targetDir) async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!await downloadsDir.exists()) return;
+
+      // Check if any of our JSON files exist in Downloads
+      final jsonFiles = [
+        AppConfig.flatsFileName,
+        AppConfig.bedsFileName,
+        AppConfig.peopleFileName,
+        AppConfig.paymentsFileName,
+        AppConfig.expensesFileName,
+        AppConfig.leaseChequeSettingsFileName,
+        AppConfig.leaseChequeRecordsFileName,
+        AppConfig.terminationsFileName,
+        AppConfig.auditLogFileName,
+        AppConfig.metaFileName,
+      ];
+
+      bool hasDataInDownloads = false;
+      for (final fileName in jsonFiles) {
+        final file = File('${downloadsDir.path}${Platform.pathSeparator}$fileName');
+        if (await file.exists()) {
+          hasDataInDownloads = true;
+          break;
+        }
+      }
+
+      if (!hasDataInDownloads) return;
+
+      // Ensure target directory exists
+      await targetDir.create(recursive: true);
+
+      // Copy files from Downloads to app data, but only if the target doesn't exist
+      for (final fileName in jsonFiles) {
+        final sourceFile = File('${downloadsDir.path}${Platform.pathSeparator}$fileName');
+        final targetFile = File('${targetDir.path}${Platform.pathSeparator}$fileName');
+
+        if (await sourceFile.exists() && !await targetFile.exists()) {
+          await targetFile.writeAsBytes(await sourceFile.readAsBytes(), flush: true);
+        }
+      }
+    } catch (_) {
+      // Migration is best-effort; ignore errors silently
+    }
+  }
+
   Future<File> _file(String name) async {
     await directory.create(recursive: true);
     return File('${directory.path}${Platform.pathSeparator}$name');

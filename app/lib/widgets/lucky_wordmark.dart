@@ -33,7 +33,7 @@ class LuckyWordmark extends StatelessWidget {
               fontSize: size * 0.72,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.5,
-              color: appText1,
+              color: Theme.of(context).colorScheme.onSurface,
               fontFamily: null,
             ),
           ),

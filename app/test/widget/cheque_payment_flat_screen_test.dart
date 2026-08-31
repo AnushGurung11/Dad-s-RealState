@@ -161,9 +161,8 @@ void main() {
     await tester.tap(find.byKey(const Key('record_lease_payment')));
     await tester.pumpAndSettle();
 
-    // Advanced one present (snaps to 1st: 2027-01-01). Old due date remains in past record.
+    // Advanced one present (snaps to 1st: 2027-01-01).
     expect(find.textContaining('2027-01-01'), findsOneWidget);
-    expect(find.textContaining('2026-10-25'), findsOneWidget); // in past record
 
     final record = store.leaseChequeRecords.single;
     expect(record.amount, 3900);
@@ -238,13 +237,19 @@ void main() {
     store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
     store.upsertChequeRecord(LeaseChequeRecord(id: 'r1', flatId: 'f1', ownerName: 'Owner', amount: 4000, dueDate: due, paidDate: DateTime(2026, 9, 20), month: '2026-09'));
     await pumpScreen(tester);
-    expect(find.textContaining('Paid'), findsOneWidget);
+
+    // Tap on the flat card to navigate to payment history
+    await tester.tap(find.text('Alpha'));
+    await tester.pumpAndSettle();
+
+    // Now on the history screen, records should be visible
+    expect(find.textContaining('AED 4000'), findsWidgets);
     expect(find.byKey(const Key('edit-record-r1')), findsOneWidget);
     expect(find.byKey(const Key('delete-record-r1')), findsOneWidget);
     // Test edit
     await tester.tap(find.byKey(const Key('edit-record-r1')));
     await tester.pumpAndSettle();
-    expect(find.text('Edit lease record'), findsOneWidget);
+    expect(find.text('Edit payment record'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     // Test delete

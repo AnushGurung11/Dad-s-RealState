@@ -31,45 +31,10 @@ class DashboardScreen extends StatelessWidget {
       month: monthKey(DateTime.now()),
     );
 
-    final now = DateTime.now();
-    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final status = Theme.of(context).extension<AppStatusColors>()!;
-    final ghost = Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          children: [
-            const Flexible(child: LuckyWordmark(size: 28)),
-            const Spacer(),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(dateStr,
-                      style: TextStyle(
-                          fontFamily: 'SF Mono',
-                          fontSize: 12,
-                          color: ghost,
-                          fontFeatures: const [FontFeature.tabularFigures()]),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                        color: status.successDim, borderRadius: BorderRadius.circular(999), border: Border.all(color: status.successBorder)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: status.success, shape: BoxShape.circle)),
-                      const SizedBox(width: 6),
-                      Text('Saved', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: status.success)),
-                    ]),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        const LuckyWordmark(size: 28),
         const SizedBox(height: 16),
         _SummaryGrid(summary: summary),
         const SizedBox(height: 16),
