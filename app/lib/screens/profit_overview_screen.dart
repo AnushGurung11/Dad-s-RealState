@@ -129,11 +129,18 @@ class _SummaryItem extends StatelessWidget {
 }
 
 /// Detail screen for a single flat: shows Profit (rent/deposit) and Expense sections.
-class _FlatProfitDetailScreen extends StatelessWidget {
+class _FlatProfitDetailScreen extends StatefulWidget {
   const _FlatProfitDetailScreen({required this.flatId, required this.flatName});
 
   final String flatId;
   final String flatName;
+
+  @override
+  State<_FlatProfitDetailScreen> createState() => _FlatProfitDetailScreenState();
+}
+
+class _FlatProfitDetailScreenState extends State<_FlatProfitDetailScreen> {
+  void _refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -142,19 +149,19 @@ class _FlatProfitDetailScreen extends StatelessWidget {
 
     // Rent + deposit payments for this flat this month
     final rentPayments = store.payments
-        .where((p) => p.flatId == flatId && p.month == month)
+        .where((p) => p.flatId == widget.flatId && p.month == month)
         .toList()
       ..sort((a, b) => b.amountPaid.compareTo(a.amountPaid));
 
     // Expense records for this flat this month
     final expenses = store.expenses
-        .where((e) => e.flatId == flatId && monthKey(e.date) == month)
+        .where((e) => e.flatId == widget.flatId && monthKey(e.date) == month)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
     // Lease cheque records for this flat this month
     final leaseRecords = store.leaseChequeRecords
-        .where((r) => r.flatId == flatId && r.month == month)
+        .where((r) => r.flatId == widget.flatId && r.month == month)
         .toList()
       ..sort((a, b) => b.paidDate.compareTo(a.paidDate));
 
@@ -163,7 +170,7 @@ class _FlatProfitDetailScreen extends StatelessWidget {
         leaseRecords.fold(0.0, (sum, r) => sum + r.amount);
 
     return Scaffold(
-      appBar: AppBar(title: Text('$flatName — $month')),
+      appBar: AppBar(title: Text('${widget.flatName} — $month')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -269,7 +276,10 @@ class _FlatProfitDetailScreen extends StatelessWidget {
     if (result != null && result > 0 && context.mounted) {
       try {
         await TransactionEditService(StoreScope.of(context)).editPayment(p.id, amount: result);
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment updated')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment updated')));
+          _refresh();
+        }
       } catch (e) {
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
@@ -291,7 +301,10 @@ class _FlatProfitDetailScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       await TransactionEditService(StoreScope.of(context)).deletePayment(id);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted')));
+        _refresh();
+      }
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     }
@@ -317,7 +330,10 @@ class _FlatProfitDetailScreen extends StatelessWidget {
     if (result != null && result > 0 && context.mounted) {
       try {
         await TransactionEditService(StoreScope.of(context)).editLeaseChequeRecord(r.id, amount: result);
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lease payment updated')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lease payment updated')));
+          _refresh();
+        }
       } catch (e) {
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
@@ -339,7 +355,10 @@ class _FlatProfitDetailScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       await TransactionEditService(StoreScope.of(context)).deleteLeaseChequeRecord(id);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted')));
+        _refresh();
+      }
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     }
@@ -365,7 +384,10 @@ class _FlatProfitDetailScreen extends StatelessWidget {
     if (result != null && result > 0 && context.mounted) {
       try {
         await TransactionEditService(StoreScope.of(context)).editExpense(e.id, amount: result);
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense updated')));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense updated')));
+          _refresh();
+        }
       } catch (e2) {
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e2')));
       }
@@ -387,7 +409,10 @@ class _FlatProfitDetailScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       await TransactionEditService(StoreScope.of(context)).deleteExpense(id);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deleted')));
+        _refresh();
+      }
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
     }

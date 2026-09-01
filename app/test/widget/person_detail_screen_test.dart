@@ -71,7 +71,7 @@ void main() {
 
     expect(find.text('2027-02-01'), findsOneWidget);
 
-    // Open the actions menu
+    // Open the actions menu (3-dot in AppBar)
     await tester.tap(find.byKey(const Key('person_actions_menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Renew stay'));
@@ -113,22 +113,22 @@ void main() {
     expect(find.text('Payment history'), findsNothing);
   });
 
-  testWidgets('no payment-entry control exists on this screen',
-      (tester) async {
+  testWidgets('AppBar has edit icon button and 3-dot menu', (tester) async {
     final joinDate = DateTime(2026, 2, 1);
     store.upsertPerson(tenant(joinDate: joinDate));
     await pumpDetail(tester);
 
-    // No money-entry affordances anywhere on the detail screen.
+    // Edit button is now a separate icon in AppBar
+    expect(find.byKey(const Key('edit_tenant_action')), findsOneWidget);
+    // -dot menu is in AppBar
+    expect(find.byKey(const Key('person_actions_menu')), findsOneWidget);
+    // No money-entry affordances
     expect(find.textContaining('Add payment'), findsNothing);
     expect(find.textContaining('Record payment'), findsNothing);
-    expect(find.byType(TextFormField), findsNothing);
     expect(find.byType(FloatingActionButton), findsNothing);
-    // Actions are in a popup menu now
-    expect(find.byKey(const Key('person_actions_menu')), findsOneWidget);
   });
 
-  testWidgets('actions menu contains Renew stay', (tester) async {
+  testWidgets('3-dot menu contains Renew stay', (tester) async {
     store.upsertPerson(activeTenant());
     await pumpDetail(tester);
 
@@ -136,6 +136,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Renew stay'), findsOneWidget);
-    expect(find.text('Edit details'), findsOneWidget);
+    // Edit is no longer in the popup — it's a separate icon
+    expect(find.text('Edit details'), findsNothing);
   });
 }

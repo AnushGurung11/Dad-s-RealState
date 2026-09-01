@@ -54,7 +54,7 @@ void main() {
       (tester) async {
     await pumpDetail(tester);
 
-    // Actions are now in a popup menu
+    // 3-dot menu in AppBar
     await tester.tap(find.byKey(const Key('person_actions_menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete tenant'));
@@ -114,13 +114,10 @@ void main() {
     expect(store.beds.single.tenantId, isNull);
   });
 
-  testWidgets('Edit opens the edit flow without touching bed or status',
-      (tester) async {
+  testWidgets('Edit icon button exists in AppBar', (tester) async {
     await pumpDetail(tester);
 
-    // Edit is now in the popup menu
-    await tester.tap(find.byKey(const Key('person_actions_menu')));
-    await tester.pumpAndSettle();
-    expect(find.text('Edit details'), findsOneWidget);
+    // Edit is now a separate icon button in AppBar
+    expect(find.byKey(const Key('edit_tenant_action')), findsOneWidget);
   });
 }
