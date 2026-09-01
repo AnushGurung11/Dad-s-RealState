@@ -92,6 +92,7 @@ class TenantRentPaymentService {
     required double amountPaid,
     DateTime? paidDate,
     double? amountDue,
+    String? description,
   }) {
     final date = paidDate ?? DateTime.now();
     final records = recordMultiMonthPayment(
@@ -100,6 +101,7 @@ class TenantRentPaymentService {
       firstAmount: amountPaid,
       firstDate: date,
       firstAmountDue: amountDue,
+      description: description,
     );
     return records.single;
   }
@@ -119,6 +121,7 @@ class TenantRentPaymentService {
     required DateTime firstDate,
     double? firstAmountDue,
     Map<int, double>? futureAmounts,
+    String? description,
   }) {
     if (!person.isActiveTenant || person.isArchived) {
       throw const PaymentException('Only active tenants can be paid.');
@@ -150,6 +153,7 @@ class TenantRentPaymentService {
             i == 0 ? (firstAmountDue ?? person.monthlyRent ?? 0) : plan.amount,
         amountPaid: plan.amount,
         type: PaymentType.rent,
+        description: i == 0 ? description : null,
       ));
     }
 

@@ -29,7 +29,6 @@ void main() {
   );
 
   Future<void> pumpDetail(WidgetTester tester) async {
-    // Tall viewport so the action buttons are all built (ListView is lazy).
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -55,15 +54,15 @@ void main() {
       (tester) async {
     await pumpDetail(tester);
 
-    expect(find.byKey(const Key('delete_person_action')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('delete_person_action')));
+    // Actions are now in a popup menu
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete tenant'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('confirm_delete_person')));
     await tester.pumpAndSettle();
 
     expect(store.people.where((p) => p.id == 'p1'), isEmpty);
-    // The bed link is cleared with them.
     expect(store.beds.single.tenantId, isNull);
   });
 
@@ -82,20 +81,22 @@ void main() {
 
     await pumpDetail(tester);
 
-    expect(find.byKey(const Key('delete_person_action')), findsNothing);
-    expect(find.byKey(const Key('mark_absconded_action')), findsOneWidget);
-    expect(find.textContaining('payment history — delete is unavailable'),
-        findsOneWidget);
+    // Open menu — delete should not be there
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete tenant'), findsNothing);
+    expect(find.text('Mark as absconded'), findsOneWidget);
   });
 
   testWidgets('"Mark as absconded" requires a note before confirming',
       (tester) async {
     await pumpDetail(tester);
 
-    await tester.tap(find.byKey(const Key('mark_absconded_action')));
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark as absconded'));
     await tester.pumpAndSettle();
 
-    // Note empty → confirm disabled.
     final confirm =
         tester.widget<FilledButton>(find.byKey(const Key('confirm_absconded')));
     expect(confirm.onPressed, isNull);
@@ -117,6 +118,9 @@ void main() {
       (tester) async {
     await pumpDetail(tester);
 
-    expect(find.byKey(const Key('edit_tenant_action')), findsOneWidget);
+    // Edit is now in the popup menu
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit details'), findsOneWidget);
   });
 }

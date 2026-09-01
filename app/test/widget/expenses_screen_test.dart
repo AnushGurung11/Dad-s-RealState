@@ -11,8 +11,7 @@ import 'package:lucky/theme/app_theme.dart';
 void main() {
   late InMemoryJsonStore store;
 
-  Future<void> pumpExpenses(WidgetTester tester,
-      {String? initialFlatId}) async {
+  Future<void> pumpExpenses(WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: appLightTheme,
@@ -43,8 +42,37 @@ void main() {
     store.upsertFlat(flatB);
   });
 
+  testWidgets('shows flat cards for active and archived flats', (tester) async {
+    final archivedFlat = Flat(id: 'f3', name: 'Gamma', address: 'C', createdAt: DateTime(2026, 1, 1), archived: true, archivedAt: DateTime(2026, 2, 1));
+    store.upsertFlat(archivedFlat);
+    await pumpExpenses(tester);
+
+    expect(find.text('Active'), findsOneWidget);
+    expect(find.text('Archived'), findsOneWidget);
+    expect(find.text('Alpha'), findsWidgets);
+    expect(find.text('Beta'), findsWidgets);
+    expect(find.text('Gamma'), findsOneWidget);
+  });
+
+  testWidgets('tapping a flat card opens its expense list', (tester) async {
+    store.upsertExpense(Expense(
+      id: 'e1',
+      flatId: 'f1',
+      category: ExpenseCategory.electricity,
+      amount: 100,
+      date: DateTime(2026, 5, 10),
+    ));
+    await pumpExpenses(tester);
+
+    await tester.tap(find.text('Alpha').first);
+    await tester.pumpAndSettle();
+
+    // Should show the expense list with back button
+    expect(find.text('AED 100'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
+
   testWidgets('expenses render grouped by month, newest first', (tester) async {
-    // Add expenses: Dec 2026 (2), Jan 2027 (1)
     store.upsertExpense(Expense(
       id: 'e1',
       flatId: 'f1',
@@ -68,6 +96,8 @@ void main() {
     ));
 
     await pumpExpenses(tester);
+    await tester.tap(find.text('Alpha').first);
+    await tester.pumpAndSettle();
 
     // Jan 2027 should appear before Dec 2026
     final janIdx = tester.getTopLeft(find.text('Jan 2027')).dy;
@@ -82,6 +112,8 @@ void main() {
 
   testWidgets('adding an expense updates the list immediately', (tester) async {
     await pumpExpenses(tester);
+    await tester.tap(find.text('Alpha').first);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
@@ -104,6 +136,8 @@ void main() {
     ));
 
     await pumpExpenses(tester);
+    await tester.tap(find.text('Alpha').first);
+    await tester.pumpAndSettle();
 
     // Tap the expense tile to edit
     await tester.tap(find.text('AED 100'));
@@ -128,6 +162,8 @@ void main() {
     ));
 
     await pumpExpenses(tester);
+    await tester.tap(find.text('Alpha').first);
+    await tester.pumpAndSettle();
 
     // Open menu and delete
     await tester.tap(find.byIcon(Icons.more_vert));
@@ -141,22 +177,13 @@ void main() {
     expect(store.expenses, isEmpty);
   });
 
-  testWidgets('flat picker shows Active/Archived as visually separate sections', (tester) async {
-    final archivedFlat = Flat(id: 'f3', name: 'Gamma', address: 'C', createdAt: DateTime(2026, 1, 1), archived: true, archivedAt: DateTime(2026, 2, 1));
-    store.upsertFlat(archivedFlat);
-    await pumpExpenses(tester);
-    await tester.tap(find.byIcon(Icons.arrow_drop_down));
-    await tester.pumpAndSettle();
-    expect(find.text('Active'), findsOneWidget);
-    expect(find.text('Archived'), findsOneWidget);
-    expect(find.text('Alpha'), findsWidgets);
-    expect(find.text('Gamma'), findsOneWidget);
-  });
-
-  testWidgets('lease/cheque payments appear inline in a flat expense list, tagged distinctly from categorized expenses', (tester) async {
+  testWidgets('lease/cheque payments appear inline in a flat expense list, tagged distinctly', (tester) async {
     store.upsertExpense(Expense(id: 'e1', flatId: 'f1', category: ExpenseCategory.electricity, amount: 100, date: DateTime(2026, 5, 10)));
     store.upsertChequeRecord(LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 500, dueDate: DateTime(2026, 5, 1), paidDate: DateTime(2026, 5, 15), month: '2026-05'));
     await pumpExpenses(tester);
+    await tester.tap(find.text('Alpha').first);
+    await tester.pumpAndSettle();
+
     // Both should be visible, lease tagged with "Lease" badge
     expect(find.text('AED 100'), findsOneWidget);
     expect(find.text('Lease'), findsOneWidget);

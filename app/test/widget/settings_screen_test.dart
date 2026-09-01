@@ -32,16 +32,15 @@ void main() {
     store = InMemoryJsonStore();
   });
 
-  testWidgets('no Notifications section or toggle renders anymore',
+  testWidgets('no dark mode toggle or notifications section renders',
       (tester) async {
     await pumpSettings(tester);
 
     expect(find.text('Notifications'), findsNothing);
     expect(find.text('Lease cheque reminders'), findsNothing);
-    // Appearance Dark Mode toggle is present (1 SwitchListTile)
-    expect(find.byKey(const Key('settings_theme_toggle')), findsOneWidget);
-    expect(find.byType(SwitchListTile), findsOneWidget);
-    expect(find.text('Dark Mode'), findsOneWidget);
+    expect(find.byKey(const Key('settings_theme_toggle')), findsNothing);
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.text('Dark Mode'), findsNothing);
   });
 
   testWidgets('Archive section shows both entries', (tester) async {

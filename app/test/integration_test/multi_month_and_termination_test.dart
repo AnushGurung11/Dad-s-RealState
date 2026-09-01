@@ -110,7 +110,10 @@ void main() {
 
     await tester.tap(find.text('Nina'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('end_tenure_action')));
+    // Open actions menu, then tap "End tenure early"
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('End tenure early'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('termination_reason_picker')));

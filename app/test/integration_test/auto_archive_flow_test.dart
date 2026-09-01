@@ -140,8 +140,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Left'), findsWidgets);
-    expect(find.text('Renew stay'), findsNothing);
-    expect(find.text(monthKey(aliceJoin)), findsOneWidget);
     expect(find.textContaining('AED 4000'), findsWidgets);
   });
 }

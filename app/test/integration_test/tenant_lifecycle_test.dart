@@ -78,7 +78,7 @@ void main() {
         store.people.singleWhere((p) => p.name == 'Zara').id;
     expect(store.people.singleWhere((p) => p.id == zaraId).bedId, isNull);
 
-    // ── 2. Assign via the reordered flow: flat → bed → person ──────
+    // ── 2. Assign via the multi-step flow: flat → bed → person ──────
     await openTenantsFabAssign();
 
     await tester.tap(find.byKey(const Key('assign_flat_picker')));
@@ -94,6 +94,10 @@ void main() {
     await tester.tap(find.byKey(const Key('assign_person_picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Zara').last);
+    await tester.pumpAndSettle();
+
+    // Tap Next to advance to step 2
+    await tester.tap(find.byKey(const Key('assign_next_button')));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -113,10 +117,12 @@ void main() {
     // Unpaid this month.
     expect(find.text('Unpaid'), findsOneWidget);
 
-    // ── 4. Mark absconded with a note ────────────────────────────────
+    // ── 4. Mark absconded via actions menu ──────────────────────────
     await tester.tap(find.text('Zara'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mark_absconded_action')));
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark as absconded'));
     await tester.pumpAndSettle();
     await tester.enterText(
         find.byKey(const Key('absconded_note_field')),

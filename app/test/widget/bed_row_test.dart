@@ -42,8 +42,8 @@ void main() {
       find.ancestor(of: find.text('Bed 1'), matching: find.byType(Container)),
     );
     final decoration = container.decoration as BoxDecoration;
-    // Spec: dark surface with subtle border, no left accent
-    expect(decoration.color, appSurface1);
+    // Container uses theme surface color now (light mode)
+    expect(decoration.color, appLightTheme.colorScheme.surface);
     expect(decoration.border, isA<Border>());
   });
 

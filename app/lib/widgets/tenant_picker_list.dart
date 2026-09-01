@@ -41,6 +41,7 @@ class TenantPickerList extends StatefulWidget {
 
 class _TenantPickerListState extends State<TenantPickerList> {
   String _query = '';
+  String? _selectedFlatId;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +54,7 @@ class _TenantPickerListState extends State<TenantPickerList> {
         .where((p) =>
             p.flatId != null &&
             (widget.includeArchived || p.status == PersonStatus.active) &&
+            (_selectedFlatId == null || p.flatId == _selectedFlatId) &&
             (needle.isEmpty || p.name.toLowerCase().contains(needle)))
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
@@ -62,6 +64,12 @@ class _TenantPickerListState extends State<TenantPickerList> {
     final flats =
         store.flats.where((f) => flatIds.contains(f.id)).toList();
     flats.sort((a, b) => a.name.compareTo(b.name));
+
+    // All flats for the filter dropdown
+    final allFlats = store.flats
+        .where((f) => !f.archived)
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
 
     final children = <Widget>[];
 
@@ -76,6 +84,49 @@ class _TenantPickerListState extends State<TenantPickerList> {
         onChanged: (value) => setState(() => _query = value),
       ),
     );
+
+    if (allFlats.length > 1) {
+      children.add(const SizedBox(height: 8));
+      children.add(
+        DropdownButtonFormField<String>(
+          key: const Key('tenant_picker_flat_filter'),
+          initialValue: _selectedFlatId,
+          decoration: const InputDecoration(
+            labelText: 'Filter by flat',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          hint: const Text('All flats'),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('All flats'),
+            ),
+            ...allFlats.map(
+              (f) => DropdownMenuItem(
+                value: f.id,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: flatColorFor(f.id),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(f.name),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          onChanged: (value) => setState(() => _selectedFlatId = value),
+        ),
+      );
+    }
+
     children.add(const SizedBox(height: 12));
 
     if (people.isEmpty) {
@@ -105,49 +156,100 @@ class _TenantPickerListState extends State<TenantPickerList> {
         );
       }
     } else {
-      for (final flat in flats) {
-        final peopleInFlat = people.where((p) => p.flatId == flat.id).toList();
+      // Separate active and archived people
+      final activePeople = people.where((p) => !p.isArchived).toList();
+      final archivedPeople = people.where((p) => p.isArchived).toList();
 
+      // Active people grouped by flat
+      if (activePeople.isNotEmpty) {
+        final activeFlatIds = activePeople.map((p) => p.flatId!).toSet();
+        final activeFlats = flats.where((f) => activeFlatIds.contains(f.id)).toList();
+
+        for (final flat in activeFlats) {
+          final peopleInFlat = activePeople.where((p) => p.flatId == flat.id).toList();
+
+          children.add(
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: Row(
+                children: [
+                  Container(
+                    key: ValueKey('group-dot-${flat.id}'),
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: flatColorFor(flat.id),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    flat.name,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          for (final person in peopleInFlat) {
+            children.add(
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: Icon(Icons.person_outlined,
+                      color: flatColorFor(flat.id)),
+                  title: Text(person.name),
+                  subtitle: const Text('Active'),
+                  trailing: _trailingFor(context, person, false),
+                  onTap: () => widget.onPersonTap(person),
+                ),
+              ),
+            );
+          }
+        }
+      }
+
+      // Archived people under separate section
+      if (archivedPeople.isNotEmpty) {
         children.add(
           Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            padding: const EdgeInsets.only(top: 16, bottom: 4),
             child: Row(
               children: [
                 Container(
-                  key: ValueKey('group-dot-${flat.id}'),
                   width: 12,
                   height: 12,
                   decoration: BoxDecoration(
-                    color: flatColorFor(flat.id),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  flat.name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
+                Text('Archived',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
               ],
             ),
           ),
         );
 
-        for (final person in peopleInFlat) {
-          final archived = person.isArchived;
+        for (final person in archivedPeople) {
+          final flat = flats.where((f) => f.id == person.flatId).firstOrNull;
           children.add(
             Card(
               margin: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
                 leading: Icon(Icons.person_outlined,
-                    color: flatColorFor(flat.id)),
+                    color: flat != null ? flatColorFor(flat.id).withValues(alpha: 0.4) : null),
                 title: Text(person.name),
-                subtitle: Text(archived
-                    ? (person.isAbsconded ? 'Absconded' : 'Left')
-                    : 'Active'),
-                trailing: _trailingFor(context, person, archived),
+                subtitle: Text(person.isAbsconded ? 'Absconded' : 'Left'),
+                trailing: const Icon(Icons.chevron_right),
                 onTap: () => widget.onPersonTap(person),
               ),
             ),

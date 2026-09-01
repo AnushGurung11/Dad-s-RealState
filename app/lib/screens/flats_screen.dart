@@ -237,7 +237,7 @@ class _FlatsScreenState extends State<FlatsScreen> {
                 FilledButton.icon(
                   key: const Key('add_flat_empty_state'),
                   onPressed: _openCreateForm,
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE18A4F)),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1B9E3E)),
                   icon: const Icon(Icons.add),
                   label: const Text('Add flat'),
                 ),
@@ -287,6 +287,7 @@ class _FlatsScreenState extends State<FlatsScreen> {
           FloatingActionButton.small(
             key: const Key('edit_flats_button'),
             heroTag: 'edit_flats',
+            backgroundColor: const Color(0xFF1B9E3E),
             onPressed: _openEditFlow,
             tooltip: 'Edit flats',
             child: const Icon(Icons.edit_outlined),
@@ -295,7 +296,7 @@ class _FlatsScreenState extends State<FlatsScreen> {
           FloatingActionButton.extended(
             key: const Key('add_flats_button'),
             onPressed: _openCreateForm,
-            backgroundColor: const Color(0xFFE18A4F),
+            backgroundColor: const Color(0xFF1B9E3E),
             icon: const Icon(Icons.add),
             label: const Text('Add flat'),
           ),

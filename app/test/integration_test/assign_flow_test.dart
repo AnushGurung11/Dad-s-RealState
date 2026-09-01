@@ -73,26 +73,30 @@ void main() {
     expect(store.people.single.name, 'Alice');
     expect(store.people.single.bedId, isNull);
 
-    // ── 2. Assign Alice via the reordered flow ───────────────────────
+    // ── 2. Assign Alice via the multi-step flow ─────────────────────
     await openTenantsFabAssign();
 
-    // Step 1: flat (only vacancy-bearing flats are listed).
+    // Step 1: flat
     await tester.tap(find.byKey(const Key('assign_flat_picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Alpha').last);
     await tester.pumpAndSettle();
 
-    // Step 2: vacant bed inside Alpha.
+    // Step 1: vacant bed
     await tester.tap(find.byKey(const Key('assign_bed_picker')));
     await tester.pumpAndSettle();
     expect(dotColorOf(tester, 'b1'), flatColorFor('f1'));
     await tester.tap(find.byKey(const ValueKey('bed-dot-b1')));
     await tester.pumpAndSettle();
 
-    // Step 3: the unassigned person.
+    // Step 1: the unassigned person
     await tester.tap(find.byKey(const Key('assign_person_picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Alice').last);
+    await tester.pumpAndSettle();
+
+    // Tap Next to advance to step 2
+    await tester.tap(find.byKey(const Key('assign_next_button')));
     await tester.pumpAndSettle();
 
     // Rent pre-filled from the bed default.
@@ -132,7 +136,8 @@ void main() {
 
     expect(find.text(fmt(leave(12))), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Renew stay'));
+    // Open actions popup menu
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Renew stay'));
     await tester.pumpAndSettle();

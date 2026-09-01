@@ -10,12 +10,10 @@ import 'services/archive_service.dart';
 import 'services/json_store.dart';
 import 'services/store_scope.dart';
 import 'theme/app_theme.dart';
-import 'theme/theme_controller.dart';
 import 'widgets/lucky_wordmark.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await themeController.load();
   runApp(const LuckyApp());
 }
 
@@ -26,25 +24,18 @@ class LuckyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: themeController,
-      builder: (context, mode, _) {
-        return MaterialApp(
-          title: AppConfig.appName,
-          debugShowCheckedModeBanner: false,
-          theme: appLightTheme,
-          darkTheme: appDarkTheme,
-          themeMode: mode,
-          builder: (context, child) => StoreLoader(
-            createStore: createStore,
-            child: Container(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: child ?? const SizedBox.shrink(),
-            ),
-          ),
-          home: const AppShell(),
-        );
-      },
+    return MaterialApp(
+      title: AppConfig.appName,
+      debugShowCheckedModeBanner: false,
+      theme: appLightTheme,
+      builder: (context, child) => StoreLoader(
+        createStore: createStore,
+        child: Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
+      home: const AppShell(),
     );
   }
 }

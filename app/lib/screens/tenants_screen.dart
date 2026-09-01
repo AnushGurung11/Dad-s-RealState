@@ -46,6 +46,7 @@ TenantPaymentStatus paymentStatusFor(
 
 class _TenantsScreenState extends State<TenantsScreen> {
   String _query = '';
+  String? _selectedFlatId;
   bool _fabExpanded = false;
 
   void _refresh() => setState(() {});
@@ -96,13 +97,16 @@ class _TenantsScreenState extends State<TenantsScreen> {
     final assignedPeople = allActivePeople.where((p) => p.bedId != null).toList();
     final unassignedPeople = allActivePeople.where((p) => p.bedId == null).toList();
     
-    // Filter both lists by search query
-    final filteredAssigned = needle.isEmpty
-        ? assignedPeople
-        : assignedPeople.where((p) => p.name.toLowerCase().contains(needle)).toList();
-    final filteredUnassigned = needle.isEmpty
-        ? unassignedPeople
-        : unassignedPeople.where((p) => p.name.toLowerCase().contains(needle)).toList();
+    // Filter both lists by search query and flat filter
+    final filteredAssigned = assignedPeople.where((p) {
+      if (_selectedFlatId != null && p.flatId != _selectedFlatId) return false;
+      if (needle.isNotEmpty && !p.name.toLowerCase().contains(needle)) return false;
+      return true;
+    }).toList();
+    final filteredUnassigned = unassignedPeople.where((p) {
+      if (needle.isNotEmpty && !p.name.toLowerCase().contains(needle)) return false;
+      return true;
+    }).toList();
 
     final children = <Widget>[
       TextField(
@@ -116,6 +120,51 @@ class _TenantsScreenState extends State<TenantsScreen> {
       ),
       const SizedBox(height: 8),
     ];
+
+    // Flat filter dropdown
+    final activeFlats = store.flats.where((f) => !f.archived).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    if (activeFlats.length > 1) {
+      children.add(
+        DropdownButtonFormField<String>(
+          key: const Key('tenants_flat_filter'),
+          initialValue: _selectedFlatId,
+          decoration: const InputDecoration(
+            labelText: 'Filter by flat',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          hint: const Text('All flats'),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('All flats'),
+            ),
+            ...activeFlats.map(
+              (f) => DropdownMenuItem(
+                value: f.id,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: flatColorFor(f.id),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(f.name),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          onChanged: (value) => setState(() => _selectedFlatId = value),
+        ),
+      );
+      children.add(const SizedBox(height: 8));
+    }
 
     final hasAnyTenants = assignedPeople.isNotEmpty || unassignedPeople.isNotEmpty;
     
@@ -297,6 +346,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
           FloatingActionButton.small(
             key: const Key('tenants_add_button'),
             heroTag: 'tenants_add_fab',
+            backgroundColor: const Color(0xFF1B9E3E),
             onPressed: _openAdd,
             tooltip: 'Add tenant',
             child: const Icon(Icons.person_add_outlined),
@@ -305,6 +355,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
           FloatingActionButton.small(
             key: const Key('tenants_assign_button'),
             heroTag: 'tenants_assign_fab',
+            backgroundColor: const Color(0xFF1B9E3E),
             onPressed: _openAssign,
             tooltip: 'Assign',
             child: const Icon(Icons.link),
@@ -314,6 +365,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
         FloatingActionButton(
           key: const Key('tenants_fab'),
           heroTag: 'tenants_main_fab',
+          backgroundColor: const Color(0xFF1B9E3E),
           onPressed: () => setState(() => _fabExpanded = !_fabExpanded),
           child: Icon(_fabExpanded ? Icons.close : Icons.add),
         ),

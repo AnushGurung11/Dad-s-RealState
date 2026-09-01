@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/payment.dart';
 import '../models/person.dart';
 import '../navigation/routes.dart';
 import '../services/absconded_service.dart';
@@ -265,47 +264,104 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('edit_tenant_action'),
-            onPressed: _openEdit,
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text('Edit details'),
-          ),
-          const SizedBox(height: 8),
-          if (active) ...[
-            FilledButton.icon(
-              onPressed: person.isActiveTenant ? _openRenewDialog : null,
-              icon: const Icon(Icons.update),
-              label: const Text('Renew stay'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('mark_absconded_action'),
-              onPressed: _markAbsconded,
-              icon: const Icon(Icons.warning_amber_outlined),
-              label: const Text('Mark as absconded'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('end_tenure_action'),
-              onPressed: person.isActiveTenant ? _openTermination : null,
-              icon: const Icon(Icons.logout_outlined),
-              label: const Text('End tenure early'),
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (canHardDelete)
-            OutlinedButton.icon(
-              key: const Key('delete_person_action'),
-              onPressed: _delete,
-              style: OutlinedButton.styleFrom(
-                foregroundColor:
-                    Theme.of(context).extension<AppStatusColors>()!.danger,
+          if (active || !canHardDelete)
+            PopupMenuButton<String>(
+              key: const Key('person_actions_menu'),
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Actions',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            )),
+                    const SizedBox(width: 4),
+                    Icon(Icons.more_vert,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer),
+                  ],
+                ),
               ),
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Delete tenant'),
+              onSelected: (action) {
+                switch (action) {
+                  case 'edit':
+                    _openEdit();
+                    break;
+                  case 'renew':
+                    _openRenewDialog();
+                    break;
+                  case 'absconded':
+                    _markAbsconded();
+                    break;
+                  case 'terminate':
+                    _openTermination();
+                    break;
+                  case 'delete':
+                    _delete();
+                    break;
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: ListTile(
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Edit details'),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                if (active && person.isActiveTenant)
+                  const PopupMenuItem(
+                    value: 'renew',
+                    child: ListTile(
+                      leading: Icon(Icons.update),
+                      title: Text('Renew stay'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                if (active)
+                  const PopupMenuItem(
+                    value: 'absconded',
+                    child: ListTile(
+                      leading: Icon(Icons.warning_amber_outlined),
+                      title: Text('Mark as absconded'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                if (active && person.isActiveTenant)
+                  const PopupMenuItem(
+                    value: 'terminate',
+                    child: ListTile(
+                      leading: Icon(Icons.logout_outlined),
+                      title: Text('End tenure early'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                if (canHardDelete)
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete_outline,
+                          color: Theme.of(context).extension<AppStatusColors>()!.danger),
+                      title: Text('Delete tenant',
+                          style: TextStyle(
+                              color: Theme.of(context).extension<AppStatusColors>()!.danger)),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+              ],
             )
-          else if (active)
+          else
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
@@ -317,33 +373,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               ),
             ),
           const SizedBox(height: 12),
-          Text('Payment history',
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (payments.isEmpty)
-            Text(
-              'No payments recorded yet.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            )
-          else
-            ...payments.map((payment) => Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: Icon(
-                      payment.type == PaymentType.deposit
-                          ? Icons.savings_outlined
-                          : Icons.receipt_outlined,
-                    ),
-                    title: Text(payment.month),
-                    subtitle: Text(
-                        payment.type == PaymentType.deposit
-                            ? 'Deposit'
-                            : 'Rent'),
-                    trailing: Text(formatMoneyShort(payment.amountPaid)),
-                  ),
-                )),
         ],
       ),
     );

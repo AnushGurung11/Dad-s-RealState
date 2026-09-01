@@ -1,39 +1,26 @@
-# Fixes I need
+# Fix 
+- lease payment must also considerd as expense here so also display this in the page. 
+- On the must have a description section where i can have notes for each transaction made, make this description feature availabe for all the financial transactions 
+- In the flat, beds are represented as balck in the light mode. Lets totally remove the dark mode and only have light mode
+- lets make all the plus button, assign bed button gree and related button in each page breen so not grey. or orange. 
+- On the search for tenants, have a filter for seaching memebers accrdoing to flats as well. example I can search a tenats by name, if i forget the name i should be able to select the flat he lives in and there i can seach as well of all the tenants of that flat must be displayed. 
+- The filter feature must apply to the rent paying process as well. Where In the fiannce tab i search for the person, and i can even select a flat and then select or search the person wehre all the tenants are displayed. 
+- In the expense page instead of drop down menu for selecting flat, It should display the flats like in the flat page. Active flats must be kept separate form the archieve flats. Then i can select the flat and add expense to that flat. 
+- While filling the field for the expense all the past expense records but be separated by the month for easier retrial later where i can even seach expense accoridng to the year and month. 
+- Afyer the expense was added it must be able to be deleted and edited as well. and dont forget to add description as well while paying or while editring. 
 
-- So When i open the Show file Storage location option It show me all different applcition which are not related to the whole program. 
-- I just want it to show the native file explorer place. 
-- For storing the App data dont store it in the download folder, Keep it safe in app date and create a sepeate folder for LUCKY and there keep the data in data folder so that if client accedentlay deletes the files from download folder it remain safe. 
-- First check if there is pre exisiting data in the download folder then move that to the App data fodler. 
+# Assigning Bed form  
 
-# New Flow for Flat Creation and Cheque (Rent of the flat)
-## Separating the flat creation to lease (Cheque details which is for rent payament of flat)
+- While I fill the form for assigning a bed to a tenants there are small text which says step1, step 2 and all remove them 
+- and implement this flow where I first select the bed and all, Then i press next button which show Tenure and rent. Dont keep all the information in a single page and also have a back button to make chnages in the bed selection and all. Then I will press the assign button and i will open the flat which he selected and the bed like it will redirect to the flat page of assigned flat with beds displayed 
 
-### Creating a flat
-- Keep the following fields for creating a flat. 
-- Flat name, address, Registered date (Date when the flat was registered not related to Cheque/ Lease payament of the flat just an info field).
-- Registeration name (On Whose name was the flat registered under)
-- Total number of beds (5-20 min and max value )
-- Landline number, landline registered under name, Esewas number, Wifi name, wifi password
+# User profile and Payment history 
 
-### Up on creating A flat
-- I should be able to later edit all the information of flat. 
-- Regarding the beds, Inside the flat, beds are displayed, there A plus sign should be present to add a bed and a delete button to delete a bed. 
-- Regarding if deletion is trying to be done when a person is being assigned to that bed dont allow. For this type of scenario, a button to make the bed vacant must be present and this will update the status of Tenant as unassigned. 
-- If instead i need to assign the person to another bed i should be able to do that as well by having an option to (assign to another bed ) where i can choose the availabe active flats with vacant bed and then vacant bed number to move the person to another bed assignment. 
+- in side the tenants profile the buttons making the experiece mnessy, so lets group the buttons insde the 3 dots on the top right of the profile and the profile must not conatin any payemnt history records.
 
+# Payment
 
-### Flat Lease and Cheque payment
-- Let this be a separate page for now which should be called Cheque Flats 
-- In this page, First there should be a button for adding cheque details to flat. 
-- This Adding cheque details must only applicabe to those flats whose cheque details are not assigned. 
-- In this, active flats with no checque details must be displayed for selection. 
-- After selection I need to fill details like, Default amount to pay each time.
-- Repeate after months (This field means after a payemnt next payament will be after how many months)
-- Select a date (selecting a date for Payemnt) eg, i set recurring months to be 1 and date to 20. Meaning after payament, next payment will be next month at 20 default.
-- So after creation of cheque details, the page must now display FLat name, Time remaining for next payemnt, Amount to pay and edit option for editing any field of the cheque detail. 
-- In the page, There must be a custom button for pay. 
-- After clicking pay button, I should be able to select the flat cheque i want to pay, method of payemnt (card, cash, cheque, Online, Other), Description, Amount (It should show the default amount set during scheque creation but we must be able to edit as well), date of payemnt 
-- Then a Done option to Confirm the payemnt. 
-- Now the payemnt is done. For checking the payemnt history, In the same page of cheque. I click the flat and inside there there shold be all the records of payemnt made. 
-- Beside each transiction there must be a edit option and delete option. Edit must allow us to edit any fileds filled while paying the cheque. 
-
+While paying for rent I should have a fields for bedscription as well where i can keep notes if there is. 
+After the payemnt it I must be able to delete it and exit it as well form the profile where i can edit any fields whiole paying 
+After making payemnt it should be availabe in payemnt history for tenant rent history where I can edit it and delete it as well. 
+In the tenants rent history page i must be able to search by flat as well where i can select the actie flat and for the archieve tenants They shiould be under a seperate header called archieve 

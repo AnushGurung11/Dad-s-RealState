@@ -37,6 +37,7 @@ class _TenantRentPaymentScreenState extends State<TenantRentPaymentScreen> {
         firstAmount: result.firstAmount,
         firstDate: result.firstDate,
         futureAmounts: result.futureAmounts,
+        description: result.description,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -77,12 +78,14 @@ class MultiMonthResult {
     required this.firstAmount,
     required this.firstDate,
     this.futureAmounts,
+    this.description,
   });
 
   final int months;
   final double firstAmount;
   final DateTime firstDate;
   final Map<int, double>? futureAmounts;
+  final String? description;
 }
 
 /// Rent form. The amount is never pre-filled — the landlord types what was
@@ -99,6 +102,7 @@ class _RentPayDialog extends StatefulWidget {
 
 class _RentPayDialogState extends State<_RentPayDialog> {
   final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
   int _months = 1;
   DateTime _date = DateTime.now();
 
@@ -108,6 +112,7 @@ class _RentPayDialogState extends State<_RentPayDialog> {
   @override
   void dispose() {
     _amountController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -279,6 +284,17 @@ class _RentPayDialogState extends State<_RentPayDialog> {
                 ),
               ),
             ],
+            const SizedBox(height: 12),
+            TextFormField(
+              key: const Key('rent_description_field'),
+              controller: _descriptionController,
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                hintText: 'e.g. paid early, partial payment...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
           ],
         ),
       ),
@@ -299,6 +315,9 @@ class _RentPayDialogState extends State<_RentPayDialog> {
                     firstDate: _date,
                     futureAmounts:
                         _futureAmounts.isEmpty ? null : _futureAmounts,
+                    description: _descriptionController.text.trim().isEmpty
+                        ? null
+                        : _descriptionController.text.trim(),
                   )),
           child: Text(_months == 1 ? 'Record payment' : 'Record $_months payments'),
         ),

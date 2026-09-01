@@ -16,6 +16,7 @@ class ExpenseService {
     required double amount,
     required DateTime date,
     String? note,
+    String? description,
     String? existingId,
   }) {
     if (amount <= 0) {
@@ -29,6 +30,7 @@ class ExpenseService {
       amount: amount,
       date: date,
       note: note,
+      description: description,
     );
     store.upsertExpense(expense);
     return expense;

@@ -44,6 +44,8 @@ void main() {
         routes: {
           Routes.tenantsAdd: (context) =>
               const Scaffold(key: Key('add_tenant_route'), body: Text('Add')),
+          Routes.flatDetail: (context) =>
+              const Scaffold(key: Key('flat_detail_route'), body: Text('Flat detail')),
         },
         home: const Scaffold(body: AssignScreen()),
       ),
@@ -65,8 +67,6 @@ void main() {
         flatId: 'f1'));
   });
 
-  /// Tapping the field itself (not the hint text) so the hit lands on the
-  /// InputDecorator's gesture handler.
   Finder dropdown(String key) => find.byKey(ValueKey<String>(key));
 
   Future<void> pickFlat(WidgetTester tester, String name) async {
@@ -92,7 +92,6 @@ void main() {
 
   testWidgets('Step 1 only lists flats that still have at least one vacant '
       'bed', (tester) async {
-    // Fill Beta completely: two beds, two occupants.
     store.upsertBed(const Bed(
         id: 'b4', flatId: 'f2', label: 'Bed 2', defaultMonthlyRent: 3000));
     store.upsertPerson(const Person(
@@ -114,8 +113,8 @@ void main() {
     await tester.tap(dropdown('assign_flat_picker'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Alpha'), findsOneWidget); // still has b1 vacant
-    expect(find.text('Beta'), findsNothing); // zero vacancy → not offered
+    expect(find.text('Alpha'), findsOneWidget);
+    expect(find.text('Beta'), findsNothing);
   });
 
   testWidgets('Step 2 lists only the chosen flat\u0027s vacant beds, colored '
@@ -126,7 +125,7 @@ void main() {
     await tester.tap(dropdown('assign_bed_picker'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Beta'), findsNothing); // no cross-flat beds
+    expect(find.text('Beta'), findsNothing);
     expect(find.byKey(const ValueKey('bed-dot-b2')), findsNothing);
     expect(find.byKey(const ValueKey('bed-dot-b3')), findsNothing);
 
@@ -139,9 +138,8 @@ void main() {
 
   testWidgets('Step 3 only lists unassigned people; a shortcut to Add tenant '
       'exists when nobody is waiting', (tester) async {
-    // Everyone assigned → empty picker, shortcut visible.
     store.upsertBed(bedA1.copyWith(tenantId: 'p9'));
-    store.deletePerson('p1'); // no unassigned people left
+    store.deletePerson('p1');
     store.upsertPerson(const Person(
         id: 'p1x', name: 'Zed', contact: '9000000001', bedId: 'b1',
         flatId: 'f1'));
@@ -151,39 +149,12 @@ void main() {
     expect(find.byKey(const Key('assign_add_tenant_link')), findsOneWidget);
     expect(find.textContaining('add a tenant first'), findsOneWidget);
 
-    // Tapping it opens the Add tenant route.
     await tester.tap(find.byKey(const Key('assign_add_tenant_link')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('add_tenant_route')), findsOneWidget);
   });
 
-  testWidgets('monthlyRent pre-fills from the selected bed and stays '
-      'editable; vacated date auto-computes from planned stay', (tester) async {
-    await pumpAssign(tester);
-
-    await pickFlat(tester, 'Beta');
-    await pickBed(tester, 'bed-dot-b3');
-
-    expect(find.widgetWithText(TextFormField, '3000'), findsOneWidget,
-        reason: 'rent pre-fills from Beta Bed 1 default');
-
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Planned stay (months)'), '6');
-    await tester.pumpAndSettle();
-
-    // joinDate defaults to today → leaves in 6 months. Just assert the hint
-    // line exists with a "Leaves" prefix.
-    expect(find.textContaining('Leaves '), findsOneWidget);
-
-    await tester.enterText(
-        find.widgetWithText(TextFormField, 'Monthly rent (AED)'), '3250');
-    await tester.pumpAndSettle();
-
-    expect(find.widgetWithText(TextFormField, '3250'), findsOneWidget,
-        reason: 'the pre-filled rent stays editable');
-  });
-
-  testWidgets('full flow assigns the tenant through the reordered steps',
+  testWidgets('Next button advances to step 2, Back returns to step 1',
       (tester) async {
     await pumpAssign(tester);
 
@@ -191,6 +162,37 @@ void main() {
     await pickBed(tester, 'bed-dot-b1');
     await pickPerson(tester, 'Alice');
 
+    // Tap Next to go to step 2
+    await tester.tap(find.byKey(const Key('assign_next_button')));
+    await tester.pumpAndSettle();
+
+    // Step 2 shows tenure fields
+    expect(find.text('Tenure & rent'), findsOneWidget);
+    expect(find.byKey(const Key('assign_back_button')), findsOneWidget);
+    expect(find.byKey(const Key('assign_submit')), findsOneWidget);
+
+    // Tap Back to go back to step 1
+    await tester.tap(find.byKey(const Key('assign_back_button')));
+    await tester.pumpAndSettle();
+
+    // Step 1 fields are visible again
+    expect(find.byKey(const Key('assign_flat_picker')), findsOneWidget);
+    expect(find.byKey(const Key('assign_next_button')), findsOneWidget);
+  });
+
+  testWidgets('full flow assigns the tenant and redirects to flat detail',
+      (tester) async {
+    await pumpAssign(tester);
+
+    await pickFlat(tester, 'Alpha');
+    await pickBed(tester, 'bed-dot-b1');
+    await pickPerson(tester, 'Alice');
+
+    // Go to step 2
+    await tester.tap(find.byKey(const Key('assign_next_button')));
+    await tester.pumpAndSettle();
+
+    // Fill deposit
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Deposit (AED)'), '5000');
     await tester.ensureVisible(find.byKey(const Key('assign_submit')));

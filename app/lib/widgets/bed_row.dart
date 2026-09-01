@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../models/bed.dart';
-import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/person_avatar.dart';
 import 'status_badge.dart';
@@ -37,12 +36,13 @@ class BedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final occupied = bed.isOccupied;
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
         decoration: BoxDecoration(
-          color: appSurface1,
-          border: Border.all(color: appBorder, width: 1),
+          color: cs.surface,
+          border: Border.all(color: cs.outline, width: 1),
           borderRadius: BorderRadius.circular(16),
         ),
         child: InkWell(
@@ -66,29 +66,29 @@ class BedRow extends StatelessWidget {
                     children: [
                       Text(
                         bed.label,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appText1),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface),
                       ),
                       if (occupied && occupantName != null)
                         Text(
                           occupantName!,
-                          style: const TextStyle(fontSize: 15, color: appText1),
+                          style: TextStyle(fontSize: 15, color: cs.onSurface),
                         )
                       else
-                        const Text('Assign →', style: TextStyle(fontSize: 12, color: appAccent, fontWeight: FontWeight.w600)),
+                        Text('Assign →', style: TextStyle(fontSize: 12, color: cs.primary, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
                 if (occupied) ...[
                   Text(
                     formatMoneyShort(bed.defaultMonthlyRent),
-                    style: const TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: ['ui-monospace', 'monospace'], fontSize: 12, fontWeight: FontWeight.w600, color: appText1, fontFeatures: [FontFeature.tabularFigures()]),
+                    style: TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: ['ui-monospace', 'monospace'], fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurface, fontFeatures: [FontFeature.tabularFigures()]),
                   ),
                   if (isOverdue) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: appDanger.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: appDanger.withValues(alpha: 0.18))),
-                      child: const Text('Overdue', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: appDanger)),
+                      decoration: BoxDecoration(color: cs.error.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: cs.error.withValues(alpha: 0.18))),
+                      child: Text('Overdue', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: cs.error)),
                     ),
                   ],
                   // Action buttons for occupied beds

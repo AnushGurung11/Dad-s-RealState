@@ -13,18 +13,17 @@ void main() {
 
   const bed = Bed(id: 'b1', flatId: 'f1', label: 'Bed 1', defaultMonthlyRent: 4000);
 
-  Person activeTenant() => const Person(
+  Person activeTenant() => Person(
         id: 'p1',
         name: 'Alice',
         contact: '9000000001',
         bedId: 'b1',
         flatId: 'f1',
-        joinDate: null,
-        plannedStayMonths: null,
+        joinDate: DateTime(2026, 1, 1),
+        plannedStayMonths: 12,
       );
 
   Future<void> pumpDetail(WidgetTester tester) async {
-    // Tall viewport so the whole lazy ListView (actions + history) builds.
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -70,9 +69,11 @@ void main() {
     store.upsertPerson(tenant(joinDate: joinDate));
     await pumpDetail(tester);
 
-    // Initial plan: Feb 2026 + 12 months.
     expect(find.text('2027-02-01'), findsOneWidget);
 
+    // Open the actions menu
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Renew stay'));
     await tester.pumpAndSettle();
 
@@ -80,14 +81,13 @@ void main() {
     await tester.tap(find.text('Extend'));
     await tester.pumpAndSettle();
 
-    // Vacated date recomputed to +15 months and shown without a reload.
     expect(find.text('2027-05-01'), findsOneWidget);
     final person = store.people.single;
     expect(person.plannedStayMonths, 15);
     expect(person.renewalHistory, hasLength(1));
   });
 
-  testWidgets('shows tenure summary fields and read-only payment history',
+  testWidgets('shows tenure summary fields and no payment history on profile',
       (tester) async {
     final joinDate = DateTime(2026, 2, 1);
     store.upsertPerson(tenant(joinDate: joinDate));
@@ -103,13 +103,14 @@ void main() {
     ));
     await pumpDetail(tester);
 
-    expect(find.text('AED 4000'), findsNWidgets(2)); // rent + payment row
+    expect(find.text('AED 4000'), findsOneWidget); // rent field only
     expect(find.text('AED 5000'), findsOneWidget); // deposit
     expect(find.text('2026-02-01'), findsOneWidget); // join date
     expect(find.text('Quiet tenant'), findsOneWidget);
-    expect(find.text('2026-02'), findsOneWidget); // payment month
     // Balance: 12 × 4000 − 5000 − 4000.
     expect(find.textContaining('AED 39'), findsOneWidget);
+    // Payment history removed from profile
+    expect(find.text('Payment history'), findsNothing);
   });
 
   testWidgets('no payment-entry control exists on this screen',
@@ -123,17 +124,18 @@ void main() {
     expect(find.textContaining('Record payment'), findsNothing);
     expect(find.byType(TextFormField), findsNothing);
     expect(find.byType(FloatingActionButton), findsNothing);
-    // The only action button is Renew stay.
-    expect(find.widgetWithText(FilledButton, 'Renew stay'), findsOneWidget);
+    // Actions are in a popup menu now
+    expect(find.byKey(const Key('person_actions_menu')), findsOneWidget);
   });
 
-  testWidgets('renew stay is disabled for a tenant without an active '
-      'assignment', (tester) async {
+  testWidgets('actions menu contains Renew stay', (tester) async {
     store.upsertPerson(activeTenant());
     await pumpDetail(tester);
 
-    final button = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Renew stay'));
-    expect(button.onPressed, isNull);
+    await tester.tap(find.byKey(const Key('person_actions_menu')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Renew stay'), findsOneWidget);
+    expect(find.text('Edit details'), findsOneWidget);
   });
 }
