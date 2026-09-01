@@ -6,7 +6,7 @@ import 'package:lucky/services/store_scope.dart';
 import 'package:lucky/theme/app_theme.dart';
 
 void main() {
-  testWidgets('all 5 tabs render and switch correctly', (tester) async {
+  testWidgets('all 4 tabs render and switch correctly', (tester) async {
     final store = InMemoryJsonStore();
     await tester.pumpWidget(
       MaterialApp(
@@ -17,7 +17,6 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Report'), findsOneWidget);
     expect(find.text('Cheque'), findsOneWidget);
     expect(find.text('Rent'), findsOneWidget);
     expect(find.text('Expenses'), findsOneWidget);
@@ -58,6 +57,6 @@ void main() {
     // The old "Payments" hub with "Flat Lease Payment" and "Tenant Rent Payment" as drawer items
     // should not be found as drawer entries - but they are now inside Finance tabs
     // We check that the FinanceScreen's tabs are present, not the old drawer
-    expect(find.text('Report'), findsOneWidget);
+    expect(find.text('Report'), findsNothing);
   });
 }

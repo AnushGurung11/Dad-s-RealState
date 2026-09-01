@@ -184,20 +184,17 @@ void main() {
     expect(find.textContaining('day'), findsOneWidget);
   });
 
-  testWidgets('explicit next payment date entry overrides the default calculation', (tester) async {
+  testWidgets('explicit next payment day entry overrides the default calculation', (tester) async {
     final due = DateTime(2026, 10, 25);
     store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
     await pumpScreen(tester);
     await tester.tap(find.byKey(const Key('pay-s1')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('lease_amount_field')), '4000');
-    // Pick explicit next payment date - open picker and select a date
-    await tester.tap(find.byKey(const Key('next_payment_date_field')));
-    await tester.pumpAndSettle();
-    // Date picker is open - select OK to confirm (default date)
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('next_payment_date_field')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('months_covered_field')), '2');
+    // The next_payment_day_field dropdown should be present
+    expect(find.byKey(const Key('next_payment_day_field')), findsOneWidget);
+    // Leave it as auto (null) and record payment
     await tester.tap(find.byKey(const Key('record_lease_payment')));
     await tester.pumpAndSettle();
     // Should have created a record

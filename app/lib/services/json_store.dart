@@ -81,6 +81,9 @@ abstract class JsonStore {
   /// Removes a lease cheque record (used via transaction_edit_service, audited).
   void deleteChequeRecord(String recordId);
 
+  /// Removes a lease cheque setting for a flat.
+  void deleteChequeSetting(String settingId);
+
   /// Runs [action] as one atomic batch: every mutation performed inside is
   /// persisted with a single store write instead of one write per mutation.
   void runBatched(void Function() action);
@@ -265,6 +268,11 @@ class InMemoryJsonStore implements JsonStore {
   @override
   void deleteChequeRecord(String recordId) {
     _chequeRecords.removeWhere((r) => r.id == recordId);
+  }
+
+  @override
+  void deleteChequeSetting(String settingId) {
+    _chequeSettings.removeWhere((s) => s.id == settingId);
   }
 
   @override
@@ -601,6 +609,12 @@ class LocalJsonStore extends InMemoryJsonStore {
   @override
   void deleteChequeRecord(String recordId) {
     super.deleteChequeRecord(recordId);
+    _scheduleSave();
+  }
+
+  @override
+  void deleteChequeSetting(String settingId) {
+    super.deleteChequeSetting(settingId);
     _scheduleSave();
   }
 

@@ -6,6 +6,7 @@ import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
 import '../models/expense.dart';
 import '../navigation/routes.dart';
+import '../screens/profit_overview_screen.dart';
 import '../services/dashboard_service.dart';
 import '../services/store_scope.dart';
 import '../services/transaction_edit_service.dart';
@@ -80,25 +81,13 @@ class _SummaryGrid extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _ProfitCard(
-                profit: summary.monthProfit,
-                onTap: () => Navigator.pushNamed(context, Routes.financialActivity),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                key: const Key('dashboard_expenses_card'),
-                icon: Icons.receipt_long_outlined,
-                label: 'Expenses',
-                value: formatMoneyShort(summary.monthExpense),
-                onTap: () => Navigator.pushNamed(context, Routes.financialActivity),
-              ),
-            ),
-          ],
+        _ProfitExpenseCard(
+          profit: summary.monthProfit,
+          expense: summary.monthExpense,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProfitOverviewScreen()),
+          ),
         ),
         const SizedBox(height: 12),
         _StatCard(
@@ -114,10 +103,11 @@ class _SummaryGrid extends StatelessWidget {
   }
 }
 
-class _ProfitCard extends StatelessWidget {
-  const _ProfitCard({required this.profit, this.onTap});
+class _ProfitExpenseCard extends StatelessWidget {
+  const _ProfitExpenseCard({required this.profit, required this.expense, this.onTap});
 
   final double profit;
+  final double expense;
   final VoidCallback? onTap;
 
   @override
@@ -130,7 +120,7 @@ class _ProfitCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = isDark ? appText3 : appLightText3;
     return Container(
-      key: const Key('profit_card'),
+      key: const Key('profit_expense_card'),
       decoration: BoxDecoration(color: bg, border: Border.all(color: border), borderRadius: BorderRadius.circular(16)),
       child: Material(
         color: Colors.transparent,
@@ -144,7 +134,7 @@ class _ProfitCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('Net Profit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: muted)),
+                    Text('NET PROFIT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.8, color: muted)),
                     const Spacer(),
                     Container(width: 32, height: 32, decoration: BoxDecoration(color: fg.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.trending_up_outlined, size: 18, color: fg)),
                   ],
@@ -157,6 +147,14 @@ class _ProfitCard extends StatelessWidget {
                     key: const Key('profit_value'),
                     style: TextStyle(fontFamily: 'SF Mono', fontFamilyFallback: const ['ui-monospace', 'monospace'], fontSize: 34, fontWeight: FontWeight.w600, letterSpacing: -1, color: fg, fontFeatures: const [FontFeature.tabularFigures()]),
                   ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.receipt_long_outlined, size: 14, color: muted),
+                    const SizedBox(width: 4),
+                    Text('Total Expenses: ${formatMoneyShort(expense)}', style: TextStyle(fontSize: 12, color: muted)),
+                  ],
                 ),
               ],
             ),

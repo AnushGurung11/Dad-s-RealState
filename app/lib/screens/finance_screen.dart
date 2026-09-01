@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'cheque_payment_flat_screen.dart';
 import 'expenses_screen.dart';
-import 'financial_report_screen.dart';
 import 'payment_history_screen.dart';
 import 'tenant_rent_payment_screen.dart';
 
-/// Finance tab group: consolidates Report | Cheque | Rent | Expenses | History
+/// Finance tab group: consolidates Cheque | Rent | Expenses | History
 /// This is the ONLY nav destination for all financial screens.
 class FinanceScreen extends StatelessWidget {
   const FinanceScreen({super.key});
@@ -14,7 +13,7 @@ class FinanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5,
+      length: 4,
       child: Column(
         children: [
           Material(
@@ -25,7 +24,6 @@ class FinanceScreen extends StatelessWidget {
               unselectedLabelColor: Colors.grey,
               indicatorColor: Theme.of(context).colorScheme.primary,
               tabs: const [
-                Tab(text: 'Report'),
                 Tab(text: 'Cheque'),
                 Tab(text: 'Rent'),
                 Tab(text: 'Expenses'),
@@ -36,7 +34,6 @@ class FinanceScreen extends StatelessWidget {
           const Expanded(
             child: TabBarView(
               children: [
-                FinancialReportScreen(),
                 ChequePaymentFlatScreen(),
                 TenantRentPaymentScreen(),
                 ExpensesScreen(),

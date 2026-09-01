@@ -413,6 +413,7 @@ class _AssignScreenState extends State<AssignScreen> {
                   FilledButton.icon(
                     key: const Key('assign_submit'),
                     onPressed: _save,
+                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE18A4F)),
                     icon: const Icon(Icons.link),
                     label: const Text('Assign tenant'),
                   ),

@@ -127,6 +127,28 @@ class _ChequePaymentFlatScreenState extends State<ChequePaymentFlatScreen> {
     setState(() {});
   }
 
+  Future<void> _deleteSetting(LeaseChequeSetting setting) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete cheque setting?'),
+        content: const Text('This will remove the recurring lease payment configuration for this flat. Existing payment records will not be deleted.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final store = StoreScope.of(context);
+    store.deleteChequeSetting(setting.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Cheque setting deleted')));
+    setState(() {});
+  }
+
   Future<void> _viewPaymentHistory(LeaseChequeSetting setting, Flat flat) async {
     final store = StoreScope.of(context);
     final records = store.leaseChequeRecords
@@ -254,6 +276,12 @@ class _ChequePaymentFlatScreenState extends State<ChequePaymentFlatScreen> {
                 tooltip: 'Edit setting',
                 onPressed: () => _openEditSettingDialog(setting),
               ),
+              IconButton(
+                key: ValueKey('delete-setting-${setting.id}'),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                tooltip: 'Delete setting',
+                onPressed: () => _deleteSetting(setting),
+              ),
               FilledButton(
                 key: ValueKey('pay-${setting.id}'),
                 onPressed: () => _openPayDialog(setting, flat!),
@@ -318,7 +346,7 @@ class _AddChequeSettingDialogState extends State<_AddChequeSettingDialog> {
   late final TextEditingController _ownerController;
   late final TextEditingController _amountController;
   late final TextEditingController _intervalController;
-  DateTime _nextDueDate = DateTime.now().add(const Duration(days: 30));
+  int _dueDay = DateTime.now().day.clamp(1, 28);
 
   @override
   void initState() {
@@ -336,16 +364,12 @@ class _AddChequeSettingDialogState extends State<_AddChequeSettingDialog> {
     super.dispose();
   }
 
-  String _dateText(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
-  Future<void> _pickDueDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _nextDueDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-    );
-    if (picked != null) setState(() => _nextDueDate = picked);
+  DateTime _computeNextDueDate() {
+    final now = DateTime.now();
+    final interval = int.tryParse(_intervalController.text) ?? 2;
+    final nextMonth = DateTime(now.year, now.month + interval, 1);
+    final lastDay = DateTime(nextMonth.year, nextMonth.month + 1, 0).day;
+    return DateTime(nextMonth.year, nextMonth.month, _dueDay.clamp(1, lastDay));
   }
 
   @override
@@ -388,13 +412,19 @@ class _AddChequeSettingDialogState extends State<_AddChequeSettingDialog> {
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              key: const Key('cheque_next_due_date'),
-              onPressed: _pickDueDate,
-              icon: const Icon(Icons.event_outlined),
-              label: Text('First payment date: ${_dateText(_nextDueDate)}'),
+            DropdownButtonFormField<int>(
+              key: const Key('cheque_due_day'),
+              value: _dueDay,
+              decoration: const InputDecoration(
+                labelText: 'Due day of month',
+                border: OutlineInputBorder(),
+                helperText: 'Day when payment is due (1–28)',
+              ),
+              items: List.generate(28, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}'))),
+              onChanged: (v) => setState(() { if (v != null) _dueDay = v; }),
             ),
           ],
         ),
@@ -411,7 +441,7 @@ class _AddChequeSettingDialogState extends State<_AddChequeSettingDialog> {
               ownerName: _ownerController.text,
               amount: amount,
               intervalMonths: interval,
-              nextDueDate: _nextDueDate,
+              nextDueDate: _computeNextDueDate(),
             ));
           },
           child: const Text('Save'),
@@ -440,7 +470,7 @@ class _ChequePayDialogState extends State<_ChequePayDialog> {
   late final TextEditingController _monthsController;
   final TextEditingController _descController = TextEditingController();
   DateTime _date = DateTime.now();
-  DateTime? _explicitNextDueDate;
+  int? _nextDueDay;
   String? _paymentMethod;
 
   @override
@@ -477,16 +507,6 @@ class _ChequePayDialogState extends State<_ChequePayDialog> {
       lastDate: DateTime(_date.year + 5),
     );
     if (picked != null) setState(() => _date = picked);
-  }
-
-  Future<void> _pickNextDueDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _explicitNextDueDate ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-    );
-    if (picked != null) setState(() => _explicitNextDueDate = picked);
   }
 
   @override
@@ -540,17 +560,18 @@ class _ChequePayDialogState extends State<_ChequePayDialog> {
               label: Text('Paid date: ${_dateText(_date)}'),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              key: const Key('next_payment_date_field'),
-              onPressed: _pickNextDueDate,
-              icon: const Icon(Icons.event_outlined),
-              label: Text(_explicitNextDueDate == null ? 'Next payment date (optional)' : 'Next payment date: ${_dateText(_explicitNextDueDate!)}'),
-            ),
-            if (_explicitNextDueDate != null)
-              TextButton(
-                onPressed: () => setState(() => _explicitNextDueDate = null),
-                child: const Text('Clear'),
+            DropdownButtonFormField<int>(
+              key: const Key('next_payment_day_field'),
+              value: _nextDueDay,
+              decoration: const InputDecoration(
+                labelText: 'Next payment day of month (optional)',
+                border: OutlineInputBorder(),
+                helperText: 'Day of month for next payment (1–28)',
               ),
+              items: [const DropdownMenuItem<int>(value: null, child: Text('Auto (after months covered)'))]
+                ..addAll(List.generate(28, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}')))),
+              onChanged: (v) => setState(() => _nextDueDay = v),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               key: const Key('cheque_description_field'),
@@ -567,14 +588,23 @@ class _ChequePayDialogState extends State<_ChequePayDialog> {
           key: const Key('record_lease_payment'),
           onPressed: (_amount == null || _amount! <= 0 || _months == null)
               ? null
-              : () => Navigator.pop(context, (
-                  amount: _amount!,
-                  date: _date,
-                  months: _months!,
-                  explicitNextDueDate: _explicitNextDueDate,
-                  description: _descController.text.isEmpty ? null : _descController.text,
-                  paymentMethod: _paymentMethod,
-                )),
+              : () {
+                  DateTime? explicitNextDueDate;
+                  if (_nextDueDay != null) {
+                    final now = DateTime.now();
+                    final nextMonth = DateTime(now.year, now.month + _months!, 1);
+                    final lastDay = DateTime(nextMonth.year, nextMonth.month + 1, 0).day;
+                    explicitNextDueDate = DateTime(nextMonth.year, nextMonth.month, _nextDueDay!.clamp(1, lastDay));
+                  }
+                  Navigator.pop(context, (
+                    amount: _amount!,
+                    date: _date,
+                    months: _months!,
+                    explicitNextDueDate: explicitNextDueDate,
+                    description: _descController.text.isEmpty ? null : _descController.text,
+                    paymentMethod: _paymentMethod,
+                  ));
+                },
           child: const Text('Record payment'),
         ),
       ],

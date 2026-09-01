@@ -146,9 +146,9 @@ void main() {
     expect(
         find.byKey(const Key('dashboard_rent_payment_button')),
         findsNothing);
-    // Occupancy and Expenses cards should be present - check via keys to avoid bottom nav duplicate
+    // Occupancy and Profit+Expense card should be present - check via keys to avoid bottom nav duplicate
     expect(find.byKey(const Key('dashboard_flats_card')), findsOneWidget);
     expect(find.byKey(const Key('dashboard_occupancy_card')), findsOneWidget);
-    expect(find.byKey(const Key('dashboard_expenses_card')), findsOneWidget);
+    expect(find.byKey(const Key('profit_expense_card')), findsOneWidget);
   });
 }

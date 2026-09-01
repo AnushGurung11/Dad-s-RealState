@@ -237,6 +237,7 @@ class _FlatsScreenState extends State<FlatsScreen> {
                 FilledButton.icon(
                   key: const Key('add_flat_empty_state'),
                   onPressed: _openCreateForm,
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE18A4F)),
                   icon: const Icon(Icons.add),
                   label: const Text('Add flat'),
                 ),
@@ -294,6 +295,7 @@ class _FlatsScreenState extends State<FlatsScreen> {
           FloatingActionButton.extended(
             key: const Key('add_flats_button'),
             onPressed: _openCreateForm,
+            backgroundColor: const Color(0xFFE18A4F),
             icon: const Icon(Icons.add),
             label: const Text('Add flat'),
           ),

@@ -12,6 +12,7 @@ import 'package:lucky/navigation/routes.dart';
 import 'package:lucky/screens/dashboard_screen.dart';
 import 'package:lucky/screens/financial_activity_screen.dart';
 import 'package:lucky/screens/flats_screen.dart';
+import 'package:lucky/screens/profit_overview_screen.dart';
 import 'package:lucky/screens/vacant_beds_screen.dart';
 import 'package:lucky/services/json_store.dart';
 import 'package:lucky/services/store_scope.dart';
@@ -124,16 +125,11 @@ void main() {
     expect(find.text('Active Tenants'), findsNothing);
   });
 
-  testWidgets('Profit and Expenses cards both navigate to Financial Activity screen', (tester) async {
+  testWidgets('Profit+Expense card navigates to Profit Overview screen', (tester) async {
     await pumpDashboard(tester);
-    await tester.tap(find.byKey(const Key('profit_card')));
+    await tester.tap(find.byKey(const Key('profit_expense_card')));
     await tester.pumpAndSettle();
-    expect(find.byType(FinancialActivityScreen), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('dashboard_expenses_card')));
-    await tester.pumpAndSettle();
-    expect(find.byType(FinancialActivityScreen), findsOneWidget);
+    expect(find.byType(ProfitOverviewScreen), findsOneWidget);
   });
 
   testWidgets('Next Lease Due card shows soonest-due flat and navigates to Cheque Payment on tap; shows empty state with zero flats', (tester) async {
