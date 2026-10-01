@@ -11,6 +11,7 @@ import '../models/flat.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/lease_termination_record.dart';
 import '../models/lease_cheque_setting.dart';
+import '../models/legal_document.dart';
 import '../models/payment.dart' hide PaymentStatus, PaymentType;
 import '../models/person.dart';
 import '../services/report_service.dart';
@@ -26,6 +27,7 @@ class ExcelExportService {
     required this.leaseChequeSettings,
     required this.leaseChequeRecords,
     required this.terminations,
+    this.legalDocuments = const [],
     this.getDocumentsDirectory,
   });
 
@@ -37,6 +39,10 @@ class ExcelExportService {
   final List<LeaseChequeSetting> leaseChequeSettings;
   final List<LeaseChequeRecord> leaseChequeRecords;
   final List<LeaseTerminationRecord> terminations;
+
+  /// Legal documents are listed by metadata only — the scanned images stay in
+  /// the app's private storage and are carried by the zip backup instead.
+  final List<LegalDocument> legalDocuments;
 
   final Future<Directory> Function()? getDocumentsDirectory;
 
@@ -137,6 +143,7 @@ class ExcelExportService {
     _addChequePaymentHistorySheet(excel);
     _addTenantRentHistorySheet(excel);
     _addExpensesSheet(excel);
+    _addLegalDocumentsSheet(excel);
 
     final docsDir = getDocumentsDirectory != null ? await getDocumentsDirectory!() : await getApplicationDocumentsDirectory();
     final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').replaceAll('.', '-');
@@ -166,7 +173,7 @@ class ExcelExportService {
     sheet.appendRow(['â€¢ Header row (blue) is frozen â€” scroll to keep titles visible. Use filters on headers.']);
     sheet.appendRow(['â€¢ Green = income/profit, Red = expense/loss, Amber = warning/partial, Blue = accent.']);
     sheet.appendRow(['â€¢ Currency amounts are in AED. Dates are YYYY-MM-DD.']);
-    sheet.appendRow(['â€¢ Sheets: Summary | Tenants | Flats & Beds | Financial Report | Cheque History | Rent History | Expenses']);
+    sheet.appendRow(['â€¢ Sheets: Summary | Tenants | Flats & Beds | Financial Report | Cheque History | Rent History | Expenses | Legal Documents']);
     for (var r = 4; r <= 8; r++) {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: r)).cellStyle = bodyStyle;
     }
@@ -505,6 +512,30 @@ class ExcelExportService {
       } else {
         statusCell.cellStyle = _dataStyle(alt: alt, bg: _neutralBg).copyWith(horizontalAlignVal: HorizontalAlign.Center);
       }
+    }
+  }
+
+  void _addLegalDocumentsSheet(Excel excel) {
+    final sheet = excel['Legal Documents'];
+    sheet.appendRow(['Flat Name', 'Label', 'Description', 'File Name', 'Created At']);
+    _styleHeaderRow(sheet, 5);
+    _autoWidths(sheet, [20.0, 26.0, 40.0, 28.0, 14.0]);
+
+    final flatMap = {for (var f in flats) f.id: f};
+    final sorted = List<LegalDocument>.from(legalDocuments)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    for (var i = 0; i < sorted.length; i++) {
+      final d = sorted[i];
+      final alt = i % 2 == 1;
+      final fileName = d.imagePath.split(RegExp(r'[/\\]')).last;
+      sheet.appendRow([
+        flatMap[d.flatId]?.name ?? 'Unknown',
+        d.label,
+        d.description ?? '',
+        fileName,
+        _formatDate(d.createdAt),
+      ]);
+      _styleDataRow(sheet, i + 1, 5, alt: alt);
     }
   }
 

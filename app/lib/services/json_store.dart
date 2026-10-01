@@ -10,6 +10,7 @@ import '../models/flat.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/lease_termination_record.dart';
 import '../models/lease_cheque_setting.dart';
+import '../models/legal_document.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
 
@@ -24,6 +25,7 @@ abstract class JsonStore {
   List<LeaseChequeSetting> get leaseChequeSettings;
   List<LeaseChequeRecord> get leaseChequeRecords;
   List<LeaseTerminationRecord> get terminations;
+  List<LegalDocument> get legalDocuments;
   List<AuditLogEntry> get auditLogs;
 
   /// Invoked whenever a background disk write fails, so the app can surface a
@@ -84,6 +86,18 @@ abstract class JsonStore {
   /// Removes a lease cheque setting for a flat.
   void deleteChequeSetting(String settingId);
 
+  /// Persists a flat's legal document (scanned paperwork image + label).
+  /// Schedules a debounced disk write.
+  void upsertLegalDocument(LegalDocument doc);
+
+  /// Removes a single legal document. Never cascades to the flat's other
+  /// documents.
+  void deleteLegalDocument(String docId);
+
+  /// The legal documents attached to one flat, newest last. Documents of other
+  /// flats are never returned.
+  List<LegalDocument> getLegalDocumentsForFlat(String flatId);
+
   /// Runs [action] as one atomic batch: every mutation performed inside is
   /// persisted with a single store write instead of one write per mutation.
   void runBatched(void Function() action);
@@ -106,6 +120,7 @@ class InMemoryJsonStore implements JsonStore {
   final List<LeaseChequeSetting> _chequeSettings = [];
   final List<LeaseChequeRecord> _chequeRecords = [];
   final List<LeaseTerminationRecord> _terminations = [];
+  final List<LegalDocument> _legalDocuments = [];
   final List<AuditLogEntry> _auditLogs = [];
 
   @override
@@ -137,6 +152,9 @@ class InMemoryJsonStore implements JsonStore {
   @override
   List<LeaseTerminationRecord> get terminations =>
       List.unmodifiable(_terminations);
+
+  @override
+  List<LegalDocument> get legalDocuments => List.unmodifiable(_legalDocuments);
 
   @override
   List<AuditLogEntry> get auditLogs => List.unmodifiable(_auditLogs);
@@ -276,6 +294,25 @@ class InMemoryJsonStore implements JsonStore {
   }
 
   @override
+  void upsertLegalDocument(LegalDocument doc) {
+    final index = _legalDocuments.indexWhere((d) => d.id == doc.id);
+    if (index >= 0) {
+      _legalDocuments[index] = doc;
+    } else {
+      _legalDocuments.add(doc);
+    }
+  }
+
+  @override
+  void deleteLegalDocument(String docId) {
+    _legalDocuments.removeWhere((d) => d.id == docId);
+  }
+
+  @override
+  List<LegalDocument> getLegalDocumentsForFlat(String flatId) =>
+      _legalDocuments.where((d) => d.flatId == flatId).toList();
+
+  @override
   void runBatched(void Function() action) => action();
 
   @override
@@ -321,6 +358,7 @@ class LocalJsonStore extends InMemoryJsonStore {
         AppConfig.leaseChequeSettingsFileName,
         AppConfig.leaseChequeRecordsFileName,
         AppConfig.terminationsFileName,
+        AppConfig.legalDocumentsFileName,
         AppConfig.auditLogFileName,
         AppConfig.metaFileName,
       ];
@@ -429,6 +467,10 @@ class LocalJsonStore extends InMemoryJsonStore {
           _encode(terminations, (t) => t.toJson()),
         ),
         _writeFile(
+          AppConfig.legalDocumentsFileName,
+          _encode(legalDocuments, (d) => d.toJson()),
+        ),
+        _writeFile(
           AppConfig.auditLogFileName,
           _encode(auditLogs, (a) => a.toJson()),
         ),
@@ -463,6 +505,7 @@ class LocalJsonStore extends InMemoryJsonStore {
     _chequeSettings.clear();
     _chequeRecords.clear();
     _terminations.clear();
+    _legalDocuments.clear();
     _auditLogs.clear();
 
     final rawFlats = await _readFile(AppConfig.flatsFileName);
@@ -473,6 +516,8 @@ class LocalJsonStore extends InMemoryJsonStore {
     final rawChequeSettings = await _readFile(AppConfig.leaseChequeSettingsFileName);
     final rawChequeRecords = await _readFile(AppConfig.leaseChequeRecordsFileName);
     final rawTerminations = await _readFile(AppConfig.terminationsFileName);
+    final rawLegalDocuments =
+        await _readFile(AppConfig.legalDocumentsFileName);
     final rawAuditLogs = await _readFile(AppConfig.auditLogFileName);
 
     for (final item in rawFlats?['items'] as List? ?? const <Object?>[]) {
@@ -506,6 +551,12 @@ class LocalJsonStore extends InMemoryJsonStore {
         const <Object?>[]) {
       super.upsertTermination(
         LeaseTerminationRecord.fromJson(item as Map<String, dynamic>),
+      );
+    }
+    for (final item in rawLegalDocuments?['items'] as List? ??
+        const <Object?>[]) {
+      super.upsertLegalDocument(
+        LegalDocument.fromJson(item as Map<String, dynamic>),
       );
     }
     for (final item in rawAuditLogs?['items'] as List? ?? const <Object?>[]) {
@@ -615,6 +666,18 @@ class LocalJsonStore extends InMemoryJsonStore {
   @override
   void deleteChequeSetting(String settingId) {
     super.deleteChequeSetting(settingId);
+    _scheduleSave();
+  }
+
+  @override
+  void upsertLegalDocument(LegalDocument doc) {
+    super.upsertLegalDocument(doc);
+    _scheduleSave();
+  }
+
+  @override
+  void deleteLegalDocument(String docId) {
+    super.deleteLegalDocument(docId);
     _scheduleSave();
   }
 

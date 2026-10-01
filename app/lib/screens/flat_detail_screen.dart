@@ -10,6 +10,7 @@ import '../services/bed_capacity_service.dart';
 import '../services/payment_service.dart';
 import '../services/store_scope.dart';
 import '../utils/format.dart';
+import 'flat_legal_docs_screen.dart';
 import '../utils/ids.dart';
 import '../widgets/bed_row.dart';
 
@@ -359,6 +360,9 @@ class _LeaseInfoTab extends StatelessWidget {
         : '${date.year}-${date.month.toString().padLeft(2, '0')}-'
             '${date.day.toString().padLeft(2, '0')}';
 
+    final store = StoreScope.of(context);
+    final docCount = store.getLegalDocumentsForFlat(flat.id).length;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -373,6 +377,22 @@ class _LeaseInfoTab extends StatelessWidget {
           value: flat.yearlyRent == null
               ? null
               : formatMoneyShort(flat.yearlyRent!),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.gavel),
+          title: const Text('Legal Documents'),
+          subtitle: Text('$docCount files'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FlatLegalDocsScreen(
+                flatId: flat.id,
+                flatName: flat.name,
+              ),
+            ),
+          ),
         ),
       ],
     );

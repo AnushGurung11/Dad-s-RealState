@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Legal document images are picked from the gallery and copied into
+         private app storage. READ_MEDIA_IMAGES covers Android 13+; the
+         READ_EXTERNAL_STORAGE entry only applies up to API 32. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <application
         android:label="LUCKY"
         android:name="${applicationName}"

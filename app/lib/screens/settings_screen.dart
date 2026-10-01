@@ -425,6 +425,7 @@ class _DataSectionState extends State<_DataSection> {
         leaseChequeSettings: store.leaseChequeSettings,
         leaseChequeRecords: store.leaseChequeRecords,
         terminations: store.terminations,
+        legalDocuments: store.legalDocuments,
       );
       final file = await excelService.exportToExcel();
       if (!mounted) return;

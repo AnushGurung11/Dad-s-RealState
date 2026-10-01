@@ -11,8 +11,10 @@ import '../models/flat.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/lease_termination_record.dart';
 import '../models/lease_cheque_setting.dart';
+import '../models/legal_document.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
+import 'flat_legal_doc_service.dart' show kLegalDocsDirName;
 import 'json_store.dart';
 
 /// Validation result for a backup file.
@@ -77,6 +79,7 @@ class BackupData {
     required this.leaseChequeSettings,
     required this.leaseChequeRecords,
     required this.terminations,
+    this.legalDocuments = const [],
   });
 
   final List<Flat> flats;
@@ -88,6 +91,10 @@ class BackupData {
   final List<LeaseChequeRecord> leaseChequeRecords;
   final List<LeaseTerminationRecord> terminations;
 
+  /// Scanned legal paperwork. Optional so backups written by older builds
+  /// (which have no `legalDocuments` key) still parse.
+  final List<LegalDocument> legalDocuments;
+
   Map<String, dynamic> toJson() {
     return {
       'flats': flats.map((f) => f.toJson()).toList(),
@@ -98,6 +105,7 @@ class BackupData {
       'leaseChequeSettings': leaseChequeSettings.map((s) => s.toJson()).toList(),
       'leaseChequeRecords': leaseChequeRecords.map((r) => r.toJson()).toList(),
       'terminations': terminations.map((t) => t.toJson()).toList(),
+      'legalDocuments': legalDocuments.map((d) => d.toJson()).toList(),
     };
   }
 
@@ -111,6 +119,9 @@ class BackupData {
       leaseChequeSettings: (json['leaseChequeSettings'] as List).map((e) => LeaseChequeSetting.fromJson(e as Map<String, dynamic>)).toList(),
       leaseChequeRecords: (json['leaseChequeRecords'] as List).map((e) => LeaseChequeRecord.fromJson(e as Map<String, dynamic>)).toList(),
       terminations: (json['terminations'] as List).map((e) => LeaseTerminationRecord.fromJson(e as Map<String, dynamic>)).toList(),
+      legalDocuments: ((json['legalDocuments'] as List?) ?? const [])
+          .map((e) => LegalDocument.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -145,6 +156,7 @@ class BackupService {
       leaseChequeSettings: store.leaseChequeSettings,
       leaseChequeRecords: store.leaseChequeRecords,
       terminations: store.terminations,
+      legalDocuments: store.legalDocuments,
     );
 
     final dataJson = const JsonEncoder.withIndent('  ').convert(data.toJson());
@@ -171,6 +183,26 @@ class BackupService {
           final ext = _getExtension(person.photoPath!);
           archive.addFile(ArchiveFile('photos/${person.id}$ext', photoBytes.length, photoBytes));
         }
+      }
+    }
+
+    // Add every scanned legal document image under legal_docs/ so a restore
+    // puts the pictures back, not just the metadata.
+    final legalDocsDir =
+        Directory('${docsDir.path}${Platform.pathSeparator}${AppConfig.appName}'
+            '${Platform.pathSeparator}$kLegalDocsDirName');
+    if (await legalDocsDir.exists()) {
+      await for (final entity in legalDocsDir.list(recursive: true, followLinks: false)) {
+        if (entity is! File) continue;
+        final relative = entity.path
+            .substring(legalDocsDir.path.length)
+            .replaceAll('\\', '/')
+            .replaceFirst(RegExp('^/'), '');
+        if (relative.isEmpty) continue;
+        final bytes = await entity.readAsBytes();
+        archive.addFile(
+          ArchiveFile('$kLegalDocsDirName/$relative', bytes.length, bytes),
+        );
       }
     }
 
@@ -267,7 +299,8 @@ class BackupService {
           'Expenses: ${data.expenses.length}, '
           'Cheque Settings: ${data.leaseChequeSettings.length}, '
           'Cheque Records: ${data.leaseChequeRecords.length}, '
-          'Terminations: ${data.terminations.length}';
+          'Terminations: ${data.terminations.length}, '
+          'Legal Documents: ${data.legalDocuments.length}';
 
       return RestoreValidation(
         valid: true,
@@ -351,6 +384,32 @@ class BackupService {
         return person;
       }).toList();
 
+      // Extract legal document images back into <appDocs>/LUCKY/legal_docs/
+      // and repoint each record at its restored file. Records whose image is
+      // missing from the backup keep their stored path untouched.
+      final targetLegalDocsDir =
+          Directory('${docsDir.path}${Platform.pathSeparator}${AppConfig.appName}'
+              '${Platform.pathSeparator}$kLegalDocsDirName');
+      await targetLegalDocsDir.create(recursive: true);
+
+      final legalDocPathMap = <String, String>{};
+      for (final file in archive) {
+        if (!file.isFile || !file.name.startsWith('$kLegalDocsDirName/')) {
+          continue;
+        }
+        final name = file.name.split('/').last;
+        if (name.isEmpty) continue;
+        final newPath = '${targetLegalDocsDir.path}${Platform.pathSeparator}$name';
+        await File(newPath).writeAsBytes(file.content as List<int>, flush: true);
+        legalDocPathMap[name] = newPath;
+      }
+
+      final updatedLegalDocs = data.legalDocuments.map((doc) {
+        final name = doc.imagePath.split(Platform.pathSeparator).last;
+        final restored = legalDocPathMap[name];
+        return restored == null ? doc : doc.copyWith(imagePath: restored);
+      }).toList();
+
       // Atomic replace: write all collections to .tmp files then rename
       await _atomicReplaceAll(
         flats: data.flats,
@@ -361,6 +420,7 @@ class BackupService {
         leaseChequeSettings: data.leaseChequeSettings,
         leaseChequeRecords: data.leaseChequeRecords,
         terminations: data.terminations,
+        legalDocuments: updatedLegalDocs,
       );
 
       // Reload store from disk
@@ -433,6 +493,14 @@ class BackupService {
       }
     }
 
+    // Check legal documents reference valid flats. A document pointing at a
+    // flat that is not in the backup would show up as an orphan.
+    for (final doc in data.legalDocuments) {
+      if (!flatIds.contains(doc.flatId)) {
+        errors.add('LegalDocument ${doc.id} references non-existent flat ${doc.flatId}');
+      }
+    }
+
     // Check terminations reference valid persons, beds, flats
     for (final term in data.terminations) {
       if (!personIds.contains(term.personId)) {
@@ -459,6 +527,7 @@ class BackupService {
     required List<LeaseChequeSetting> leaseChequeSettings,
     required List<LeaseChequeRecord> leaseChequeRecords,
     required List<LeaseTerminationRecord> terminations,
+    List<LegalDocument> legalDocuments = const [],
   }) async {
     if (store is! LocalJsonStore) {
       throw StateError('Atomic replace only supported with LocalJsonStore');
@@ -478,6 +547,7 @@ class BackupService {
       tmpFiles.add(await _writeTmpFile(directory, AppConfig.leaseChequeSettingsFileName, leaseChequeSettings));
       tmpFiles.add(await _writeTmpFile(directory, AppConfig.leaseChequeRecordsFileName, leaseChequeRecords));
       tmpFiles.add(await _writeTmpFile(directory, AppConfig.terminationsFileName, terminations));
+      tmpFiles.add(await _writeTmpFile(directory, AppConfig.legalDocumentsFileName, legalDocuments));
       tmpFiles.add(await _writeTmpMetaFile(directory, AppConfig.metaFileName));
 
       // Now rename all .tmp files atomically
