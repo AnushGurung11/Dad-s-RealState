@@ -12,7 +12,7 @@ import '../widgets/empty_state.dart';
 /// grid. Tapping a thumbnail opens a zoomable full-screen viewer; the pencil
 /// and trash buttons under it edit the label/description or delete that single
 /// document.
-class FlatLegalDocsScreen extends StatelessWidget {
+class FlatLegalDocsScreen extends StatefulWidget {
   const FlatLegalDocsScreen({
     super.key,
     required this.flatId,
@@ -23,12 +23,26 @@ class FlatLegalDocsScreen extends StatelessWidget {
   final String flatName;
 
   @override
+  State<FlatLegalDocsScreen> createState() => _FlatLegalDocsScreenState();
+}
+
+class _FlatLegalDocsScreenState extends State<FlatLegalDocsScreen> {
+  void _refresh() => setState(() {});
+
+  Future<void> _openViewer(BuildContext context, LegalDocument doc) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => _LegalDocViewer(doc: doc),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final docs = store.getLegalDocumentsForFlat(flatId);
+    final docs = store.getLegalDocumentsForFlat(widget.flatId);
 
     return Scaffold(
-      appBar: AppBar(title: Text('$flatName - Legal Docs')),
+      appBar: AppBar(title: Text('${widget.flatName} - Legal Docs')),
       body: docs.isEmpty
           ? const EmptyState(
               icon: Icons.gavel,
@@ -49,35 +63,31 @@ class FlatLegalDocsScreen extends StatelessWidget {
                         store: store,
                         doc: doc,
                       );
+                      if (mounted) _refresh();
                     },
                     onDelete: () async {
-                      await FlatLegalDocService.deleteDocument(
+                      final deleted = await FlatLegalDocService.deleteDocument(
                         context: context,
                         store: store,
                         doc: doc,
                       );
+                      if (deleted && mounted) _refresh();
                     },
                   ),
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          await FlatLegalDocService.addDocument(
+          final added = await FlatLegalDocService.addDocument(
             context: context,
             store: store,
-            flatId: flatId,
+            flatId: widget.flatId,
           );
+          if (added != null && mounted) _refresh();
         },
         icon: const Icon(Icons.add_a_photo),
         label: const Text('Add Document'),
       ),
-    );
-  }
-
-  Future<void> _openViewer(BuildContext context, LegalDocument doc) {
-    return showDialog<void>(
-      context: context,
-      builder: (ctx) => _LegalDocViewer(doc: doc),
     );
   }
 }

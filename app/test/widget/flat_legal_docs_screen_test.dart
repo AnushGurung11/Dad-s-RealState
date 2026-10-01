@@ -32,6 +32,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Deleting a record awaits a real file delete before the grid refreshes, and
+  /// `pumpAndSettle` cannot flush that dart:io future — so drain it for real.
+  Future<void> settleFileIo(WidgetTester tester) async {
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+  }
+
   setUp(() {
     store = InMemoryJsonStore();
   });
@@ -103,5 +110,67 @@ void main() {
 
     expect(find.byType(InteractiveViewer), findsOneWidget);
     expect(find.byIcon(Icons.share), findsOneWidget);
+  });
+
+  testWidgets('grid drops a card as soon as its document is deleted',
+      (tester) async {
+    store.upsertLegalDocument(doc('d1', 'Lease Contract'));
+    store.upsertLegalDocument(doc('d2', 'DEWA Registration'));
+    await pumpScreen(tester);
+
+    await tester.tap(find.byIcon(Icons.delete).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await settleFileIo(tester);
+
+    expect(find.byType(Card), findsOneWidget);
+    expect(find.text('DEWA Registration'), findsOneWidget);
+    expect(find.text('Lease Contract'), findsNothing);
+    expect(store.getLegalDocumentsForFlat('f1'), hasLength(1));
+  });
+
+  testWidgets('cancelling the delete confirmation keeps the document',
+      (tester) async {
+    store.upsertLegalDocument(doc('d1', 'Lease Contract'));
+    await pumpScreen(tester);
+
+    await tester.tap(find.byIcon(Icons.delete));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Card), findsOneWidget);
+    expect(find.text('Lease Contract'), findsOneWidget);
+  });
+
+  testWidgets('renaming a document in the edit dialog updates the grid',
+      (tester) async {
+    store.upsertLegalDocument(doc('d1', 'Lease Contract'));
+    await pumpScreen(tester);
+
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'Lease 2026');
+    await tester.tap(find.widgetWithText(FilledButton, 'Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lease 2026'), findsOneWidget);
+    expect(find.text('Lease Contract'), findsNothing);
+    expect(store.getLegalDocumentsForFlat('f1').single.label, 'Lease 2026');
+  });
+
+  testWidgets('clearing the description in the edit dialog falls back to the placeholder',
+      (tester) async {
+    store.upsertLegalDocument(doc('d1', 'Lease Contract', description: '2026'));
+    await pumpScreen(tester);
+
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).last, '');
+    await tester.tap(find.widgetWithText(FilledButton, 'Update'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No description'), findsOneWidget);
+    expect(store.getLegalDocumentsForFlat('f1').single.description, isNull);
   });
 }

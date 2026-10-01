@@ -145,10 +145,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
     final rent = person.monthlyRent ?? 0;
     final balance = TenureService.remainingBalance(person, rent, store.payments);
-    final payments = store.payments
-        .where((p) => p.personId == person.id)
-        .toList()
-      ..sort((a, b) => b.month.compareTo(a.month));
 
     final active = person.status == PersonStatus.active;
     final absconded = person.isAbsconded;

@@ -417,7 +417,7 @@ class _AddChequeSettingDialogState extends State<_AddChequeSettingDialog> {
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
               key: const Key('cheque_due_day'),
-              value: _dueDay,
+              initialValue: _dueDay,
               decoration: const InputDecoration(
                 labelText: 'Due day of month',
                 border: OutlineInputBorder(),
@@ -562,14 +562,18 @@ class _ChequePayDialogState extends State<_ChequePayDialog> {
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
               key: const Key('next_payment_day_field'),
-              value: _nextDueDay,
+              initialValue: _nextDueDay,
               decoration: const InputDecoration(
                 labelText: 'Next payment day of month (optional)',
                 border: OutlineInputBorder(),
                 helperText: 'Day of month for next payment (1–28)',
               ),
-              items: [const DropdownMenuItem<int>(value: null, child: Text('Auto (after months covered)'))]
-                ..addAll(List.generate(28, (i) => DropdownMenuItem(value: i + 1, child: Text('${i + 1}')))),
+              items: [
+                const DropdownMenuItem<int>(
+                    value: null, child: Text('Auto (after months covered)')),
+                ...List.generate(28,
+                    (i) => DropdownMenuItem<int>(value: i + 1, child: Text('${i + 1}'))),
+              ],
               onChanged: (v) => setState(() => _nextDueDay = v),
             ),
             const SizedBox(height: 12),

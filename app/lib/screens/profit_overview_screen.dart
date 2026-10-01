@@ -204,7 +204,7 @@ class _FlatProfitDetailScreenState extends State<_FlatProfitDetailScreen> {
                         type: p.type == PaymentType.deposit ? 'Deposit' : 'Rent',
                         amount: p.amountPaid,
                         isIncome: true,
-                        date: '${p.month}',
+                        date: p.month,
                         onEdit: () => _editPayment(context, p),
                         onDelete: () => _deletePayment(context, p.id),
                       ),
