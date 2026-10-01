@@ -1,19 +1,20 @@
 // ignore_for_file: use_build_context_synchronously, curly_braces_in_flow_control_structures
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
 import '../models/expense.dart';
 import '../navigation/routes.dart';
 import '../screens/profit_overview_screen.dart';
 import '../services/dashboard_service.dart';
+import '../services/month_selection.dart';
 import '../services/store_scope.dart';
 import '../services/transaction_edit_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/duration_format.dart';
 import '../utils/format.dart';
 import '../widgets/lucky_wordmark.dart';
+import '../widgets/month_picker_bar.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -21,6 +22,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    final month = MonthScope.monthOf(context);
     final summary = DashboardService().build(
       flats: store.flats,
       beds: store.beds,
@@ -29,7 +31,7 @@ class DashboardScreen extends StatelessWidget {
       expenses: store.expenses,
       leaseSettings: store.leaseChequeSettings,
       leaseChequeRecords: store.leaseChequeRecords,
-      month: monthKey(DateTime.now()),
+      month: month,
     );
 
     return ListView(
@@ -37,20 +39,22 @@ class DashboardScreen extends StatelessWidget {
       children: [
         const LuckyWordmark(size: 28),
         const SizedBox(height: 16),
-        _SummaryGrid(summary: summary),
+        const MonthPickerBar(),
+        _SummaryGrid(summary: summary, month: month),
         const SizedBox(height: 16),
         _NextLeaseDueCard(summary: summary),
         const SizedBox(height: 24),
-        const _RecentTransactionsSection(),
+        _RecentTransactionsSection(),
       ],
     );
   }
 }
 
 class _SummaryGrid extends StatelessWidget {
-  const _SummaryGrid({required this.summary});
+  const _SummaryGrid({required this.summary, required this.month});
 
   final DashboardSummary summary;
+  final String month;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +99,7 @@ class _SummaryGrid extends StatelessWidget {
           icon: Icons.warning_amber_outlined,
           label: 'Outstanding',
           value: '${summary.totalActiveTenantCount - summary.paidThisMonthCount}',
-          subtitle: 'tenants unpaid this month',
+          subtitle: 'tenants unpaid for ${MonthSelection.label(month)}',
           onTap: () => Navigator.pushNamed(context, Routes.tenants),
         ),
       ],
@@ -368,8 +372,7 @@ class _RecentTransactionsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recent Transactions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
+        Text('Recent Transactions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),        const SizedBox(height: 8),
         if (items.isEmpty)
           Text('No transactions yet.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant))
         else

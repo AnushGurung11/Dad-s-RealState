@@ -1,4 +1,3 @@
-import '../config.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/lease_cheque_setting.dart';
 import 'json_store.dart';
@@ -32,9 +31,11 @@ class FlatLeasePaymentService {
     return settings;
   }
 
-  /// Marks [setting]'s current cheque as paid:
-  ///  1. creates a [LeaseChequeRecord] with the entered amount/date,
-  ///  2. advances `nextDueDate`:
+/// Marks [setting]'s current cheque as paid:
+///  1. creates a [LeaseChequeRecord] with the entered amount/date. The
+///     record's month bucket comes from [paidDate], not from the due date, so
+///     the expense always lands in the month the money actually moved.
+///  2. advances `nextDueDate`:
   ///     - if [explicitNextDueDate] is provided, use it directly,
   ///     - else default to 1st day of month (current cycle month + monthsCovered) months later.
   /// Both writes happen as one batched store write. Returns the updated
@@ -58,7 +59,6 @@ class FlatLeasePaymentService {
       amount: amount,
       dueDate: setting.nextDueDate,
       paidDate: date,
-      month: monthKey(setting.nextDueDate),
       description: description,
     );
 

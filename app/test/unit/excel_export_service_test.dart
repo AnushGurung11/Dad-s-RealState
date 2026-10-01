@@ -203,7 +203,6 @@ void main() {
         amount: 10000,
         dueDate: DateTime(2024, 2, 1),
         paidDate: DateTime(2024, 2, 5),
-        month: '2024-02',
       ),
       LeaseChequeRecord(
         id: 'record2',
@@ -212,7 +211,6 @@ void main() {
         amount: 10000,
         dueDate: DateTime(2023, 12, 1),
         paidDate: DateTime(2023, 12, 10),
-        month: '2023-12',
       ),
     ];
 

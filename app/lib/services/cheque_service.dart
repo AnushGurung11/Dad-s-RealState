@@ -44,7 +44,6 @@ class ChequeService {
         amount: setting.amount,
         dueDate: setting.nextDueDate,
         paidDate: today,
-        month: monthKey(setting.nextDueDate),
       ),
       setting: setting.copyWith(nextDueDate: advanced),
     );

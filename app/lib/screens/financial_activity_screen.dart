@@ -1,15 +1,16 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../models/expense.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
 import '../services/expense_aggregation_service.dart';
+import '../services/month_selection.dart';
 import '../services/report_service.dart';
 import '../services/store_scope.dart';
 import '../services/transaction_edit_service.dart';
 import '../utils/format.dart';
+import '../widgets/month_picker_bar.dart';
 
 /// Financial Activity screen: per-flat grouped summary at top + full ledger below.
 class FinancialActivityScreen extends StatelessWidget {
@@ -20,7 +21,7 @@ class FinancialActivityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final month = monthKey(DateTime.now());
+    final month = MonthScope.monthOf(context);
     final allFlats = store.flats.where((f) => !f.archived).toList();
     final flats = initialFlatId == null
         ? allFlats
@@ -46,8 +47,9 @@ class FinancialActivityScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const MonthPickerBar(),
           // Per-flat grouped summary
-          Text('Per-Flat Breakdown — $month',
+          Text('Per-Flat Breakdown — ${MonthSelection.label(month)}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           for (final flat in flats)

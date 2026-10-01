@@ -10,7 +10,6 @@ import 'package:lucky/models/payment.dart';
 import 'package:lucky/models/person.dart';
 import 'package:lucky/navigation/routes.dart';
 import 'package:lucky/screens/dashboard_screen.dart';
-import 'package:lucky/screens/financial_activity_screen.dart';
 import 'package:lucky/screens/flats_screen.dart';
 import 'package:lucky/screens/profit_overview_screen.dart';
 import 'package:lucky/screens/vacant_beds_screen.dart';
@@ -180,7 +179,6 @@ void main() {
       amount: 1000,
       dueDate: DateTime.now(),
       paidDate: DateTime.now(),
-      month: currentMonth,
     ));
     await pumpDashboard(tester);
     expect(find.text('Recent Transactions'), findsOneWidget);

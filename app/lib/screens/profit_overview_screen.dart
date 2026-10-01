@@ -6,11 +6,13 @@ import '../models/expense.dart';
 import '../models/lease_cheque_record.dart';
 import '../models/payment.dart';
 import '../services/expense_aggregation_service.dart';
+import '../services/month_selection.dart';
 import '../services/report_service.dart';
 import '../services/store_scope.dart';
 import '../services/transaction_edit_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../widgets/month_picker_bar.dart';
 
 /// Profit overview: net profit + total expenses at top, per-flat breakdown list.
 /// Tapping a flat opens a detail with Profit (rent/deposit) and Expense sections.
@@ -20,7 +22,7 @@ class ProfitOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final month = monthKey(DateTime.now());
+    final month = MonthScope.monthOf(context);
     final flats = store.flats.where((f) => !f.archived).toList();
 
     double totalIncome = 0;
@@ -47,6 +49,7 @@ class ProfitOverviewScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const MonthPickerBar(),
           // Summary card
           Card(
             margin: const EdgeInsets.only(bottom: 16),
@@ -55,7 +58,7 @@ class ProfitOverviewScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('This Month — $month',
+                  Text('${MonthSelection.label(month)} — $month',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 12),
                   Row(
@@ -145,7 +148,7 @@ class _FlatProfitDetailScreenState extends State<_FlatProfitDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final month = monthKey(DateTime.now());
+    final month = MonthScope.monthOf(context);
 
     // Rent + deposit payments for this flat this month
     final rentPayments = store.payments
@@ -170,10 +173,11 @@ class _FlatProfitDetailScreenState extends State<_FlatProfitDetailScreen> {
         leaseRecords.fold(0.0, (sum, r) => sum + r.amount);
 
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.flatName} — $month')),
+      appBar: AppBar(title: Text(widget.flatName)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          MonthPickerBar(showJumpMenu: false),
           // Profit section
           Card(
             margin: const EdgeInsets.only(bottom: 16),
@@ -193,7 +197,7 @@ class _FlatProfitDetailScreenState extends State<_FlatProfitDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   if (rentPayments.isEmpty && leaseRecords.isEmpty)
-                    const Text('No income this month.', style: TextStyle(color: Colors.grey))
+                    Text('No income for ${MonthSelection.label(month)}.', style: const TextStyle(color: Colors.grey))
                   else ...[
                     for (final p in rentPayments)
                       _TransactionRow(

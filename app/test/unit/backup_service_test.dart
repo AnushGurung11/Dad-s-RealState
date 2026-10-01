@@ -115,7 +115,6 @@ void main() {
       amount: 10000,
       dueDate: DateTime(2024, 1, 1),
       paidDate: DateTime(2024, 1, 5),
-      month: '2024-01',
     );
     store.upsertChequeRecord(chequeRecord);
 

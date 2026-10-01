@@ -93,7 +93,6 @@ class _FlatsScreenState extends State<FlatsScreen> {
             amount: amount,
             dueDate: setting.nextDueDate,
             paidDate: DateTime.now(),
-            month: monthKey(setting.nextDueDate),
           );
           store.upsertChequeRecord(record);
         }

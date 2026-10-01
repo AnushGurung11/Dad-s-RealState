@@ -27,7 +27,7 @@ void main() {
     store.upsertExpense(Expense(id: 'e1', flatId: 'f1', category: ExpenseCategory.electricity, amount: 100, date: DateTime.now()));
     store.upsertExpense(Expense(id: 'e2', flatId: 'f2', category: ExpenseCategory.water, amount: 50, date: DateTime.now()));
     // Lease
-    store.upsertChequeRecord(LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 300, dueDate: DateTime.now(), paidDate: DateTime.now(), month: monthKey(DateTime.now())));
+    store.upsertChequeRecord(LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 300, dueDate: DateTime.now(), paidDate: DateTime.now()));
   });
 
   Future<void> pumpScreen(WidgetTester tester) async {

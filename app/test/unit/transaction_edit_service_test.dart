@@ -97,7 +97,6 @@ void main() {
       amount: 4000,
       dueDate: DateTime(2026, 10, 1),
       paidDate: DateTime(2026, 10, 5),
-      month: '2026-10',
     );
     store.upsertChequeRecord(record);
     final originalDue = setting.nextDueDate;
@@ -144,7 +143,6 @@ void main() {
       amount: 4000,
       dueDate: DateTime(2026, 10, 1),
       paidDate: DateTime(2026, 10, 5),
-      month: '2026-10',
     );
     store.upsertChequeRecord(record);
     final originalDue = setting.nextDueDate;

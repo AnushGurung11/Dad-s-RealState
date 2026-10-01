@@ -179,7 +179,7 @@ void main() {
 
   testWidgets('lease/cheque payments appear inline in a flat expense list, tagged distinctly', (tester) async {
     store.upsertExpense(Expense(id: 'e1', flatId: 'f1', category: ExpenseCategory.electricity, amount: 100, date: DateTime(2026, 5, 10)));
-    store.upsertChequeRecord(LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 500, dueDate: DateTime(2026, 5, 1), paidDate: DateTime(2026, 5, 15), month: '2026-05'));
+    store.upsertChequeRecord(LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 500, dueDate: DateTime(2026, 5, 1), paidDate: DateTime(2026, 5, 15)));
     await pumpExpenses(tester);
     await tester.tap(find.text('Alpha').first);
     await tester.pumpAndSettle();

@@ -88,7 +88,6 @@ void main() {
         amount: 5000,
         dueDate: DateTime(2026, 1, 20),
         paidDate: DateTime(2026, 1, 21),
-        month: '2026-01',
       );
 
       final store = newStore();

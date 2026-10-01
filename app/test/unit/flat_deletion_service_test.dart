@@ -55,7 +55,6 @@ void main() {
         amount: 10000,
         dueDate: dueDate ?? DateTime(2026, 3, 1),
         paidDate: DateTime(2026, 3, 1),
-        month: '2026-03',
       );
 
   test('brand-new flat with zero history hard-deletes', () {

@@ -18,8 +18,8 @@ void main() {
       Expense(id: 'e3', flatId: 'f2', category: ExpenseCategory.electricity, amount: 999, date: DateTime(2026, 1, 10)),
     ];
     final leases = [
-      LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 200, dueDate: DateTime(2026, 1, 1), paidDate: DateTime(2026, 1, 5), month: '2026-01'),
-      LeaseChequeRecord(id: 'l2', flatId: 'f1', ownerName: 'Owner', amount: 300, dueDate: DateTime(2026, 2, 1), paidDate: DateTime(2026, 2, 5), month: '2026-02'),
+      LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 200, dueDate: DateTime(2026, 1, 1), paidDate: DateTime(2026, 1, 5)),
+      LeaseChequeRecord(id: 'l2', flatId: 'f1', ownerName: 'Owner', amount: 300, dueDate: DateTime(2026, 2, 1), paidDate: DateTime(2026, 2, 5)),
     ];
 
     final totalJan = ExpenseAggregationService.totalExpensesForFlat(
@@ -60,7 +60,7 @@ void main() {
       Expense(id: 'e1', flatId: 'f1', category: ExpenseCategory.electricity, amount: 100, date: DateTime(2026, 1, 10)),
     ];
     final leases = [
-      LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 200, dueDate: DateTime(2026, 1, 1), paidDate: DateTime(2026, 1, 5), month: '2026-01'),
+      LeaseChequeRecord(id: 'l1', flatId: 'f1', ownerName: 'Owner', amount: 200, dueDate: DateTime(2026, 1, 1), paidDate: DateTime(2026, 1, 5)),
     ];
     final month = '2026-01';
 

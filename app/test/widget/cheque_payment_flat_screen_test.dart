@@ -232,7 +232,7 @@ void main() {
   testWidgets('past records show working inline edit/delete', (tester) async {
     final due = DateTime(2026, 10, 25);
     store.upsertChequeSetting(setting(id: 's1', flatId: 'f1', nextDueDate: due));
-    store.upsertChequeRecord(LeaseChequeRecord(id: 'r1', flatId: 'f1', ownerName: 'Owner', amount: 4000, dueDate: due, paidDate: DateTime(2026, 9, 20), month: '2026-09'));
+    store.upsertChequeRecord(LeaseChequeRecord(id: 'r1', flatId: 'f1', ownerName: 'Owner', amount: 4000, dueDate: due, paidDate: DateTime(2026, 9, 20)));
     await pumpScreen(tester);
 
     // Tap on the flat card to navigate to payment history

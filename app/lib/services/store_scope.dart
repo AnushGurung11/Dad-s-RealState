@@ -12,6 +12,11 @@ class StoreScope extends InheritedWidget {
   static JsonStore of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<StoreScope>()!.store;
 
+  /// The store, or `null` when no [StoreScope] is mounted. Lets widgets that
+  /// can degrade gracefully (e.g. the month jump menu) probe before reading.
+  static JsonStore? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<StoreScope>()?.store;
+
   @override
   bool updateShouldNotify(StoreScope oldWidget) => store != oldWidget.store;
 }

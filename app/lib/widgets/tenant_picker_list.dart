@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../models/person.dart';
+import '../services/month_selection.dart';
 import '../services/store_scope.dart';
 import '../services/tenant_rent_payment_service.dart';
 import '../theme/flat_color.dart';
@@ -269,7 +269,7 @@ class _TenantPickerListState extends State<TenantPickerList> {
     if (!widget.showPaidBadge || archived) {
       return const Icon(Icons.chevron_right);
     }
-    final month = monthKey(DateTime.now());
+    final month = MonthScope.monthOf(context);
     final paid = TenantRentPaymentService.hasPaidForMonth(
         StoreScope.of(context).payments, person.id, month);
     return paid

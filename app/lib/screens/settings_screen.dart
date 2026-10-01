@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../config.dart';
 import '../navigation/routes.dart';
 import '../services/backup_service.dart';
+import '../services/demo_data_service.dart';
 import '../services/excel_export_service.dart';
 import '../services/store_scope.dart';
 import '../widgets/lucky_wordmark.dart';
@@ -183,6 +184,20 @@ class _DataSectionState extends State<_DataSection> {
             subtitle: const Text('View stored data files in device file explorer'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _openDataFolder,
+          ),
+        ),
+        Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            key: const Key('settings_load_demo_data'),
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: const Text('Load sample data'),
+            subtitle: Text(
+              'Fill this device with ${DemoDataService.monthsOfHistory} months of '
+              'demo flats, tenants and transactions',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _loadDemoData,
           ),
         ),
         Card(
@@ -501,6 +516,59 @@ class _DataSectionState extends State<_DataSection> {
         SnackBar(content: Text('Failed to open folder: $e')),
       );
     }
+  }
+
+  Future<void> _loadDemoData() async {
+    final store = StoreScope.of(context);
+    final service = DemoDataService(store);
+
+    if (service.hasExistingData) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This device already has flats or tenants. '
+            'Reset all data first to load sample data.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Load sample data?'),
+        content: const Text(
+          'This adds 3 demo flats with tenants and three months of rent, '
+          'utility and lease records so you can look around. You can remove it '
+          'later with "Reset all data".',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('demo_data_confirm'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Load'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    service.seed();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Loaded ${DemoDataService.monthsOfHistory} months of sample data. '
+          'Use the month arrows to look back.',
+        ),
+      ),
+    );
   }
 
   Future<void> _resetData() async {

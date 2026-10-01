@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../config.dart';
 import '../navigation/routes.dart';
 import '../services/expense_aggregation_service.dart';
+import '../services/month_selection.dart';
 import '../services/report_service.dart';
 import '../services/store_scope.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../widgets/month_picker_bar.dart';
 
 enum ReportScope { thisMonth, twelveMonths, yearly }
 
@@ -62,6 +64,7 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
           ),
         ],
         const SizedBox(height: 16),
+        if (_scope == ReportScope.thisMonth) const MonthPickerBar(),
         if (_scope == ReportScope.thisMonth) _ThisMonthBreakdown(flatId: _selectedFlatId),
         if (_scope == ReportScope.twelveMonths) _TwelveMonthsTable(flatId: _selectedFlatId),
         if (_scope == ReportScope.yearly) _YearlyTable(year: _selectedYear, flatId: _selectedFlatId),
@@ -111,7 +114,7 @@ class _ThisMonthBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final month = monthKey(DateTime.now());
+    final month = MonthScope.monthOf(context);
     final flats = flatId == null
         ? store.flats.where((f) => !f.archived).toList()
         : store.flats.where((f) => f.id == flatId).toList();

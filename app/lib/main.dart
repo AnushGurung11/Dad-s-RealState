@@ -8,6 +8,7 @@ import 'navigation/bottom_nav.dart';
 import 'navigation/routes.dart';
 import 'services/archive_service.dart';
 import 'services/json_store.dart';
+import 'services/month_selection.dart';
 import 'services/store_scope.dart';
 import 'theme/app_theme.dart';
 import 'widgets/lucky_wordmark.dart';
@@ -59,6 +60,7 @@ class StoreLoader extends StatefulWidget {
 
 class _StoreLoaderState extends State<StoreLoader> {
   late final Future<JsonStore> _storeFuture;
+  final MonthSelection _monthSelection = MonthSelection();
 
   @override
   void initState() {
@@ -120,7 +122,13 @@ class _StoreLoaderState extends State<StoreLoader> {
             ),
           );
         }
-        return StoreScope(store: snapshot.data!, child: widget.child);
+        return StoreScope(
+          store: snapshot.data!,
+          child: MonthScope(
+            selection: _monthSelection,
+            child: widget.child,
+          ),
+        );
       },
     );
   }

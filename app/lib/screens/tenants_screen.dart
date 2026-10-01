@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../config.dart';
 import '../models/payment.dart';
 import '../models/person.dart';
 import '../navigation/routes.dart';
+import '../services/month_selection.dart';
 import '../services/store_scope.dart';
 import '../theme/flat_color.dart';
+import '../widgets/month_picker_bar.dart';
 import '../widgets/person_avatar.dart';
 import '../widgets/status_badge.dart';
 
@@ -83,7 +84,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final month = monthKey(DateTime.now());
+    final month = MonthScope.monthOf(context);
 
     final needle = _query.trim().toLowerCase();
     
@@ -109,6 +110,7 @@ class _TenantsScreenState extends State<TenantsScreen> {
     }).toList();
 
     final children = <Widget>[
+      const MonthPickerBar(),
       TextField(
         key: const Key('tenants_search_field'),
         decoration: const InputDecoration(

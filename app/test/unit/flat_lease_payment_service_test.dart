@@ -47,7 +47,8 @@ void main() {
     expect(record.amount, 3500); // edited amount, not the default 4000
     expect(record.dueDate, DateTime(2026, 10, 25));
     expect(record.paidDate, DateTime(2026, 9, 20));
-    expect(record.month, monthKey(DateTime(2026, 10, 25)));
+    // Month is derived from paidDate (cash basis), NOT the October due date.
+    expect(record.month, monthKey(DateTime(2026, 9, 20)));
 
     expect(updated.nextDueDate, DateTime(2026, 12, 1));
   });
