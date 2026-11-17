@@ -249,7 +249,7 @@ void main() {
     } catch (_) {}
   });
 
-  test('exported workbook contains all 7 sheets with correct headers', () async {
+  test('exported workbook contains all 9 sheets with correct headers', () async {
     final file = await excelService.exportToExcel();
     expect(await file.exists(), isTrue);
 
@@ -259,14 +259,16 @@ void main() {
     // Check sheet names
     final sheetNames = excel.tables.keys.toSet();
     expect(sheetNames, contains('Read me'));
+    expect(sheetNames, contains('Summary'));
     expect(sheetNames, contains('Tenants'));
     expect(sheetNames, contains('Flats & Beds'));
     expect(sheetNames, contains('Financial Report'));
     expect(sheetNames, contains('Cheque Payment History'));
     expect(sheetNames, contains('Tenant Rent History'));
     expect(sheetNames, contains('Expenses'));
+    expect(sheetNames, contains('Legal Documents'));
     // Allow for Sheet1 if not deleted (some Excel versions keep it)
-    expect(sheetNames.length, greaterThanOrEqualTo(7));
+    expect(sheetNames.length, greaterThanOrEqualTo(9));
 
     // Check headers for each sheet
     final readMeSheet = excel.tables['Read me']!;

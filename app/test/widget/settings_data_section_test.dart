@@ -54,7 +54,7 @@ void main() {
 
       expect(find.text('Export all data and photos as a zip file'), findsOneWidget);
       expect(find.text('Replace all data with a backup zip (destructive)'), findsOneWidget);
-      expect(find.text('One-way export for viewing (7 sheets, never re-imported)'), findsOneWidget);
+      expect(find.text('One-way export for viewing (9 sheets, never re-imported)'), findsOneWidget);
     });
 
     testWidgets('Create backup shows busy indicator while working', (tester) async {

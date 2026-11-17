@@ -164,7 +164,7 @@ class _DataSectionState extends State<_DataSection> {
             key: const Key('settings_export_excel'),
             leading: const Icon(Icons.table_chart_outlined),
             title: const Text('Export to Excel'),
-            subtitle: const Text('One-way export for viewing (7 sheets, never re-imported)'),
+            subtitle: const Text('One-way export for viewing (9 sheets, never re-imported)'),
             trailing: _isBusyFor(_DataAction.exportExcel)
                 ? const SizedBox(
                     width: 24,
