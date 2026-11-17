@@ -6,18 +6,25 @@
 #   ref        optional tag/branch name for the notification message
 #
 # Environment:
-#   SA_JSON    service-account JSON key (raw or base64) — REQUIRED
-#   FOLDER_ID  Drive folder (shared with the service account) — REQUIRED
-#   DISCORD_WEBHOOK_URL  Discord webhook URL — OPTIONAL (skips Discord message)
+#   SA_JSON    service-account JSON key (raw or base64) - REQUIRED
+#   FOLDER_ID  Drive folder (shared with the service account) - REQUIRED
+#   DISCORD_WEBHOOK_URL  Discord webhook URL - OPTIONAL (skips Discord message)
 #
-# Expects exactly one APK at app/../apk/renttrack-*.apk (download-artifact path).
+# Expects exactly one APK in apk/ (the release workflow renames it to
+# LUCK-<version>+<build>.apk before uploading it as an artifact).
 
 set -euo pipefail
 
 REF="${1:-unknown}"
 
-APK_FILE=$(ls apk/renttrack-*.apk | head -1)
-VERSION=$(basename "$APK_FILE" | sed 's/renttrack-//; s/\.apk$//')
+APK_FILE=$(find apk -maxdepth 1 -type f -name '*.apk' -print -quit)
+if [ -z "$APK_FILE" ]; then
+  echo "::error::No APK found in apk/. Contents:"
+  ls -la apk || true
+  exit 1
+fi
+VERSION=$(basename "$APK_FILE" .apk | sed 's/^LUCK-//')
+echo "Uploading $APK_FILE (version $VERSION, ref $REF)."
 
 if [ -z "${SA_JSON:-}" ] || [ -z "${FOLDER_ID:-}" ]; then
   echo "::error::GDRIVE_SERVICE_ACCOUNT_JSON and GDRIVE_FOLDER_ID secrets are required"
@@ -57,27 +64,29 @@ FILE_ID=$(curl -fsS -X POST \
   -F "file=@$APK_FILE;type=application/vnd.android.package-archive" \
   "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart" |
   jq -r .id)
+
+if [ -z "$FILE_ID" ] || [ "$FILE_ID" = "null" ]; then
+  echo "::error::Drive upload did not return a file id"
+  exit 1
+fi
 echo "Uploaded to Drive (file id: $FILE_ID)."
 
-# --- Make it downloadable by anyone with the link.
+# --- Make the file readable by anyone with the link.
 curl -fsS -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"role":"reader","type":"anyone"}' \
-  "https://www.googleapis.com/drive/v3/files/$FILE_ID/permissions" >/dev/null
-
-LINK=$(curl -fsS -H "Authorization: Bearer $TOKEN" \
-  "https://www.googleapis.com/drive/v3/files/$FILE_ID?fields=webContentLink" |
-  jq -r .webContentLink)
+  "https://www.googleapis.com/drive/v3/files/$FILE_ID/permissions" > /dev/null
+LINK="https://drive.google.com/file/d/$FILE_ID/view?usp=sharing"
 echo "Public link: $LINK"
-echo "drive_link=$LINK" >> "$GITHUB_OUTPUT"
 
-# --- Notify the Discord channel (optional).
+# --- Optional Discord notification.
 if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
-  MESSAGE="New renttrack release **$VERSION** is ready.
-Download APK (Google Drive): $LINK"
-  PAYLOAD=$(jq -n --arg t "$MESSAGE" '{content: $t}')
   curl -fsS -X POST -H "Content-Type: application/json" \
-    -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" >/dev/null
-  echo "Posted link to Discord."
+    -d "$(jq -n --arg ref "$REF" --arg ver "$VERSION" --arg link "$LINK" \
+      '{content: ("LUCKY " + $ver + " is ready (" + $ref + "): " + $link)}')" \
+    "$DISCORD_WEBHOOK_URL" > /dev/null
+  echo "Posted to Discord."
+else
+  echo "DISCORD_WEBHOOK_URL not set; skipping Discord notification."
 fi

@@ -20,6 +20,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
@@ -114,6 +115,7 @@ jobs:
   upload:
     name: Upload APK to Google Drive + notify Discord
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: release
     defaults:
       run:
