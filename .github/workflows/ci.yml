@@ -6,13 +6,22 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 defaults:
   run:
     working-directory: app
 
 jobs:
   build:
+    name: analyze · test · build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,6 +29,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          # Pinned so CI matches the version the app is developed against.
+          flutter-version: '3.44.2'
           channel: stable
           cache: true
 
@@ -29,8 +40,17 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      - name: Test
-        run: flutter test
+      - name: Test with coverage
+        run: flutter test --coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: app/coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build debug APK
         run: flutter build apk --debug
@@ -38,6 +58,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: renttrack-debug-apk
+          name: lucky-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+          retention-days: 7
