@@ -1,27 +1,33 @@
 # OS junk
 .DS_Store
 Thumbs.db
+ehthumbs.db
 desktop.ini
 *.log
+$RECYCLE.BIN/
 
 # Editors / IDEs
 .idea/
+.vscode/
 *.iml
 *.ipr
 *.iws
-.vscode/
 *.swp
 
 # Flutter / Dart
 build/
 .dart_tool/
+.dart_tool/extension_discovery/
+.flutter-plugins
 .flutter-plugins-dependencies
+.flutter-devtools/
 .pub-cache/
 .pub/
 /coverage/
 captures/
 app.*.symbols
 app.*.map.json
+.fvm/
 
 # Android
 local.properties
@@ -39,12 +45,28 @@ release.keystore
 **/*.keystore
 **/*.jks
 **/*.p12
-vision.md
-chunk*.md
 
-# Incoming patch instructions - never commit these
-patch*.md
+# Environment files
+.env
+.env.*
+!.env.example
 
 # Google Cloud service account keys - never commit these
 *service-account*.json
 *service_account*.json
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Packaged artifacts and local exports
+*.apk
+*.aab
+*.ipa
+*.zip
+*.xlsx
+
+# Development notes and prompt drafts - keep these local
+vision.md
+chunk*.md
+patch*.md
+remaining.md
+conversion-error.log
